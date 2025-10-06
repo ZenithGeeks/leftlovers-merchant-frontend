@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "leftlovers-merchant-fronend",
+    "name": "leftlovers-merchant-frontend",
     "slug": "leftlovers-merchant-fronend",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "leftloversmerchantfronend",
+    "scheme": "leftloversmerchantfrontend",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
