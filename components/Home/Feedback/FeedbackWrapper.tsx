@@ -18,7 +18,6 @@ export default function FeedbackWrapper() {
       number
     >;
     reviews.forEach((r) => {
-      // Round 4.5 → 4, because bar distribution typically groups to whole numbers
       const rating = Math.round(r.rating) as 1 | 2 | 3 | 4 | 5;
       dist[rating] += 1;
     });

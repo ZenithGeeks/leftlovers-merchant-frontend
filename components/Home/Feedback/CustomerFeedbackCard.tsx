@@ -29,8 +29,10 @@ export default function CustomerFeedbackCard({
   const { width } = useWindowDimensions();
   const isSmall = width < 360;
 
-  const pad = isSmall ? 12 : 16;
-  const radius = 20;
+  // unified design constants
+  const radius = 14;
+  const padding = isSmall ? 12 : 16;
+  const gap = isSmall ? 10 : 14;
   const barTrack = "#E5E7EB";
   const barFill = "#FACC15";
   const starColor = "#FACC15";
@@ -38,9 +40,11 @@ export default function CustomerFeedbackCard({
   /** Round rating to nearest 0.5 for half-stars */
   const roundedAvg = Math.round(average * 2) / 2;
 
+  // --- Star renderer with half-star logic ---
   const renderStars = (rating: number) => {
     const fullStars = Math.floor(rating);
     const hasHalf = rating % 1 !== 0;
+
     return Array.from({ length: 5 }).map((_, i) => {
       const index = i + 1;
       if (index <= fullStars)
@@ -65,6 +69,7 @@ export default function CustomerFeedbackCard({
     });
   };
 
+  // --- Distribution bars ---
   const total = Math.max(
     totalReviews,
     Object.values(distribution).reduce((a, b) => a + b, 0)
@@ -73,10 +78,15 @@ export default function CustomerFeedbackCard({
   const renderBar = (star: 1 | 2 | 3 | 4 | 5) => {
     const count = distribution[star] ?? 0;
     const pct = total > 0 ? (count / total) * 100 : 0;
+
     return (
       <View
         key={star}
-        style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 8,
+        }}
       >
         <Text
           style={{
@@ -89,6 +99,7 @@ export default function CustomerFeedbackCard({
         >
           {star}
         </Text>
+
         <View
           style={{
             flex: 1,
@@ -106,6 +117,7 @@ export default function CustomerFeedbackCard({
             }}
           />
         </View>
+
         <Text
           style={{
             width: 36,
@@ -126,21 +138,28 @@ export default function CustomerFeedbackCard({
       onPress={onPress}
       style={({ pressed }) => [
         {
-          padding: pad,
+          padding,
           borderRadius: radius,
-          backgroundColor: "#FFF",
+          backgroundColor: "#FFFFFF",
           borderWidth: 1,
-          borderColor: "#D9D9D9",
+          borderColor: "#E5E7EB",
           shadowColor: "#000",
           shadowOpacity: 0.06,
           shadowRadius: 10,
           shadowOffset: { width: 0, height: 4 },
+          elevation: 2,
         },
-        pressed && { opacity: 0.96 },
+        pressed && { opacity: 0.95, transform: [{ scale: 0.997 }] },
       ]}
     >
       {/* Header */}
-      <View style={{ flexDirection: "row", alignItems: "center" }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          marginBottom: gap,
+        }}
+      >
         <Text
           style={{
             flex: 1,
@@ -151,6 +170,7 @@ export default function CustomerFeedbackCard({
         >
           {title}
         </Text>
+
         <View
           style={{
             width: 34,
@@ -171,16 +191,20 @@ export default function CustomerFeedbackCard({
           flexDirection: "row",
           alignItems: "center",
           gap: 16,
-          marginTop: 12,
         }}
       >
-        {/* Left: bars */}
+        {/* Left: bar distribution */}
         <View style={{ flex: 1, gap: 10 }}>
           {[5, 4, 3, 2, 1].map((s) => renderBar(s as 1 | 2 | 3 | 4 | 5))}
         </View>
 
         {/* Right: summary */}
-        <View style={{ width: isSmall ? 108 : 120, alignItems: "center" }}>
+        <View
+          style={{
+            width: isSmall ? 108 : 120,
+            alignItems: "center",
+          }}
+        >
           <Text
             style={{
               fontFamily: Fonts.bold,
@@ -216,7 +240,7 @@ export default function CustomerFeedbackCard({
                 color: "#EF4444",
               }}
             >
-              {warnings} warning!
+              {warnings} warning{warnings > 1 ? "s" : ""}!
             </Text>
           )}
         </View>

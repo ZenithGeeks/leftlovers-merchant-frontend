@@ -1,13 +1,13 @@
 import { Colors, Fonts } from "@/constants/theme";
 import React, { useMemo, useRef, useState } from "react";
 import {
-    findNodeHandle,
-    Modal,
-    Pressable,
-    StyleSheet,
-    Text,
-    UIManager,
-    View,
+  findNodeHandle,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  UIManager,
+  View,
 } from "react-native";
 import { ChevronDownIcon, ChevronUpIcon } from "react-native-heroicons/mini";
 
@@ -45,7 +45,6 @@ export default function ShopStatusDropdown({
 
   const onToggle = () => {
     if (disabled) return;
-    // measure anchor so menu can appear below the button
     const node = findNodeHandle(buttonRef.current);
     if (node) {
       UIManager.measureInWindow(node, (x, y, w, h) => {
@@ -154,6 +153,7 @@ function styles(size: "sm" | "md") {
       shadowRadius: 8,
       shadowOffset: { width: 0, height: 2 },
       elevation: 2,
+      minWidth: 120,
     },
     buttonPressed: { opacity: 0.9 },
     buttonDisabled: { opacity: 0.5 },
@@ -184,7 +184,7 @@ function styles(size: "sm" | "md") {
       borderRadius: 12,
     },
     itemActive: {
-      backgroundColor: "#F2F8F5", // faint green background
+      backgroundColor: "#F2F8F5",
     },
     itemPressed: { opacity: 0.85 },
     itemText: {
@@ -193,7 +193,7 @@ function styles(size: "sm" | "md") {
       color: "#11181C",
     },
     itemTextActive: {
-      color: Colors.light.accent, // your #009E45
+      color: Colors.light.accent,
       fontFamily: Fonts.semibold,
     },
   });
