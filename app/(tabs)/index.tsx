@@ -91,7 +91,7 @@ export default function HomeScreen() {
 
           {/* greeting + role */}
           <View style={styles.userRow}>
-            <Text style={styles.greetingText}>Hi, {User.name}</Text>
+            <Text style={styles.greetingText}>Hello, {User.name.split(" ")[0]} </Text>
             <View style={styles.roleBadge}>
               <Text style={styles.roleText}>{User.role.replace("_", " ")}</Text>
             </View>
