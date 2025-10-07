@@ -1,3 +1,4 @@
+// app/_layout.tsx
 import {
   Poppins_400Regular,
   Poppins_500Medium,
@@ -5,27 +6,25 @@ import {
   Poppins_700Bold,
   useFonts,
 } from "@expo-google-fonts/poppins";
-import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider,
-} from "@react-navigation/native";
+import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { Stack } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
+import React, { useEffect } from "react";
 import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import * as SplashScreen from "expo-splash-screen";
-import { useEffect } from "react";
 
-SplashScreen.preventAutoHideAsync();
+// Keep splash visible while fonts load
+try { SplashScreen.preventAutoHideAsync(); } catch {}
 
 export const unstable_settings = {
-  anchor: "(tabs)",
+  initialRouteName: "(tabs)", // start on your tab layout
 };
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
     Poppins_500Medium,
@@ -34,25 +33,20 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    if (fontsLoaded) {
-      SplashScreen.hideAsync();
-    }
+    if (fontsLoaded) SplashScreen.hideAsync();
   }, [fontsLoaded]);
 
-  if (!fontsLoaded) {
-    return null;
-  }
+  if (!fontsLoaded) return null;
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="modal"
-          options={{ presentation: "modal", title: "Modal" }}
-        />
+      {/* Hide headers globally */}
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="(pages)" />
       </Stack>
-      <StatusBar style="auto" />
+
+      <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
     </ThemeProvider>
   );
 }

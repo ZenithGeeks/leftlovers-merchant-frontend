@@ -1,6 +1,7 @@
 
 import PopularMenuItem from '@/components/Home/Dashboard/PopularMenuItem';
 import PopularMenuSection from '@/components/Home/Dashboard/PopularMenuSection';
+import FeedbackWrapper from '@/components/Home/Feedback/FeedbackWrapper';
 import InformationCard from '@/components/Home/InformationCard';
 import ShopStatusDropdown from '@/components/Home/Status-Dropdown';
 import { ThemedView } from '@/components/themed-view';
@@ -87,6 +88,8 @@ export default function HomeScreen() {
               leftoverQty={item.leftOverQty}           />
           ))}
         </PopularMenuSection>
+
+        <FeedbackWrapper />
       </ThemedView>
     </ScrollView>
   );
