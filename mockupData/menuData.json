@@ -1,0 +1,118 @@
+{
+  "merchant": {
+    "id": "MERCHANT001",
+    "name": "Green Bowl Healthy Cafe"
+  },
+  "categories": [
+    {
+      "id": "CAT001",
+      "merchantId": "MERCHANT001",
+      "parentId": null,
+      "name": "Rice Bowls"
+    },
+    {
+      "id": "CAT002",
+      "merchantId": "MERCHANT001",
+      "parentId": null,
+      "name": "Salads"
+    },
+    {
+      "id": "CAT003",
+      "merchantId": "MERCHANT001",
+      "parentId": null,
+      "name": "Smoothies"
+    },
+    {
+      "id": "CAT004",
+      "merchantId": "MERCHANT001",
+      "parentId": "CAT002",
+      "name": "Premium Salads"
+    }
+  ],
+  "menuItems": [
+    {
+      "id": "ITEM001",
+      "merchantId": "MERCHANT001",
+      "categoryId": "CAT001",
+      "name": "Teriyaki Chicken Bowl",
+      "description": "Grilled chicken glazed with teriyaki sauce served with steamed rice and veggies.",
+      "basePrice": 95.00,
+      "originalPrice": 120.00,
+      "leftoverQty": 8,
+      "expiresAt": "2025-10-07T18:00:00.000Z",
+      "status": "PUBLISHED",
+      "createdAt": "2025-10-06T12:00:00.000Z",
+      "photoUrl": "https://images.unsplash.com/photo-1551183053-bf91a1d81141?q=80&w=800"
+    },
+    {
+      "id": "ITEM002",
+      "merchantId": "MERCHANT001",
+      "categoryId": "CAT001",
+      "name": "Spicy Salmon Don",
+      "description": "Fresh salmon with a spicy mayo glaze served over sushi rice.",
+      "basePrice": 150.00,
+      "originalPrice": 180.00,
+      "leftoverQty": 0,
+      "expiresAt": "2025-10-07T20:00:00.000Z",
+      "status": "PUBLISHED",
+      "createdAt": "2025-10-06T12:30:00.000Z",
+      "photoUrl": "https://images.unsplash.com/photo-1544025162-d76694265947?q=80&w=800"
+    },
+    {
+      "id": "ITEM003",
+      "merchantId": "MERCHANT001",
+      "categoryId": "CAT002",
+      "name": "Caesar Salad",
+      "description": "Crisp romaine lettuce, parmesan, croutons, and creamy Caesar dressing.",
+      "basePrice": 80.00,
+      "originalPrice": 100.00,
+      "leftoverQty": 2,
+      "expiresAt": "2025-10-08T15:00:00.000Z",
+      "status": "PUBLISHED",
+      "createdAt": "2025-10-06T13:00:00.000Z",
+      "photoUrl": "https://images.unsplash.com/photo-1604908177522-040a53b89f9a?q=80&w=800"
+    },
+    {
+      "id": "ITEM004",
+      "merchantId": "MERCHANT001",
+      "categoryId": "CAT004",
+      "name": "Grilled Salmon Salad",
+      "description": "Mixed greens, grilled salmon, and citrus dressing — a premium healthy meal.",
+      "basePrice": 140.00,
+      "originalPrice": 165.00,
+      "leftoverQty": 3,
+      "expiresAt": "2025-10-07T19:30:00.000Z",
+      "status": "PUBLISHED",
+      "createdAt": "2025-10-06T13:30:00.000Z",
+      "photoUrl": "https://images.unsplash.com/photo-1604908554324-2e36f3e94a3d?q=80&w=800"
+    },
+    {
+      "id": "ITEM005",
+      "merchantId": "MERCHANT001",
+      "categoryId": "CAT003",
+      "name": "Mango Smoothie",
+      "description": "Fresh Thai mango blended with yogurt and honey.",
+      "basePrice": 65.00,
+      "originalPrice": 80.00,
+      "leftoverQty": 12,
+      "expiresAt": "2025-10-08T17:00:00.000Z",
+      "status": "PUBLISHED",
+      "createdAt": "2025-10-06T14:00:00.000Z",
+      "photoUrl": "https://images.unsplash.com/photo-1605475128023-b3f62a4e6e47?q=80&w=800"
+    },
+    {
+      "id": "ITEM006",
+      "merchantId": "MERCHANT001",
+      "categoryId": "CAT003",
+      "name": "Green Detox Smoothie",
+      "description": "Spinach, apple, banana, and chia — full of vitamins and fiber.",
+      "basePrice": 70.00,
+      "originalPrice": 90.00,
+      "leftoverQty": 4,
+      "expiresAt": "2025-10-08T17:00:00.000Z",
+      "status": "PUBLISHED",
+      "createdAt": "2025-10-06T15:00:00.000Z",
+      "photoUrl": "https://images.unsplash.com/photo-1611689356681-1b4c72b8b834?q=80&w=800"
+    }
+  ]
+}
