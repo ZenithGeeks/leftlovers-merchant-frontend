@@ -1,0 +1,44 @@
+{
+  "id": "MERCHANT001",
+  "ownerUserId": "USER001",
+  "displayName": "GreenBite Deli",
+  "description": "A cozy eco-friendly deli serving fresh sandwiches, smoothies, and organic salads.",
+  "address": "124 Rama IX Road, Huai Khwang, Bangkok 10310, Thailand",
+  "lat": 13.7563310,
+  "lng": 100.5017620,
+  "openHours": {
+    "monday": { "open": "08:00", "close": "18:00" },
+    "tuesday": { "open": "08:00", "close": "18:00" },
+    "wednesday": { "open": "08:00", "close": "18:00" },
+    "thursday": { "open": "08:00", "close": "18:00" },
+    "friday": { "open": "08:00", "close": "18:00" },
+    "saturday": { "open": "09:00", "close": "16:00" },
+    "sunday": null
+  },
+  "isOpen": true,
+  "status": "APPROVED",
+  "createdAt": "2025-09-25T09:30:00.000Z",
+
+  "categories": [
+    { "id": "CAT001", "name": "Healthy Bowls" },
+    { "id": "CAT002", "name": "Smoothies" }
+  ],
+  "menuItems": [
+    { "id": "MENU001", "name": "Avocado Chicken Bowl" },
+    { "id": "MENU002", "name": "Mango Spinach Smoothie" }
+  ],
+  "promotions": [
+    { "id": "PROMO001", "title": "Buy 1 Get 1 Free (Smoothies)" }
+  ],
+  "orders": [
+    { "id": "ORDER001", "status": "DELIVERED" },
+    { "id": "ORDER002", "status": "IN_PROGRESS" }
+  ],
+  "warnings": [
+    { "id": "WARN-001", "reason": "Late delivery", "expiresAt": "2025-11-06T20:00:00.000Z" }
+  ],
+  "employees": [
+    { "id": "EMP001", "userId": "USER010", "role": "STAFF" },
+    { "id": "EMP002", "userId": "USER011", "role": "CHEF" }
+  ]
+}

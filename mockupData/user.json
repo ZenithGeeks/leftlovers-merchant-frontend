@@ -1,0 +1,101 @@
+{
+  "id": "USER001",
+  "role": "OWNER",
+  "name": "Natthapon Charoensuk",
+  "email": "natthapon.greenbite@example.com",
+  "phone": "+66 89 123 4567",
+  "avatarUrl": "https://randomuser.me/api/portraits/men/75.jpg",
+  "status": "ACTIVE",
+  "createdAt": "2025-09-20T10:45:00.000Z",
+
+  "merchants": [
+    {
+      "id": "MERCHANT001",
+      "displayName": "GreenBite Deli",
+      "status": "APPROVED",
+      "isOpen": true
+    }
+  ],
+
+  "addresses": [
+    {
+      "id": "ADDR001",
+      "label": "Home",
+      "addressLine": "124 Rama IX Road, Huai Khwang, Bangkok 10310",
+      "lat": 13.7563310,
+      "lng": 100.5017620,
+      "isDefault": true
+    }
+  ],
+
+  "devices": [
+    {
+      "id": "DEV001",
+      "platform": "iOS",
+      "pushToken": "expoPushToken[xxxxxxxxxxxxxxxxxxxxxx]"
+    }
+  ],
+
+  "notifications": [
+    {
+      "id": "NOTI001",
+      "title": "New order received!",
+      "message": "Order #ORDER005 has been placed by a customer.",
+      "read": false,
+      "createdAt": "2025-10-07T09:05:00.000Z"
+    }
+  ],
+
+  "reviews": [
+    {
+      "id": "REV-001",
+      "orderId": "ORDER001",
+      "rating": 5,
+      "comment": "Absolutely delicious. Portion was generous.",
+      "createdAt": "2025-10-06T12:10:00.000Z"
+    },
+    {
+      "id": "REV-005",
+      "orderId": "ORDER005",
+      "rating": 4.5,
+      "comment": "Fast delivery and hot on arrival.",
+      "createdAt": "2025-10-06T18:03:00.000Z"
+    }
+  ],
+
+  "complaints": [
+    {
+      "id": "COM-002",
+      "orderId": "ORDER007",
+      "type": "LATE_DELIVERY",
+      "status": "IN_REVIEW",
+      "createdAt": "2025-10-07T10:10:00.000Z"
+    }
+  ],
+
+  "auditLogs": [
+    {
+      "id": "AUD001",
+      "action": "LOGIN",
+      "timestamp": "2025-10-07T08:55:00.000Z",
+      "ipAddress": "192.168.1.5"
+    }
+  ],
+
+  "employees": [],
+
+  "Order": [
+    {
+      "id": "ORDER001",
+      "totalAmount": 189.0,
+      "status": "DELIVERED",
+      "createdAt": "2025-10-06T12:00:00.000Z"
+    },
+    {
+      "id": "ORDER005",
+      "totalAmount": 155.0,
+      "status": "DELIVERED",
+      "createdAt": "2025-10-06T18:00:00.000Z"
+    }
+  ]
+}

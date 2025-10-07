@@ -14,13 +14,9 @@ export type PopularMenuItemProps = {
 };
 
 function getStatusStyle(leftoverQty: number) {
-  if (leftoverQty <= 0) {
-    return { label: "Out of Stock", bg: "#EF444440", text: "#991B1B" };
-  }
-  if (leftoverQty < 3) {
-    return { label: "Low Stock", bg: "#FACC1540", text: "#B45309" };
-  }
-  return { label: "In-Stock", bg: "#26BD6840", text: "#0E7A3B" };
+  if (leftoverQty <= 0) return { label: "Out of Stock", bg: "#FEE2E2", text: "#991B1B" };
+  if (leftoverQty < 3) return { label: "Low Stock", bg: "#FEF3C7", text: "#B45309" };
+  return { label: "In Stock", bg: "#DCFCE7", text: "#166534" };
 }
 
 export default function PopularMenuItem({
@@ -35,16 +31,12 @@ export default function PopularMenuItem({
   const isSmall = width < 360;
   const isLarge = width >= 768;
 
-  const imageSize = isSmall ? 72 : isLarge ? 112 : 92;
-  const pad = isSmall ? 10 : isLarge ? 16 : 12;
+  // unified border radius & scale
+  const borderRadius = 14;
+  const imageSize = isSmall ? 70 : isLarge ? 110 : 90;
+  const padding = isSmall ? 10 : isLarge ? 16 : 12;
   const gap = isSmall ? 10 : isLarge ? 18 : 14;
-  const titleSize = isSmall ? 12 : isLarge ? 18 : 14;
-  const priceSize = isSmall ? 13 : isLarge ? 18 : 14;
-  const ordersSize = isSmall ? 18 : isLarge ? 18 : 14;
-  const labelSize = isSmall ? 12 : isLarge ? 16 : 13;
-  const pillPx = isSmall ? 10 : 14;
-  const pillPy = isSmall ? 5 : 6;
-
+  const fontScale = isLarge ? 1.1 : 1;
   const { label, bg, text } = getStatusStyle(leftoverQty);
 
   return (
@@ -55,40 +47,44 @@ export default function PopularMenuItem({
           flexDirection: "row",
           alignItems: "center",
           gap,
-          padding: pad,
-          borderRadius: 18,
-          backgroundColor: "#fff",
+          padding,
+          borderRadius,
+          backgroundColor: "#FFFFFF",
           borderWidth: 1,
-          borderColor: "#EAEAEA",
+          borderColor: "#E5E7EB",
           shadowColor: "#000",
           shadowOpacity: 0.06,
           shadowRadius: 10,
           shadowOffset: { width: 0, height: 4 },
           elevation: 2,
         },
-        pressed && { opacity: 0.95, transform: [{ scale: 0.997 }] },
+        pressed && { opacity: 0.95, transform: [{ scale: 0.995 }] },
       ]}
     >
-      {/* Left: image */}
+      {/* Image */}
       <Image
         source={{ uri: imageUrl }}
-        style={{ width: imageSize, height: imageSize, borderRadius: 16 }}
+        style={{
+          width: imageSize,
+          height: imageSize,
+          borderRadius,
+          backgroundColor: "#F3F4F6",
+        }}
         contentFit="cover"
         transition={120}
       />
 
-      {/* Middle: name, price, status */}
+      {/* Text Info */}
       <View style={{ flex: 1, minWidth: 0 }}>
-        {/* Menu name wraps into multiple lines */}
         <Text
           style={{
             fontFamily: Fonts.bold,
-            fontSize: titleSize,
+            fontSize: 14 * fontScale,
             color: "#11181C",
             flexShrink: 1,
-            flexWrap: "wrap",
-            lineHeight: titleSize + 4,
+            lineHeight: 20,
           }}
+          numberOfLines={2}
         >
           {title}
         </Text>
@@ -97,7 +93,7 @@ export default function PopularMenuItem({
           style={{
             marginTop: 4,
             fontFamily: Fonts.regular,
-            fontSize: priceSize,
+            fontSize: 13 * fontScale,
             color: "#4B5563",
           }}
         >
@@ -108,16 +104,16 @@ export default function PopularMenuItem({
           style={{
             marginTop: 8,
             alignSelf: "flex-start",
-            paddingHorizontal: pillPx,
-            paddingVertical: pillPy,
-            borderRadius: 999,
             backgroundColor: bg,
+            paddingHorizontal: 10,
+            paddingVertical: 4,
+            borderRadius: 999,
           }}
         >
           <Text
             style={{
               fontFamily: Fonts.medium,
-              fontSize: 12,
+              fontSize: 12 * fontScale,
               color: text,
             }}
           >
@@ -126,19 +122,17 @@ export default function PopularMenuItem({
         </View>
       </View>
 
-      {/* Right: orders + icon */}
-      <View style={{ alignItems: "flex-end", minWidth: isSmall ? 70 : 84 }}>
+      {/* Orders */}
+      <View style={{ alignItems: "flex-end", minWidth: isSmall ? 60 : 80 }}>
         <Text
           style={{
             fontFamily: Fonts.bold,
-            fontSize: ordersSize,
+            fontSize: 16 * fontScale,
             color: "#11181C",
           }}
         >
           {orders}
         </Text>
-
-        {/* Label + icon */}
         <View
           style={{
             marginTop: 2,
@@ -151,7 +145,7 @@ export default function PopularMenuItem({
           <Text
             style={{
               fontFamily: Fonts.regular,
-              fontSize: labelSize,
+              fontSize: 12 * fontScale,
               color: "#6B7280",
             }}
           >
