@@ -49,7 +49,8 @@
       "router": {},
       "eas": {
         "projectId": "354f90b5-f00e-4473-9778-15e785f9fbf6"
-      }
+      },
+      "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_ZHluYW1pYy1ncm91c2UtNTAuY2xlcmsuYWNjb3VudHMuZGV2JA"
     },
     "owner": "earthwttw"
   }
