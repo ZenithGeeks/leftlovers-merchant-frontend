@@ -10,21 +10,31 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import ContentSwitcher from "@/components/Menu/Content-Switcher";
+import OrderListRow from "@/components/Order/OrderListRow";
+
 import { ThemedView } from "@/components/themed-view";
 
-const SPACING = { xs: 6, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24 };
-
-type ORDER_STATUS = 'upcoming' | 'ready' | 'history';
+import { BORDER_RADIUS, PADDING, SPACING } from "@/constants/theme";
+import { ORDER_STATUS, OrderListItem } from "@/constants/order.type";
 
 export default function OrderPage() {
   const insets = useSafeAreaInsets();
-  const [tab, setTab] = useState<ORDER_STATUS>("upcoming");
+  const [orderListFilter, setOrderListFilter] = useState<ORDER_STATUS>("upcoming");
 
   const screenWidth = Dimensions.get("window").width;
   const horizontalPadding = useMemo(() => {
       const pct = screenWidth * 0.05;
       return Math.max(14, Math.min(pct, 24));
     }, [screenWidth]);
+
+  const orders: OrderListItem[] = [
+    { bookingId: 'B001', userName: 'Alice', pickupTime: new Date(), status: 'upcoming' },
+    { bookingId: 'B002', userName: 'Bob', pickupTime: new Date(), status: 'upcoming' },
+    { bookingId: 'B003', userName: 'Charlie', pickupTime: new Date(), status: 'history' },
+    { bookingId: 'B004', userName: 'David', pickupTime: new Date(), status: 'ready' },
+    { bookingId: 'B005', userName: 'Eve', pickupTime: new Date(), status: 'history' },
+    { bookingId: 'B006', userName: 'Frank', pickupTime: new Date(), status: 'upcoming' },
+  ];
 
   return (
      <ScrollView style={{ marginBottom: insets.bottom + SPACING.xl, flex: 1, height: '100%' }}>
@@ -37,19 +47,41 @@ export default function OrderPage() {
           },
         ]}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Order</Text>
-          <ContentSwitcher
-            tabs={[
-              { key: "upcoming", label: "Upcoming" },
-              { key: "ready", label: "Ready" },
-              { key: "history", label: "History" },
-            ]}
-            value={tab}
-            onChange={(k) => setTab(k as any)}
-          />
-        </View>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.title}>Order</Text>
+        <ContentSwitcher
+          tabs={[
+            { key: "upcoming", label: "Upcoming" },
+            { key: "ready", label: "Ready" },
+            { key: "history", label: "History" },
+          ]}
+          value={orderListFilter}
+          onChange={(k) => setOrderListFilter(k as any)}
+        />
+      </View>
+      {/* Order List */}
+      <FlatList
+        data={orders}
+        keyExtractor={(s) => s.bookingId}
+        contentContainerStyle={{
+          paddingBottom: insets.bottom + SPACING.xl,
+        }}
+        renderItem={({ item }) => {
+          if (item.status !== orderListFilter) return null;
+          return (
+            <View
+              style={[
+                styles.wrapperRow,
+                { paddingHorizontal: horizontalPadding },
+               ]}
+            >
+              <OrderListRow item={item} />
+            </View>
+          );
+        }}
+        showsVerticalScrollIndicator={false}
+      />
       </ThemedView>
     </ScrollView>
   );
@@ -70,5 +102,19 @@ const styles = StyleSheet.create({
   },
   wrapperRow: {
     width: "100%",
+    marginBottom: SPACING.lg,
+  },
+  orderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: BORDER_RADIUS,
+    padding: PADDING,
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
 });
