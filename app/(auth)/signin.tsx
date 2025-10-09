@@ -3,6 +3,10 @@ import { Link, useRouter } from 'expo-router'
 import React from 'react'
 import { Alert, Keyboard, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native'
 
+const DEV_DEFAULTS = __DEV__
+  ? { email: 'test@mock.com', password: 'mockpass' } // 👈 fake user for local test
+  : { email: '', password: '' }
+  
 export default function Page() {
   const { signIn, setActive, isLoaded } = useSignIn()
   const router = useRouter()
@@ -11,6 +15,14 @@ export default function Page() {
   const [password, setPassword] = React.useState('')
 
   const onSignInPress = async () => {
+
+    // 🔹 If dev mode, skip real Clerk and mock sign in
+    if (__DEV__ && emailAddress === 'test@mock.com' && password === 'mockpass') {
+      console.log('Mock sign-in successful')
+      router.replace('/(tabs)/menu') // your app's main page
+      return
+    }
+
     if (!isLoaded) return
     Keyboard.dismiss()
 
@@ -128,12 +140,13 @@ return (
                 shadowOffset: { width: 0, height: 0.5 },
                 shadowOpacity: 0.05,
                 shadowRadius: 0.1,
+                letterSpacing: 0
               }}
             />
           </View>
 
           {/* Password */}
-          <View style={{ marginTop: 12 }}>
+          <View style={{ marginTop: 16 }}>
             <Text style={{ fontSize: 15, fontWeight: '400', marginBottom: 6 }}>Password</Text>
             <TextInput
               placeholder="Enter password"
@@ -155,6 +168,7 @@ return (
                 shadowOffset: { width: 0, height: 0.5 },
                 shadowOpacity: 0.05,
                 shadowRadius: 0.1,
+                letterSpacing: 0
               }}
             />
           </View>

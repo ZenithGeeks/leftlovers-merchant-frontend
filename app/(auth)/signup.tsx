@@ -101,6 +101,7 @@ export default function SignUpScreen() {
                   shadowOffset: { width: 0, height: 0.5 },
                   shadowOpacity: 0.05,
                   shadowRadius: 0.1,
+                  letterSpacing: 0
                 }}
               />
             </View>
@@ -129,6 +130,7 @@ export default function SignUpScreen() {
                   shadowOffset: { width: 0, height: 0.5 },
                   shadowOpacity: 0.05,
                   shadowRadius: 0.1,
+                  letterSpacing: 0
                 }}
               />
             </View>

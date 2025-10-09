@@ -1,7 +1,21 @@
+// app/(auth)/verify-phone.tsx
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { getAuth, PhoneAuthProvider, signInWithCredential } from 'firebase/auth'
 import React from 'react'
 import { KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native'
+
+const TEST_NUMBERS: Record<string, string> = {
+  '+66655453321': '', //345623
+  '+66912345678': '', //111111
+}
+
+const mapAuthError = (err: any) => {
+  const s = String(err?.code || err?.message || '')
+  if (s.includes('invalid-verification-code')) return 'The code is incorrect or expired. Please request a new one.'
+  if (s.includes('session-expired')) return 'The verification session has expired. Please request a new code.'
+  if (s.includes('too-many-requests')) return 'Too many attempts. Please wait a bit and try again.'
+  return 'Something went wrong. Please try again.'
+}
 
 export default function VerifyPhone() {
   const { verificationId, phone } = useLocalSearchParams<{ verificationId: string; phone: string }>()
@@ -10,52 +24,100 @@ export default function VerifyPhone() {
 
   const [code, setCode] = React.useState('')
   const [error, setError] = React.useState<string | null>(null)
-  const canVerify = code.length === 6
 
-  const onVerify = async () => {
-    if (!verificationId || !canVerify) return
+  React.useEffect(() => {
+    if (!verificationId || !phone) router.replace('/(auth)/phone')
+  }, [verificationId, phone])
+
+  // Auto-fill & optional auto-submit for test numbers (dev only)
+  React.useEffect(() => {
+    if (__DEV__ && phone && TEST_NUMBERS[phone]) {
+      const c = TEST_NUMBERS[phone]
+      setCode(c)
+      setTimeout(() => onVerify(c), 0)
+    }
+  }, [phone])
+
+  const onVerify = async (override?: string) => {
+    const useCode = (override ?? code).replace(/\D/g, '')
+    if (!verificationId || useCode.length !== 6) return
     setError(null)
     try {
-      const credential = PhoneAuthProvider.credential(verificationId as string, code)
-      await signInWithCredential(auth, credential) // ✅ ยืนยันสำเร็จ (ด้วยเบอร์ test ไม่ต้องมี SMS จริง)
-
-      // TODO: อัปเดต backend/Clerk metadata ของ user ให้รู้ว่าเบอร์นี้ verified แล้ว
-      // เช่น POST ไปที่ API ของคุณเพื่อบันทึก phone และสถานะ verified
-      router.replace('/')  // หรือไปหน้าถัดไป
+      const cred = PhoneAuthProvider.credential(String(verificationId), useCode)
+      await signInWithCredential(auth, cred)
+      router.replace('/')
     } catch (err: any) {
-      setError(err?.message || 'Invalid code. Try again.')
-      console.error(err)
+      console.log('[verify]', err?.code, err?.message)
+      setError(mapAuthError(err))
     }
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1 }}>
-          <View style={{ flex: 1, padding: 25, gap: 16 }}>
-            <Text style={{ fontSize: 26, fontWeight: '700', marginTop: 6 }}>Verify your phone</Text>
-            <Text style={{ fontSize: 12, color: '#6B7280' }}>Enter the 6-digit code sent to {phone}</Text>
+  <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1 }}>
+        {/* centered column, no card */}
+        <View style={{ flex: 1, padding: 25, gap: 16 }}>
+          <Text style={{ fontSize: 22, fontWeight: '700', textAlign: 'center' }}>
+            Verify your phone
+          </Text>
+          <Text style={{ color: '#6B7280', marginTop: 6, fontSize: 12, textAlign: 'center' }}>
+            Please enter the OTP we just sent to your phone number {phone}
+          </Text>
 
-            <TextInput
-              placeholder="123456"
-              value={code}
-              onChangeText={setCode}
-              keyboardType="number-pad"
-              maxLength={6}
-              returnKeyType="go"
-              onSubmitEditing={onVerify}
-              style={{ borderWidth: 0.5, borderRadius: 10, padding: 12, backgroundColor: 'rgba(38, 189, 104, 0.2)', borderColor: 'rgba(38, 189, 104, 0.05)', textAlign: 'center', fontSize: 18, letterSpacing: 4 }}
-            />
+          <TextInput
+            value={code}
+            onChangeText={(t) => setCode(t.replace(/\D/g, '').slice(0, 6))}
+            placeholder="123456"
+            keyboardType="number-pad"
+            textContentType="oneTimeCode"
+            maxLength={6}
+            // simple input, no box styling
+            style={{
+              marginTop: 16,
+              paddingVertical: 12,
+              paddingHorizontal: 14,
+              fontSize: 18,
+              letterSpacing: 4,
+              textAlign: 'center',
+              borderBottomWidth: 1,     // subtle underline only
+              borderColor: '#E5E7EB',
+            }}
+          />
 
-            {error ? <Text style={{ color: '#B91C1C', fontSize: 12 }}>{error}</Text> : null}
+          {!!error && (
+            <Text style={{ color: '#B91C1C', marginTop: 10, textAlign: 'center' }}>
+              {error}
+            </Text>
+          )}
 
-            <TouchableOpacity disabled={!canVerify} onPress={onVerify}
-              style={{ marginTop: 18, padding: 16, borderRadius: 12, backgroundColor: '#26BD68', opacity: canVerify ? 1 : 0.5 }}>
-              <Text style={{ textAlign: 'center', color: '#fff', fontWeight: '700' }}>Verify</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
-  )
+          <TouchableOpacity
+            onPress={() => onVerify()}
+            disabled={code.length !== 6}
+            style={{
+              marginTop: 18,
+              backgroundColor: '#26BD68',
+              paddingVertical: 14,
+              borderRadius: 12,
+              opacity: code.length === 6 ? 1 : 0.5,
+            }}
+          >
+            <Text style={{ color: '#fff', fontWeight: '700', textAlign: 'center' }}>
+              Verify
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => router.replace('/(auth)/phone')} style={{ marginTop: 12 }}>
+            <Text style={{ textAlign: 'center', fontWeight: '300', color: '#111827' }}>
+              Didn’t receive OTP?
+            </Text>
+            <Text style={{ textAlign: 'center', fontWeight: '500', color: '#26BD68', textDecorationLine: 'underline' }}>
+              Resend OTP Again
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  </SafeAreaView>
+  );
 }
