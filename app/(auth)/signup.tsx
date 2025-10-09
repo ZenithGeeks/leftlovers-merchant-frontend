@@ -20,34 +20,48 @@ export default function SignUpScreen() {
   const [password, setPassword] = React.useState('')
   const [error, setError] = React.useState<string | null>(null)
   const [loading, setLoading] = React.useState(false)
+  const validateEmail = (e: string) => /\S+@\S+\.\S+/.test(e.trim())
+  const canSubmit = validateEmail(emailAddress) && password.trim().length >= 8
+
 
   const onSignUpPress = async () => {
   if (!isLoaded || loading) return
   setError(null)
+
+  const email = emailAddress.trim()
+  const pass  = password.trim()
+
+  if (!validateEmail(email)) {
+    setError('Enter a valid email address.')
+    return
+  }
+  if (pass.length < 8) {
+    setError('Password must be at least 8 characters.')
+    return
+  }
+
   setLoading(true)
-
   try {
-    const res = await signUp.create({ emailAddress, password })
+    const res = await signUp.create({ emailAddress: email, password: pass })
 
-    // If your instance unexpectedly completes here, just finish.
-    if (res.status === 'complete') {
-      await setActive({ session: res.createdSessionId })
-      router.replace('/')
+    // go to phone step (we’ll attach phone & send SMS there)
+    if (res.status !== 'complete') {
+      router.push('/(auth)/phone')
       return
     }
 
-    // Continue to phone step
-    router.push('/(auth)/phone')   // or router.push('phone') if this file is in app/(auth) too
+    // if your instance completes immediately
+    await setActive({ session: res.createdSessionId })
+    router.replace('/')
   } catch (err: any) {
-    const msg =
-      err?.errors?.map((e: any) => e.longMessage || e.message).join('\n') ??
-      'Unable to start sign up.'
+    const msg = err?.errors?.map((e: any) => e.longMessage || e.message).join('\n') ?? 'Unable to sign up.'
     setError(msg)
     console.error(JSON.stringify(err, null, 2))
   } finally {
     setLoading(false)
   }
 }
+
 
 
   return (
@@ -101,7 +115,8 @@ export default function SignUpScreen() {
                 secureTextEntry
                 autoCapitalize="none"
                 autoCorrect={false}
-                textContentType="newPassword"
+                textContentType="password"
+                autoComplete="password"
                 returnKeyType="go"
                 onSubmitEditing={onSignUpPress}
                 style={{
@@ -122,7 +137,7 @@ export default function SignUpScreen() {
 
             {/* button */}
             <TouchableOpacity
-              disabled={loading}
+              disabled={loading || !canSubmit}
               onPress={onSignUpPress}
               style={{
                 marginTop: 16,
@@ -131,7 +146,7 @@ export default function SignUpScreen() {
                 backgroundColor: '#26BD68',
                 borderWidth: 1,
                 borderColor: '#26BD68',
-                opacity: loading ? 0.6 : 1,
+                opacity: loading || !canSubmit ? 0.6 : 1,
                 shadowColor: '#000',
                 shadowOffset: { width: 0, height: 0.5 },
                 shadowOpacity: 0.05,
