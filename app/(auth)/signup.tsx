@@ -4,13 +4,13 @@ import * as React from 'react'
 import {
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
 export default function SignUpScreen() {
   const { isLoaded, signUp, setActive } = useSignUp()

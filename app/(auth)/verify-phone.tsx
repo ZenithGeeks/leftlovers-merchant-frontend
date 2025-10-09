@@ -1,9 +1,9 @@
 // app/(auth)/verify-phone.tsx
-import { useLocalSearchParams, useRouter } from 'expo-router'
-import { getAuth, PhoneAuthProvider, signInWithCredential } from 'firebase/auth'
-import React from 'react'
-import { KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native'
-
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { getAuth, PhoneAuthProvider, signInWithCredential } from 'firebase/auth';
+import React from 'react';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 const TEST_NUMBERS: Record<string, string> = {
   '+66655453321': '', //345623
   '+66912345678': '', //111111
@@ -45,7 +45,7 @@ export default function VerifyPhone() {
     try {
       const cred = PhoneAuthProvider.credential(String(verificationId), useCode)
       await signInWithCredential(auth, cred)
-      router.replace('/')
+      router.replace('/(auth)/store-info')
     } catch (err: any) {
       console.log('[verify]', err?.code, err?.message)
       setError(mapAuthError(err))
@@ -58,7 +58,7 @@ export default function VerifyPhone() {
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1 }}>
         {/* centered column, no card */}
         <View style={{ flex: 1, padding: 25, gap: 16 }}>
-          <Text style={{ fontSize: 22, fontWeight: '700', textAlign: 'center' }}>
+          <Text style={{ fontSize: 24, fontWeight: '700', textAlign: 'center' }}>
             Verify your phone
           </Text>
           <Text style={{ color: '#6B7280', marginTop: 6, fontSize: 12, textAlign: 'center' }}>
@@ -68,7 +68,7 @@ export default function VerifyPhone() {
           <TextInput
             value={code}
             onChangeText={(t) => setCode(t.replace(/\D/g, '').slice(0, 6))}
-            placeholder="123456"
+            placeholder="xxxxxx"
             keyboardType="number-pad"
             textContentType="oneTimeCode"
             maxLength={6}

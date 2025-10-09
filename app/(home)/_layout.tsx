@@ -1,5 +1,11 @@
-import { Stack } from 'expo-router/stack'
+import { Stack } from 'expo-router/stack';
+import 'react-native-get-random-values';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-export default function Layout() {
-  return <Stack />
+export default function RootLayout() {
+  return (
+    <SafeAreaProvider>
+      <Stack screenOptions={{ headerShown: false }} />
+    </SafeAreaProvider>
+  );
 }

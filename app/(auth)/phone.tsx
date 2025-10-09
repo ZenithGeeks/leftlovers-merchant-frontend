@@ -4,7 +4,8 @@ import { useRouter } from 'expo-router'
 import { getApp, getApps, initializeApp } from 'firebase/app'
 import { getAuth, PhoneAuthProvider } from 'firebase/auth'
 import React, { useMemo, useRef, useState } from 'react'
-import { KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
 const TEST_NUMBERS: Record<string, string> = {
   // E.164 → code (fill with YOUR pairs from the console)
@@ -23,16 +24,6 @@ const firebaseConfig = {
 // 2) Initialize once
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig)
 const auth = getAuth(app)
-
-// Optional: friendlier error messages
-const mapAuthError = (err: unknown): string => {
-  const s = String((err as any)?.code || (err as any)?.message || '')
-  if (s.includes('invalid-verification-code')) return 'รหัสไม่ถูกต้อง ลองใหม่อีกครั้ง'
-  if (s.includes('session-expired')) return 'โค้ดหมดอายุ กรุณาขอรหัสใหม่'
-  if (s.includes('too-many-requests')) return 'พยายามหลายครั้งเกินไป รอสักครู่แล้วลองอีกครั้ง'
-  if (s.includes('network-request-failed')) return 'เครือข่ายมีปัญหา ตรวจสอบอินเทอร์เน็ตของคุณ'
-  return 'เกิดข้อผิดพลาด กรุณาลองใหม่'
-}
 
 export default function PhoneScreen() {
   const router = useRouter()
@@ -97,7 +88,7 @@ export default function PhoneScreen() {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1 }}>
           <View style={{ flex: 1, padding: 25, gap: 16 }}>
-            <Text style={{ fontSize: 26, fontWeight: '700', marginTop: 6 }}>Enter your phone number</Text>
+            <Text style={{ fontSize: 24, fontWeight: '700', marginTop: 6 }}>Enter your phone number</Text>
 
             <View style={{ flexDirection: 'row', gap: 12, marginTop: 10 }}>
               <View style={{ width: 70, borderRadius: 10, borderWidth: 0.5, borderColor: 'rgba(38,189,104,0.05)', backgroundColor: '#F1F5F9', alignItems: 'center', justifyContent: 'center', paddingVertical: 12 }}>
