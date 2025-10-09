@@ -20,8 +20,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 const TEST_NUMBERS: Record<string, string> = {
-  '+66655453321': '345623',
-  '+66912345678': '111111',
+  '+66655453321': '', //345623
+  '+66912345678': '', //111111
 }
 
 const mapAuthError = (err: any) => {

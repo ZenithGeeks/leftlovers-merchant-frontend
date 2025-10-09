@@ -6,7 +6,7 @@ import { useRouter } from 'expo-router'
 import React from 'react'
 import { Alert, Modal, Platform, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import MapView, { Marker } from 'react-native-maps'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 type Doc = DocumentPicker.DocumentPickerAsset
 
@@ -51,6 +51,7 @@ export default function StoreInfo() {
   const [lat, setLat] = React.useState<string>(DEV ? '13.736717' : '')
   const [lng, setLng] = React.useState<string>(DEV ? '100.523186' : '')
   const mapRef = React.useRef<MapView>(null)
+  const insets = useSafeAreaInsets()
 
   const [mapVisible, setMapVisible] = React.useState(false)
   const [initialRegion, setInitialRegion] = React.useState({
@@ -162,7 +163,6 @@ export default function StoreInfo() {
       },
     }
     console.log('STORE INFO ->', payload)
-    Alert.alert('Saved', 'Your store info has been saved.')
     router.replace('/(auth)/finishSignUp')
   }
 
@@ -332,8 +332,8 @@ export default function StoreInfo() {
       </ScrollView>
 
       {/* Map Picker Modal */}
-      <Modal visible={mapVisible} animationType="slide" onRequestClose={() => setMapVisible(false)}>
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }} edges={['top', 'left', 'right']}>
+      <Modal visible={mapVisible} animationType="slide" onRequestClose={() => setMapVisible(false)} presentationStyle="fullScreen">
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#fff', paddingTop: insets.top  }} edges={['top', 'left', 'right']}>
           {/* Header + search */}
           <View style={{ paddingHorizontal: 12, paddingTop: 8, paddingBottom: 8 }}>
             <Text style={{ textAlign: 'center', fontWeight: '700', fontSize: 18 }}>Pin your store location</Text>
@@ -493,7 +493,7 @@ function UploadRow({
           onPress={onPick}
           style={{ borderWidth: 1, borderStyle: 'dashed', borderColor: '#9CA3AF', padding: 16, borderRadius: 12, backgroundColor: '#FFFFFF' }}
         >
-          <Text style={{ color: '#9CA3AF' }}>Upload PDF / Image</Text>
+          <Text style={{ color: '#9CA3AF' }}>Upload PDF</Text>
         </TouchableOpacity>
       )}
     </View>

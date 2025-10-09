@@ -20,6 +20,7 @@ import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import Constants from "expo-constants";
 
 
+
 // Keep splash visible while fonts load
 try { SplashScreen.preventAutoHideAsync(); } catch {}
 
