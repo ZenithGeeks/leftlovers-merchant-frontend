@@ -163,7 +163,7 @@ export default function StoreInfo() {
     }
     console.log('STORE INFO ->', payload)
     Alert.alert('Saved', 'Your store info has been saved.')
-    router.replace('/(tabs)')
+    router.replace('/(auth)/finishSignUp')
   }
 
   return (
