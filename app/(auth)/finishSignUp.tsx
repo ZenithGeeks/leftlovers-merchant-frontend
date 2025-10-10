@@ -38,7 +38,7 @@ export default function FinishSignUp() {
       {/* Subtitle */}
       <Text
         style={{
-          fontSize: 36,
+          fontSize: 40,
           fontWeight: '800',
           color: '#2EA44F',
           textShadowColor: 'rgba(0,0,0,0.15)',

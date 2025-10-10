@@ -156,7 +156,9 @@ export default function ForgotPassword() {
                 justifyContent: 'center',
               }}
             >
-              <Text style={{ fontSize: 22 }}>‹</Text>
+              <View style={{ position: 'absolute', left: 4, top: 8 }}>
+                <Text style={{ fontSize: 25, lineHeight: 22 }}>‹</Text>
+              </View>
             </TouchableOpacity>
 
             <Text style={{ fontSize: 28, fontWeight: '800', marginTop: 8 }}>
