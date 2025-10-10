@@ -1,17 +1,22 @@
 // app/(auth)/phone.tsx
+import mockData from '@/mockupData/loginRegis.json'
 import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha'
 import { useRouter } from 'expo-router'
 import { getApp, getApps, initializeApp } from 'firebase/app'
 import { getAuth, PhoneAuthProvider } from 'firebase/auth'
 import React, { useMemo, useRef, useState } from 'react'
-import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+/*
 const TEST_NUMBERS: Record<string, string> = {
   // E.164 → code (fill with YOUR pairs from the console)
   '+66655453321': '345623',
   '+66912345678': '111111',
-};
+};*/
+
+const MOCK_AUTH = true // set false when using real Firebase
+const TEST_NUMBERS = mockData.TEST_NUMBERS
 
 // 1) Use env vars (Expo exposes EXPO_PUBLIC_*)
 const firebaseConfig = {
@@ -62,15 +67,28 @@ export default function PhoneScreen() {
     if (!canSubmit) return
     setError(null)
     setLoading(true)
+
     try {
-      // 4) Send OTP — if the number is added as a Firebase **test number**, SMS won’t be sent.
+      if (MOCK_AUTH) {
+        // ---- MOCK MODE ----
+        const mockCode = TEST_NUMBERS[e164]
+        if (!mockCode) {
+          setError('Phone number not found in mock data.')
+          return
+        }
+
+        Alert.alert('Mock OTP Sent', `Use this code to verify: ${mockCode}`)
+        router.push({ pathname: '/(auth)/verify-phone', params: { verificationId: 'mock', phone: e164 } })
+        return
+      }
+
+      // ---- REAL FIREBASE OTP ----
       const provider = new PhoneAuthProvider(auth)
       const verificationId = await provider.verifyPhoneNumber(e164, recaptchaRef.current)
-
       router.push({ pathname: '/(auth)/verify-phone', params: { verificationId, phone: e164 } })
-    } catch (err) {
+    } catch (err: any) {
       console.error(err)
-      setError(mapAuthError(err))
+      setError(err?.message || 'Unable to send OTP.')
     } finally {
       setLoading(false)
     }

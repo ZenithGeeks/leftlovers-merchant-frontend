@@ -1,38 +1,25 @@
 // app/(auth)/forgot-password.tsx
 import { useRouter } from 'expo-router'
 import React from 'react'
-import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native'
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View, } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 // Firebase (app + auth + RN persistence)
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage'
 import { getApp, getApps, initializeApp } from 'firebase/app'
-import {
-  PhoneAuthProvider,
-  getAuth,
-  getReactNativePersistence,
-  initializeAuth,
-} from 'firebase/auth'
+import { PhoneAuthProvider, getAuth, getReactNativePersistence, initializeAuth, } from 'firebase/auth'
 
 // reCAPTCHA (Expo)
+import mockData from '@/mockupData/loginRegis.json'
 import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha'
 
-// ---------- DEV ONLY: map email -> phone for testing ----------
-const EMAIL_TO_PHONE: Record<string, string> = {
-  'merchant+dev@example.com': '+66912345678',
-  'merchant@example.com': '+66655453321',
-  'test@mock.com': '+66900000000',
-}
-// --------------------------------------------------------------
+const MOCK_AUTH = true // set false when using real Firebase
+const TEST_NUMBERS: Record<string, string> = mockData.TEST_NUMBERS || {}
+const EMAIL_TO_PHONE: Record<string, string> = Object.fromEntries(
+  (mockData.mockUsers ?? [])
+    .filter((u) => (u.status || '').toLowerCase() === 'registered')
+    .map((u) => [u.email, u.phone])
+)
 
 const firebaseConfig = {
   apiKey:
@@ -99,28 +86,63 @@ export default function ForgotPassword() {
   const match = pw && pw2 && pw === pw2
   const canSubmit = emailOk && pwOk && match && !loading
 
+  // ---- HANDLE SEND OTP ----
   const onSendOtp = async () => {
     if (!canSubmit) return
-    const phone = __DEV__ ? EMAIL_TO_PHONE[email.trim()] : undefined
+
+    const trimmedEmail = email.trim().toLowerCase()
+    const phone = EMAIL_TO_PHONE[trimmedEmail]
+
     if (!phone) {
-      Alert.alert('Not found', 'No phone number is associated with this email (dev map).')
+      Alert.alert(
+        'Not found',
+        'No phone number is associated with this email in mock/test data.'
+      )
       return
     }
 
     try {
       setLoading(true)
+      if (MOCK_AUTH) {
+        // ---- MOCK FLOW ----
+        const mockCode = TEST_NUMBERS[phone]
+        if (!mockCode) {
+          Alert.alert(
+            'Mock data error',
+            `No mock OTP found for ${phone}. Please add it to loginRegis.json.`
+          )
+          return
+        }
+
+        Alert.alert('Mock OTP Sent', `Use this code to verify: ${mockCode}`)
+
+        router.push({
+          pathname: '/(auth)/verify-phone',
+          params: {
+            verificationId: 'mock',
+            phone,
+            next: '/(auth)/signin',
+            newpw: pw,
+            reset: '1',
+          },
+        })
+        return
+      }
+
+      // ---- REAL FIREBASE FLOW ----
       const provider = new PhoneAuthProvider(auth)
       const verificationId = await provider.verifyPhoneNumber(
         phone,
         recaptchaRef.current!
       )
+
       router.push({
         pathname: '/(auth)/verify-phone',
         params: {
           verificationId,
           phone,
           next: '/(auth)/signin',
-          newpw: pw, // demo only
+          newpw: pw,
           reset: '1',
         },
       })

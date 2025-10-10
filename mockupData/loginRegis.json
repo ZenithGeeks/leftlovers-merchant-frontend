@@ -1,0 +1,38 @@
+{
+  "mockUsers": [
+    {
+      "email": "used@example.com",
+      "password": "Aa1!example",
+      "phone": "+66655453321",
+      "code": "345623",
+      "status": "available"
+    },
+    {
+      "email": "aom@gmail.com",
+      "password": "Aa1!aommock",
+      "phone": "+66912345678",
+      "code": "111111",
+      "status": "available"
+    },
+    {
+      "email": "newuser@test.com",
+      "password": "Aa1!newmock",
+      "phone": "+66987654321",
+      "code": "222222",
+      "status": "registered"
+    },
+    {
+      "email": "merchant@leftlovers.com",
+      "password": "Aa1!merchant",
+      "phone": "+66876543210",
+      "code": "333333",
+      "status": "registered"
+    }
+  ],
+  "TEST_NUMBERS": {
+    "+66655453321": "345623",
+    "+66912345678": "111111",
+    "+66987654321": "222222", 
+    "+66876543210": "333333"
+  }
+}

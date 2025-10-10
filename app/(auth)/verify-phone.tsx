@@ -1,4 +1,5 @@
 // app/(auth)/verify-phone.tsx
+import mockData from '@/mockupData/loginRegis.json'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import {
   getAuth,
@@ -19,10 +20,14 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+/*
 const TEST_NUMBERS: Record<string, string> = {
-  '+66655453321': '', //345623
-  '+66912345678': '', //111111
-}
+  // E.164 → code (fill with YOUR pairs from the console)
+  '+66655453321': '345623',
+  '+66912345678': '111111',
+};*/
+const MOCK_AUTH = true // set false when using real Firebase
+const TEST_NUMBERS: Record<string, string> = mockData.TEST_NUMBERS || {}
 
 const mapAuthError = (err: any) => {
   const s = String(err?.code || err?.message || '')
@@ -65,35 +70,64 @@ export default function VerifyPhone() {
   const isResetFlow = flow === 'reset' || reset === '1'
 
   const onVerify = async (override?: string) => {
-    const useCode = (override ?? code).replace(/\D/g, '')
-    if (!verificationId || useCode.length !== 6) return
-    setError(null)
-    setLoading(true)
-    try {
-      const cred = PhoneAuthProvider.credential(String(verificationId), useCode)
-      const userCred = await signInWithCredential(auth, cred)
+  const useCode = (override ?? code).replace(/\D/g, '')
+  if (useCode.length !== 6) return
+  setError(null)
+  setLoading(true)
 
-      if (isResetFlow) {
-        // Forgot-password: update password then go to Sign in
-        if (newpw && userCred.user) {
-          await updatePassword(userCred.user, String(newpw))
-          router.replace('/(auth)/signin')
-        } else {
-          Alert.alert('Password reset', 'Missing new password info.')
-        }
+  try {
+    if (MOCK_AUTH) {
+      // ---- MOCK VERIFICATION ----
+      const TEST_NUMBERS = mockData.TEST_NUMBERS
+      const expectedCode = TEST_NUMBERS[phone.trim()] // phone in +66 format
+
+      if (!expectedCode) {
+        setError('Phone number not found in mock data.')
         return
       }
 
-      // Normal verification (signup/login)
-      const dest = next && String(next).length ? String(next) : '/(auth)/store-info'
-      router.replace(dest)
-    } catch (err: any) {
-      console.log('[verify]', err?.code, err?.message)
-      setError(mapAuthError(err))
-    } finally {
-      setLoading(false)
+      if (useCode !== expectedCode) {
+        setError('Invalid verification code.')
+        return
+      }
+
+      // ✅ Success (mock)
+      if (isResetFlow) {
+        Alert.alert('Password reset (mock)', 'Your password has been updated.')
+        router.replace('/(auth)/signin')
+      } else {
+        const dest = next && String(next).length ? String(next) : '/(auth)/store-info'
+        router.replace(dest)
+      }
+
+      return
     }
+
+    // ---- REAL FIREBASE VERIFICATION ----
+    if (!verificationId) return
+    const cred = PhoneAuthProvider.credential(String(verificationId), useCode)
+    const userCred = await signInWithCredential(auth, cred)
+
+    if (isResetFlow) {
+      if (newpw && userCred.user) {
+        await updatePassword(userCred.user, String(newpw))
+        router.replace('/(auth)/signin')
+      } else {
+        Alert.alert('Password reset', 'Missing new password info.')
+      }
+      return
+    }
+
+    const dest = next && String(next).length ? String(next) : '/(auth)/store-info'
+    router.replace(dest)
+  } catch (err: any) {
+    console.log('[verify]', err?.code, err?.message)
+    setError(mapAuthError(err))
+  } finally {
+    setLoading(false)
   }
+}
+
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
