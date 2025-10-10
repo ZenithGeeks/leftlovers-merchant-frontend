@@ -76,7 +76,7 @@ export default function StoreInfo() {
       } catch {}
     })()
   }, [])
-
+  
   // ----- Free search (Nominatim)
   const [q, setQ] = React.useState('')
   const [suggestions, setSuggestions] = React.useState<{ display_name: string; lat: string; lon: string }[]>([])
@@ -139,6 +139,7 @@ export default function StoreInfo() {
     isValidPostal && isValidLat && isValidLng && hasUploads
 
   const setLatLng = (latitude: number, longitude: number) => {
+    console.log('setLatLng ->', latitude, longitude)
     setLat(latitude.toFixed(6))
     setLng(longitude.toFixed(6))
   }
@@ -191,7 +192,12 @@ export default function StoreInfo() {
               value={lat && lng ? `${lat}, ${lng}` : ''}
               editable={false}
               placeholder="Tap map icon to set location"
-              style={{ flex: 1 }}
+              keyboardType="numbers-and-punctuation"
+              style={{ 
+                flex: 1,borderWidth: 0.5, borderRadius: 8, padding: 12,
+                backgroundColor: 'rgba(38, 189, 104, 0.2)', borderColor: 'rgba(38, 189, 104, 0.05)',
+                shadowColor: '#000', shadowOffset: { width: 0, height: 0.5 }, shadowOpacity: 0.05, shadowRadius: 0.1,
+                justifyContent: 'center' }}
             />
             <TouchableOpacity
               onPress={() => setMapVisible(true)}
@@ -199,7 +205,7 @@ export default function StoreInfo() {
                 borderWidth: 0.5, borderRadius: 8, padding: 12,
                 backgroundColor: 'rgba(38, 189, 104, 0.2)', borderColor: 'rgba(38, 189, 104, 0.05)',
                 shadowColor: '#000', shadowOffset: { width: 0, height: 0.5 }, shadowOpacity: 0.05, shadowRadius: 0.1,
-                justifyContent: 'center',
+                justifyContent: 'center'
               }}
             >
               <Text style={{ fontSize: 18 }}>📍</Text>
@@ -260,7 +266,7 @@ export default function StoreInfo() {
 
           <Modal visible={foodPickerVisible} transparent animationType="slide" onRequestClose={() => setFoodPickerVisible(false)}>
             <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' }}>
-              <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingBottom: 12, overflow: 'hidden' }}>
+              <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingBottom: 80, overflow: 'hidden' }}>
                 <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Text style={{ fontSize: 16, fontWeight: '700' }}>Select food type</Text>
                   <Pressable onPress={() => setFoodPickerVisible(false)}>
@@ -281,12 +287,14 @@ export default function StoreInfo() {
           value={commercialReg?.name}
           onPick={async () => { const f = await pickOne(['application/pdf']); if (f) setCommercialReg(f) }}
           onClear={commercialReg ? clearCommercialReg : undefined}
+          emptyText="Upload PDF"
         />
         <UploadRow
           label={<><Text>Owner National ID Card </Text><Text style={{ color:'red' }}>*</Text></>}
           value={ownerIdDoc?.name}
           onPick={async () => { const f = await pickOne(['application/pdf', 'image/*']); if (f) setOwnerIdDoc(f) }}
           onClear={ownerIdDoc ? clearOwnerIdDoc : undefined}
+          emptyText="Upload PDF / Image"
         />
 
         {/* Uploads (multi) */}
@@ -333,7 +341,7 @@ export default function StoreInfo() {
 
       {/* Map Picker Modal */}
       <Modal visible={mapVisible} animationType="slide" onRequestClose={() => setMapVisible(false)} presentationStyle="fullScreen">
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#fff', paddingTop: insets.top  }} edges={['top', 'left', 'right']}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#fff', paddingTop: insets.top  }}>
           {/* Header + search */}
           <View style={{ paddingHorizontal: 12, paddingTop: 8, paddingBottom: 8 }}>
             <Text style={{ textAlign: 'center', fontWeight: '700', fontSize: 18 }}>Pin your store location</Text>
@@ -392,9 +400,28 @@ export default function StoreInfo() {
             }}
           >
             {(lat && lng)
-              ? <Marker coordinate={{ latitude: parseFloat(lat), longitude: parseFloat(lng) }} />
-              : <Marker coordinate={{ latitude: initialRegion.latitude, longitude: initialRegion.longitude }} />}
-          </MapView>
+    ? (
+      <Marker
+        coordinate={{ latitude: parseFloat(lat), longitude: parseFloat(lng) }}
+        draggable
+        onDragEnd={(e) => {
+          const { latitude, longitude } = e.nativeEvent.coordinate
+          setLatLng(latitude, longitude)  // ✅ drag แล้วปล่อย -> อัปเดต Input
+        }}
+      />
+    )
+    : (
+      <Marker
+        coordinate={{ latitude: initialRegion.latitude, longitude: initialRegion.longitude }}
+        draggable
+        onDragEnd={(e) => {
+          const { latitude, longitude } = e.nativeEvent.coordinate
+          setLatLng(latitude, longitude)
+        }}
+      />
+    )
+  }
+</MapView>
 
           {/* Actions */}
           <View style={{ padding: 16, gap: 8 }}>
@@ -464,11 +491,13 @@ function UploadRow({
   value,
   onPick,
   onClear,
+  emptyText = 'Upload',
 }: {
   label: React.ReactNode
   value?: string
   onPick: () => void
   onClear?: () => void
+  emptyText?: string
 }) {
   return (
     <View style={{ marginBottom: 14 }}>
@@ -493,9 +522,9 @@ function UploadRow({
           onPress={onPick}
           style={{ borderWidth: 1, borderStyle: 'dashed', borderColor: '#9CA3AF', padding: 16, borderRadius: 12, backgroundColor: '#FFFFFF' }}
         >
-          <Text style={{ color: '#9CA3AF' }}>Upload PDF</Text>
+          <Text style={{ color: '#9CA3AF' }}>{emptyText}</Text>
         </TouchableOpacity>
       )}
     </View>
   )
-}
+} 
