@@ -14,12 +14,30 @@ interface OrderListRowProps {
 export default function OrderListRow({ item }: OrderListRowProps) {
    const [expanded, setExpanded] = useState(false);
 
+   function getTimeUntilPickup(pickupTime: Date): string {
+      const now = new Date();
+      const diffMs = pickupTime.getTime() - now.getTime();
+
+      if (diffMs <= 0) {
+         return "Pickup time passed";
+      }
+
+      const hours = Math.floor(diffMs / (1000 * 60 * 60));
+      const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+      if (hours > 0) {
+         return `${hours}h ${minutes}m left`;
+      } else {
+         return `${minutes}m until left`;
+      }
+   }
+
    return (
       <>
          <View style={[styles.orderRow, expanded ? styles.expanded : { borderRadius: BORDER_RADIUS }]}>
          <Text style={{ marginTop: 8 }}>Order #{item.bookingId}</Text>
-            <View style={{ backgroundColor: "#FECD4C", borderRadius: 8, padding: 8 }}>
-               <Text>{item.pickupTime.toLocaleString()}</Text>
+            <View style={styles.pickupTimeBox}>
+               <Text>{getTimeUntilPickup(item.pickupTime)}</Text>
             </View>
             <ToggleButton expanded={expanded} onToggle={() => setExpanded(!expanded)} />
          </View>
@@ -48,10 +66,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E5E7EB",
     padding: PADDING_ORDER_ROW,
+    paddingLeft: 16,
     shadowOpacity: 0.05,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
+  },
+  pickupTimeBox: {
+   backgroundColor: "#FECD4C",
+   borderRadius: 8,
+   padding: 8,
+   width: 160,
+   alignItems: "center",
   },
   expanded: {
    borderTopStartRadius: BORDER_RADIUS,

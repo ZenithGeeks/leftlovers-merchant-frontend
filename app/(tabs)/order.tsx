@@ -27,13 +27,18 @@ export default function OrderPage() {
       return Math.max(14, Math.min(pct, 24));
     }, [screenWidth]);
 
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = today.getMonth();
+  const day = today.getDate();
+
   const orders: OrderListItem[] = [
-    { bookingId: 'B001', userName: 'Alice', pickupTime: new Date(), status: 'upcoming' },
-    { bookingId: 'B002', userName: 'Bob', pickupTime: new Date(), status: 'upcoming' },
-    { bookingId: 'B003', userName: 'Charlie', pickupTime: new Date(), status: 'history' },
-    { bookingId: 'B004', userName: 'David', pickupTime: new Date(), status: 'ready' },
-    { bookingId: 'B005', userName: 'Eve', pickupTime: new Date(), status: 'history' },
-    { bookingId: 'B006', userName: 'Frank', pickupTime: new Date(), status: 'upcoming' },
+    { bookingId: 'B001', userName: 'Alice', pickupTime: new Date(year, month, day, 18, 0), status: 'upcoming' },
+    { bookingId: 'B002', userName: 'Bob', pickupTime: new Date(year, month, day, 18, 30), status: 'upcoming' },
+    { bookingId: 'B003', userName: 'Charlie', pickupTime: new Date(year, month, day, 14, 0), status: 'history' },
+    { bookingId: 'B004', userName: 'David', pickupTime: new Date(year, month, day, 19, 30), status: 'ready' },
+    { bookingId: 'B005', userName: 'Eve', pickupTime: new Date(year, month, day, 14, 0), status: 'history' },
+    { bookingId: 'B006', userName: 'Frank', pickupTime: new Date(year, month, day, 20, 30), status: 'upcoming' },
   ];
 
   return (
