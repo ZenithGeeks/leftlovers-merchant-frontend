@@ -1,4 +1,5 @@
 // app/(auth)/signup.tsx
+import mockData from '@/mockupData/loginRegis.json'
 import { useSignUp } from '@clerk/clerk-expo'
 import { Link, useRouter } from 'expo-router'
 import * as React from 'react'
@@ -13,8 +14,6 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-
-// Toggle mock mode (offline/demo). Set to false to use real Clerk.
 const MOCK_AUTH = true
 
 // ---------- Password helpers ----------
@@ -41,23 +40,32 @@ export default function SignUpScreen() {
   const [error, setError] = React.useState<string | null>(null)
   const [loading, setLoading] = React.useState(false)
 
-  // ---- MOCK store & helpers (offline/demo) ----
-  // seeded with a known "already used" email
-  const mockUsers = React.useRef<Set<string>>(new Set(['used@example.com']))
+
+  // ---------- MOCK USERS SETUP ----------
+  const mockRegisteredEmails = React.useRef<Set<string>>(
+    new Set(
+      (mockData?.mockUsers ?? [])
+        .filter((u) => u.status === 'registered')
+        .map((u) => String(u.email).trim().toLowerCase())
+    )
+  )
 
   const mockCreateUser = async (email: string, pass: string) => {
-    // simulate latency
-    await new Promise((r) => setTimeout(r, 500))
+    await new Promise((r) => setTimeout(r, 400)) // simulate latency
     const key = email.trim().toLowerCase()
-    if (mockUsers.current.has(key)) {
+
+    if (mockRegisteredEmails.current.has(key)) {
       const err = {
         errors: [{ code: 'identifier_already_exists', message: 'Email already in use' }],
       }
       throw err
     }
-    mockUsers.current.add(key)
+
+    // ✅ Mock success → add new email to "registered"
+    mockRegisteredEmails.current.add(key)
     return { status: 'complete', createdSessionId: 'mock-session-id' }
   }
+
 
   // Validation Email 
   const isEmailAlreadyUsedError = (err: any) => {
@@ -67,11 +75,8 @@ export default function SignUpScreen() {
       e?.code === 'form_identifier_exists' ||
       e?.code === 'identifier_already_exists' ||
       /already (in use|registered|exists)/i.test(e?.longMessage || e?.message || '')
-    )
-
-    
-
-  }
+  )
+}
 
   // Validation
   const emailOk = /\S+@\S+\.\S+/.test(emailAddress.trim())
@@ -94,61 +99,31 @@ export default function SignUpScreen() {
       setError('Password does not meet all strength requirements.')
       return
     }
-    /*
+
     setLoading(true)
     try {
-      const res = await signUp.create({ emailAddress: email, password: pass })
-
-      // go to phone step
-      if (res.status !== 'complete') {
-        router.push('/(auth)/phone')
-        return
-      }
-
-      // if your instance completes immediately
-      await setActive({ session: res.createdSessionId })
-      router.replace('/')
-    } catch (err: any) {
-      if (isEmailAlreadyUsedError(err)) {
-        setError('This email is already registered.')
-        return
-      }
-      const msg =
-        err?.errors?.map((e: any) => e.longMessage || e.message).join('\n') ??
-        'Unable to sign up.'
-    setError(msg)
-    console.error(JSON.stringify(err, null, 2))
-    } finally {
-      setLoading(false)
-    }
-    */
-   setLoading(true)
-    try {
       if (MOCK_AUTH) {
-        // ---- MOCK path (no real API) ----
+        // ---- MOCK MODE ----
         const res = await mockCreateUser(email, pass)
-        if (res.status !== 'complete') {
-          // mock: if you want, push to phone step to demo flow
-          // router.push('/(auth)/phone')
-          // return
+        if (res.status === 'complete') {
+          setError(null)
+          router.push('/(auth)/phone') // simulate next signup step
         }
-        // In mock mode we won’t set an actual Clerk session.
-        // Show success or navigate as you like; here we just clear error.
-        setError(null)
-        // Example navigate: router.replace('/');  // uncomment if desired
       } else {
-        // ---- REAL Clerk path ----
+        // ---- REAL CLERK MODE ----
         const res = await signUp.create({ emailAddress: email, password: pass })
+
         if (res.status !== 'complete') {
           router.push('/(auth)/phone')
           return
         }
+
         await setActive({ session: res.createdSessionId })
         router.replace('/')
       }
     } catch (err: any) {
       if (isEmailAlreadyUsedError(err)) {
-        setError('This email is already registered.')
+        setError('This email is already existed.')
       } else {
         const msg =
           err?.errors?.map((e: any) => e.longMessage || e.message).join('\n') ??
@@ -201,7 +176,7 @@ export default function SignUpScreen() {
                 }}
               />
             </View>
-            {error ? <Text style={{ color: '#B91C1C', fontSize: 12, marginTop: -10 }}>{error}</Text> : null}
+             {error ? <Text style={{ color: '#B91C1C', fontSize: 12, marginTop: -10 }}>{error}</Text> : null}
 
             {/* Password */}
             <View style={{ marginTop: 12 }}>
@@ -249,7 +224,6 @@ export default function SignUpScreen() {
               </View>
             </View>
 
-            {/*error ? <Text style={{ color: '#B91C1C', fontSize: 12 }}>{error}</Text> : null*/}
 
             {/* button */}
             <TouchableOpacity
