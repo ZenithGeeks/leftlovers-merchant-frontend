@@ -5,7 +5,6 @@ import {
   View
 } from "react-native";
 import ToggleButton from "@/components/Order/ToggleButton";
-import { BORDER_RADIUS, PADDING } from "@/constants/theme";
 import { OrderListItem } from "@/constants/order.type";
 
 interface OrderListRowProps {
@@ -18,8 +17,10 @@ export default function OrderListRow({ item }: OrderListRowProps) {
    return (
       <>
          <View style={[styles.orderRow, expanded ? styles.expanded : { borderRadius: BORDER_RADIUS }]}>
-            <Text style={styles.orderInfo}>Order #{item.bookingId}</Text>
-            <Text style={styles.orderInfo}>{item.pickupTime.toLocaleString()}</Text>
+         <Text style={{ marginTop: 8 }}>Order #{item.bookingId}</Text>
+            <View style={{ backgroundColor: "#FECD4C", borderRadius: 8, padding: 8 }}>
+               <Text>{item.pickupTime.toLocaleString()}</Text>
+            </View>
             <ToggleButton expanded={expanded} onToggle={() => setExpanded(!expanded)} />
          </View>
          {expanded && (
@@ -34,6 +35,11 @@ export default function OrderListRow({ item }: OrderListRowProps) {
    );
 }
 
+const BORDER_RADIUS = 16;
+
+const PADDING_ORDER_ROW = 4;
+const PADDING_ORDER_DETAILS = 16;
+
 const styles = StyleSheet.create({
   orderRow: {
     flexDirection: "row",
@@ -41,7 +47,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     borderWidth: 1,
     borderColor: "#E5E7EB",
-    padding: PADDING,
+    padding: PADDING_ORDER_ROW,
     shadowOpacity: 0.05,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
@@ -62,7 +68,7 @@ const styles = StyleSheet.create({
    borderColor: "#E5E7EB",
    borderBottomStartRadius: BORDER_RADIUS,
    borderBottomEndRadius: BORDER_RADIUS,
-   padding: PADDING,
+   padding: PADDING_ORDER_DETAILS,
   },
   detailTitle: {
     fontSize: 16,

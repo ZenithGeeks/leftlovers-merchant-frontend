@@ -14,7 +14,7 @@ import OrderListRow from "@/components/Order/OrderListRow";
 
 import { ThemedView } from "@/components/themed-view";
 
-import { BORDER_RADIUS, PADDING, SPACING } from "@/constants/theme";
+import { SPACING } from "@/constants/theme";
 import { ORDER_STATUS, OrderListItem } from "@/constants/order.type";
 
 export default function OrderPage() {
@@ -103,18 +103,5 @@ const styles = StyleSheet.create({
   wrapperRow: {
     width: "100%",
     marginBottom: SPACING.lg,
-  },
-  orderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: BORDER_RADIUS,
-    padding: PADDING,
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
   },
 });

@@ -34,7 +34,3 @@ export const Fonts = {
 };
 
 export const SPACING = { xs: 6, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24 };
-
-export const BORDER_RADIUS = 16;
-
-export const PADDING = 16;
