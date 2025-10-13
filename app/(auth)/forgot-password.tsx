@@ -13,7 +13,7 @@ import { PhoneAuthProvider, getAuth, getReactNativePersistence, initializeAuth, 
 import mockData from '@/mockupData/loginRegis.json'
 import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha'
 
-const MOCK_AUTH = true // set false when using real Firebase
+const MOCK_AUTH = false // set false when using real Firebase
 const TEST_NUMBERS: Record<string, string> = mockData.TEST_NUMBERS || {}
 const EMAIL_TO_PHONE: Record<string, string> = Object.fromEntries(
   (mockData.mockUsers ?? [])
@@ -96,7 +96,7 @@ export default function ForgotPassword() {
     if (!phone) {
       Alert.alert(
         'Not found',
-        'No phone number is associated with this email in mock/test data.'
+        'No phone number is associated with this email.'
       )
       return
     }

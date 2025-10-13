@@ -1,6 +1,6 @@
 // app/(auth)/verify-phone.tsx
 import mockData from '@/mockupData/loginRegis.json'
-import { useLocalSearchParams, useRouter } from 'expo-router'
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import {
   getAuth,
   PhoneAuthProvider,
@@ -20,13 +20,7 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-/*
-const TEST_NUMBERS: Record<string, string> = {
-  // E.164 → code (fill with YOUR pairs from the console)
-  '+66655453321': '345623',
-  '+66912345678': '111111',
-};*/
-const MOCK_AUTH = true // set false when using real Firebase
+const MOCK_AUTH = false // 🔹 ใช้ Firebase จริง
 const TEST_NUMBERS: Record<string, string> = mockData.TEST_NUMBERS || {}
 
 const mapAuthError = (err: any) => {
@@ -41,10 +35,10 @@ export default function VerifyPhone() {
   const { verificationId, phone, flow, reset, newpw, next } = useLocalSearchParams<{
     verificationId: string
     phone: string
-    flow?: string        // 'reset' | 'onboard' (from phone.tsx)
-    reset?: string       // legacy: '1' means reset flow
-    newpw?: string       // only for reset flow
-    next?: string        // optional override for non-reset flow
+    flow?: string
+    reset?: string
+    newpw?: string
+    next?: string
   }>()
   const auth = getAuth()
   const router = useRouter()
@@ -53,84 +47,60 @@ export default function VerifyPhone() {
   const [error, setError] = React.useState<string | null>(null)
   const [loading, setLoading] = React.useState(false)
 
-  // guard
+  // 🔹 ป้องกันเข้าโดยตรงโดยไม่มีข้อมูล
   React.useEffect(() => {
     if (!verificationId || !phone) router.replace('/(auth)/phone')
   }, [verificationId, phone])
 
-  // dev autofill
-  React.useEffect(() => {
-    if (__DEV__ && phone && TEST_NUMBERS[phone]) {
-      const c = TEST_NUMBERS[phone]
-      setCode(c)
-      setTimeout(() => onVerify(c), 0)
-    }
-  }, [phone])
-
   const isResetFlow = flow === 'reset' || reset === '1'
 
-  const onVerify = async (override?: string) => {
-  const useCode = (override ?? code).replace(/\D/g, '')
-  if (useCode.length !== 6) return
-  setError(null)
-  setLoading(true)
+  // 🔹 ฟังก์ชันยืนยัน OTP
+  const onVerify = async () => {
+    const useCode = code.replace(/\D/g, '')
+    if (useCode.length !== 6) return
+    setError(null)
+    setLoading(true)
 
-  try {
-    if (MOCK_AUTH) {
-      // ---- MOCK VERIFICATION ----
-      const TEST_NUMBERS = mockData.TEST_NUMBERS
-      const expectedCode = TEST_NUMBERS[phone.trim()] // phone in +66 format
-
-      if (!expectedCode) {
-        setError('Phone number not found in mock data.')
+    try {
+      if (MOCK_AUTH) {
+        // ---- MOCK ----
+        const expectedCode = TEST_NUMBERS[phone.trim()]
+        if (!expectedCode || useCode !== expectedCode) {
+          setError('Invalid verification code.')
+          return
+        }
+        Alert.alert('Verified successfully!')
+        router.replace('/(auth)/signin')
         return
       }
 
-      if (useCode !== expectedCode) {
-        setError('Invalid verification code.')
-        return
-      }
+      // ---- REAL FIREBASE ----
+      if (!verificationId) return
+      const cred = PhoneAuthProvider.credential(String(verificationId), useCode)
+      await signInWithCredential(auth, cred)
 
-      // ✅ Success (mock)
-      if (isResetFlow) {
-        Alert.alert('Password reset (mock)', 'Your password has been updated.')
-        router.replace('/(auth)/signin')
+      if (isResetFlow && newpw) {
+        await updatePassword(auth.currentUser!, String(newpw))
+        Alert.alert('Password reset', 'Your password has been updated.')
       } else {
-        const dest = next && String(next).length ? String(next) : '/(auth)/store-info'
-        router.replace(dest)
+        Alert.alert('Verification complete', 'Your phone number has been verified.')
       }
 
-      return
+      // ✅ หลังยืนยันเสร็จ → ไปหน้า Sign In
+      router.replace('/(auth)/signin')
+    } catch (err: any) {
+      console.log('[verify]', err?.code, err?.message)
+      setError(mapAuthError(err))
+    } finally {
+      setLoading(false)
     }
-
-    // ---- REAL FIREBASE VERIFICATION ----
-    if (!verificationId) return
-    const cred = PhoneAuthProvider.credential(String(verificationId), useCode)
-    const userCred = await signInWithCredential(auth, cred)
-
-    if (isResetFlow) {
-      if (newpw && userCred.user) {
-        await updatePassword(userCred.user, String(newpw))
-        router.replace('/(auth)/signin')
-      } else {
-        Alert.alert('Password reset', 'Missing new password info.')
-      }
-      return
-    }
-
-    const dest = next && String(next).length ? String(next) : '/(auth)/store-info'
-    router.replace(dest)
-  } catch (err: any) {
-    console.log('[verify]', err?.code, err?.message)
-    setError(mapAuthError(err))
-  } finally {
-    setLoading(false)
   }
-}
-
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+      {/* 🔹 ซ่อนหัวข้อ verify-phone */}
+      <Stack.Screen options={{ headerShown: false }} />
+
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1 }}>
           <View style={{ flex: 1, padding: 25, gap: 16 }}>
@@ -138,15 +108,17 @@ export default function VerifyPhone() {
               {isResetFlow ? 'Confirm password reset' : 'Verify your phone'}
             </Text>
             <Text style={{ color: '#6B7280', marginTop: 6, fontSize: 12, textAlign: 'center' }}>
-              Please enter the OTP we just sent to your phone number {phone}
+              Please enter the OTP sent to your phone number {phone}
             </Text>
 
+            {/* 🔹 Input OTP */}
             <TextInput
               value={code}
               onChangeText={(t) => setCode(t.replace(/\D/g, '').slice(0, 6))}
               placeholder="xxxxxx"
               keyboardType="number-pad"
-              textContentType="oneTimeCode"
+              textContentType="none" // ❌ ปิด autofill
+              autoComplete="off" // ❌ ปิด autofill
               maxLength={6}
               style={{
                 marginTop: 16,
@@ -166,8 +138,9 @@ export default function VerifyPhone() {
               </Text>
             )}
 
+            {/* 🔹 ปุ่ม Verify */}
             <TouchableOpacity
-              onPress={() => onVerify()}
+              onPress={onVerify}
               disabled={code.length !== 6 || loading}
               style={{
                 marginTop: 18,
@@ -182,8 +155,9 @@ export default function VerifyPhone() {
               </Text>
             </TouchableOpacity>
 
+            {/* 🔹 ปุ่ม Resend */}
             <TouchableOpacity
-              onPress={() => router.replace(isResetFlow ? '/(auth)/forgot-password' : '/(auth)/phone')}
+              onPress={() => router.replace('/(auth)/phone')}
               style={{ marginTop: 12 }}
             >
               <Text style={{ textAlign: 'center', fontWeight: '300', color: '#111827' }}>

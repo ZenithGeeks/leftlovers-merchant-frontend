@@ -134,6 +134,7 @@ export default function Page() {
                   padding: 12,
                   backgroundColor: 'rgba(38, 189, 104, 0.2)',
                   borderColor: 'rgba(38, 189, 104, 0.05)',
+                  letterSpacing: 0
                 }}
               />
             </View>
@@ -157,6 +158,7 @@ export default function Page() {
                   padding: 12,
                   backgroundColor: 'rgba(38, 189, 104, 0.2)',
                   borderColor: 'rgba(38, 189, 104, 0.05)',
+                  letterSpacing: 0,
                 }}
               />
             </View>
