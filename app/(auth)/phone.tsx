@@ -15,7 +15,7 @@ const TEST_NUMBERS: Record<string, string> = {
   '+66912345678': '111111',
 };*/
 
-const MOCK_AUTH = true // set false when using real Firebase
+const MOCK_AUTH = false // set false when using real Firebase
 const TEST_NUMBERS = mockData.TEST_NUMBERS
 
 // 1) Use env vars (Expo exposes EXPO_PUBLIC_*)

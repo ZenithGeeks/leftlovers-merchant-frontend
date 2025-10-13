@@ -87,7 +87,7 @@ export default function VerifyPhone() {
       }
 
       // ✅ หลังยืนยันเสร็จ → ไปหน้า Sign In
-      router.replace('/(auth)/signin')
+      router.replace('/(auth)/store-info')
     } catch (err: any) {
       console.log('[verify]', err?.code, err?.message)
       setError(mapAuthError(err))
