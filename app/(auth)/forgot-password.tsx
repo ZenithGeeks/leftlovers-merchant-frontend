@@ -196,7 +196,7 @@ export default function ForgotPassword() {
                 Email
               </Text>
               <TextInput
-                placeholder="Merchant@gmail.com"
+                placeholder="Enter your email"
                 value={email}
                 onChangeText={setEmail}
                 autoCapitalize="none"
