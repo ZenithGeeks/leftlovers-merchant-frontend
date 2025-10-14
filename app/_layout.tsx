@@ -1,4 +1,5 @@
 // app/_layout.tsx
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   Poppins_400Regular,
   Poppins_500Medium,
@@ -12,10 +13,8 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";
 import "react-native-reanimated";
+import "./globals.css";
 
-import { useColorScheme } from "@/hooks/use-color-scheme";
-
-// Keep splash visible while fonts load
 try { SplashScreen.preventAutoHideAsync(); } catch {}
 
 export const unstable_settings = {
