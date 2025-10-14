@@ -3,12 +3,14 @@ import { Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts } from '@/constants/theme';
 import { financeStyles as s } from './styles';
+import type { DateKey } from './types';
 
-export default function SummaryTab() {
+
+export default function SummaryTab({ selectedDate }: { selectedDate: DateKey }) {
   return (
     <>
       <View style={{ marginTop: 24 }}>
-        <Text style={s.label}>Net Sales</Text>
+        <Text style={s.label}>Net Sales ({selectedDate})</Text>
         <Text style={s.value}>+ 2000.00</Text>
 
         <Text style={[s.label, { marginTop: 16 }]}>Earnings</Text>

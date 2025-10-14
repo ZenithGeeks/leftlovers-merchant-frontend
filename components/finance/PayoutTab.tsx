@@ -15,7 +15,7 @@ type Props = {
 export default function PayoutTab({ date, onDateChange, data }: Props) {
   return (
     <>
-      <DatePills value={date} onChange={onDateChange} />
+      
 
       <View style={[s.row, { marginTop: 8 }]}>
         <View>

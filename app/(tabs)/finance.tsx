@@ -10,6 +10,7 @@ import {
   SummaryTab,
   TransactionTab,
   PayoutTab,
+  DatePills,
   financeStyles as s,
   type TabKey,
   type DateKey,
@@ -53,11 +54,11 @@ export default function FinanceScreen() {
         <Text style={styles.header}>Finance</Text>
 
         <Tabs active={activeTab} onChange={setActiveTab} />
-
+        <DatePills value={date} onChange={setDate} />
         {activeTab === 'Summary' && (
           <>
       
-            <SummaryTab />
+            <SummaryTab selectedDate={date}/>
           </>
         )}
 

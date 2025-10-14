@@ -13,7 +13,7 @@ type Props = {
 export default function TransactionTab({ date, onDateChange, data }: Props) {
   return (
     <>
-      <DatePills value={date} onChange={onDateChange} />
+      
       <View style={{ marginTop: 8 }}>
         <Text style={s.subdate}>{data.date}</Text>
 
