@@ -1,0 +1,70 @@
+{
+  "optionGroups": [
+    {
+      "id": "OG-001",
+      "menuItemId": "m1",
+      "name": "Sweetness",
+      "minSelect": 0,
+      "maxSelect": 1,
+      "sortOrder": 1,
+      "options": [
+        { "id": "OPT-001", "optionGroupId": "OG-001", "name": "100%", "priceDelta": 0.0, "active": true, "sortOrder": 1 },
+        { "id": "OPT-002", "optionGroupId": "OG-001", "name": "75%", "priceDelta": 0.0, "active": true, "sortOrder": 2 },
+        { "id": "OPT-003", "optionGroupId": "OG-001", "name": "50%", "priceDelta": 0.0, "active": true, "sortOrder": 3 },
+        { "id": "OPT-004", "optionGroupId": "OG-001", "name": "0%", "priceDelta": 0.0, "active": true, "sortOrder": 4 }
+      ]
+    },
+    {
+      "id": "OG-002",
+      "menuItemId": "m1",
+      "name": "Ice Level",
+      "minSelect": 0,
+      "maxSelect": 1,
+      "sortOrder": 2,
+      "options": [
+        { "id": "OPT-005", "optionGroupId": "OG-002", "name": "100%", "priceDelta": 0.0, "active": true, "sortOrder": 1 },
+        { "id": "OPT-006", "optionGroupId": "OG-002", "name": "50%", "priceDelta": 0.0, "active": true, "sortOrder": 2 },
+        { "id": "OPT-007", "optionGroupId": "OG-002", "name": "No Ice", "priceDelta": 0.0, "active": true, "sortOrder": 3 }
+      ]
+    },
+    {
+      "id": "OG-003",
+      "menuItemId": "m2",
+      "name": "Milk Type",
+      "minSelect": 0,
+      "maxSelect": 1,
+      "sortOrder": 1,
+      "options": [
+        { "id": "OPT-008", "optionGroupId": "OG-003", "name": "Whole Milk", "priceDelta": 0.0, "active": true, "sortOrder": 1 },
+        { "id": "OPT-009", "optionGroupId": "OG-003", "name": "Oat Milk", "priceDelta": 10.0, "active": true, "sortOrder": 2 },
+        { "id": "OPT-010", "optionGroupId": "OG-003", "name": "Almond Milk", "priceDelta": 15.0, "active": true, "sortOrder": 3 }
+      ]
+    },
+    {
+      "id": "OG-004",
+      "menuItemId": "m3",
+      "name": "Spiciness",
+      "minSelect": 0,
+      "maxSelect": 1,
+      "sortOrder": 1,
+      "options": [
+        { "id": "OPT-011", "optionGroupId": "OG-004", "name": "Mild", "priceDelta": 0.0, "active": true, "sortOrder": 1 },
+        { "id": "OPT-012", "optionGroupId": "OG-004", "name": "Medium", "priceDelta": 0.0, "active": true, "sortOrder": 2 },
+        { "id": "OPT-013", "optionGroupId": "OG-004", "name": "Hot", "priceDelta": 0.0, "active": true, "sortOrder": 3 }
+      ]
+    },
+    {
+      "id": "OG-005",
+      "menuItemId": "m3",
+      "name": "Add-ons",
+      "minSelect": 0,
+      "maxSelect": 2,
+      "sortOrder": 2,
+      "options": [
+        { "id": "OPT-014", "optionGroupId": "OG-005", "name": "Cheese", "priceDelta": 10.0, "active": true, "sortOrder": 1 },
+        { "id": "OPT-015", "optionGroupId": "OG-005", "name": "Bacon", "priceDelta": 15.0, "active": true, "sortOrder": 2 },
+        { "id": "OPT-016", "optionGroupId": "OG-005", "name": "Fried Egg", "priceDelta": 10.0, "active": true, "sortOrder": 3 }
+      ]
+    }
+  ]
+}

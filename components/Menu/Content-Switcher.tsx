@@ -1,24 +1,26 @@
 import { Colors, Fonts } from "@/constants/theme";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-    Animated,
-    LayoutChangeEvent,
-    Pressable,
-    StyleSheet,
-    Text,
-    View,
+  Animated,
+  LayoutChangeEvent,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
-
 type Tab = { key: string; label: string };
 
 type Props = {
-  tabs: Tab[];                 
-  value: string;               // active key
+  tabs: Tab[];
+  value: string;
   onChange: (key: string) => void;
   size?: "sm" | "md";
-  underlineColor?: string;     // default: brand accent
-  textActiveColor?: string;    // default: brand accent
-  textInactiveColor?: string;  // default: dark text
+  underlineColor?: string;
+  textActiveColor?: string;
+  textInactiveColor?: string;
+  animated?: boolean;
+  containerWidth?: number;
+  testID?: string;
 };
 
 export default function ContentSwitcher({
@@ -29,19 +31,29 @@ export default function ContentSwitcher({
   underlineColor = Colors.light.accent ?? "#26BD68",
   textActiveColor = Colors.light.accent ?? "#26BD68",
   textInactiveColor = "#11181C",
+  animated = true,
+  containerWidth,
+  testID = "content-switcher",
 }: Props) {
-  const [width, setWidth] = useState(0);
+  const [measuredWidth, setMeasuredWidth] = useState(0);
+  const width = containerWidth ?? measuredWidth;
+
   const index = useMemo(
-    () => Math.max(0, tabs.findIndex(t => t.key === value)),
+    () => Math.max(0, tabs.findIndex((t) => t.key === value)),
     [tabs, value]
   );
+
+  const onLayout = (e: LayoutChangeEvent) => {
+    if (containerWidth != null) return;
+    setMeasuredWidth(e.nativeEvent.layout.width);
+  };
   const indicatorX = useRef(new Animated.Value(0)).current;
 
-  const onLayout = (e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width);
-
   useEffect(() => {
+    if (!animated) return;
     if (width <= 0 || tabs.length === 0) return;
     const segment = width / tabs.length;
+
     Animated.spring(indicatorX, {
       toValue: index * segment,
       useNativeDriver: true,
@@ -49,28 +61,32 @@ export default function ContentSwitcher({
       damping: 18,
       mass: 0.6,
     }).start();
-  }, [index, width, tabs.length, indicatorX]);
+  }, [animated, index, width, tabs.length, indicatorX]);
 
   const S = styles(size);
-  const segmentWidth = width / Math.max(1, tabs.length);
+  const segmentWidth = width > 0 ? width / Math.max(1, tabs.length) : undefined;
+  const staticLeft = segmentWidth != null ? index * segmentWidth : 0;
 
   return (
-    <View onLayout={onLayout} style={S.container}>
-      {/* Labels row */}
+    <View
+      onLayout={onLayout}
+      style={S.container}
+      testID={testID}
+      accessibilityRole="tablist"
+    >
+      {/* Row of tabs */}
       <View style={S.row}>
-        {tabs.map((tab, i) => {
+        {tabs.map((tab) => {
           const active = tab.key === value;
           return (
             <Pressable
               key={tab.key}
-              onPress={() => onChange(tab.key)}
-              style={({ pressed }) => [
-                S.tab,
-                { width: `${100 / tabs.length}%` },
-                pressed && S.pressed,
-              ]}
-              accessibilityRole="button"
+              accessibilityRole="tab"
               accessibilityState={{ selected: active }}
+              accessibilityLabel={`${tab.label}-tab`}
+              testID={`${testID}-tab-${tab.key}`}
+              onPress={() => onChange(tab.key)}
+              style={[S.tab, { width: `${100 / tabs.length}%` }]}
             >
               <Text
                 style={[
@@ -92,17 +108,32 @@ export default function ContentSwitcher({
       {/* Base hairline */}
       <View style={S.hairline} />
 
-      {/* Sliding underline */}
-      <Animated.View
-        style={[
-          S.underline,
-          {
-            width: segmentWidth,
-            backgroundColor: underlineColor,
-            transform: [{ translateX: indicatorX }],
-          },
-        ]}
-      />
+      {/* Underline: animated or static for tests */}
+      {animated ? (
+        <Animated.View
+          testID={`${testID}-underline`}
+          style={[
+            S.underline,
+            {
+              width: segmentWidth,
+              backgroundColor: underlineColor,
+              transform: [{ translateX: indicatorX }],
+            },
+          ]}
+        />
+      ) : (
+        <View
+          testID={`${testID}-underline`}
+          style={[
+            S.underline,
+            {
+              width: segmentWidth,
+              backgroundColor: underlineColor,
+              left: staticLeft,
+            },
+          ]}
+        />
+      )}
     </View>
   );
 }
@@ -139,6 +170,5 @@ function styles(size: "sm" | "md") {
       left: 0,
       borderRadius: 999,
     },
-    pressed: { opacity: 0.7 },
   });
 }
