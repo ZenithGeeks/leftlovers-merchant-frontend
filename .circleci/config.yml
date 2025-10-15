@@ -1,0 +1,44 @@
+version: 2.1
+
+executors:
+  expo-executor:
+    docker:
+      - image: cimg/node:20.11
+    working_directory: ~/project
+
+jobs:
+  build-android:
+    executor: expo-executor
+    steps:
+      - checkout
+
+      - run:
+          name: Install dependencies
+          command: |
+            npm install -g eas-cli
+            npm ci
+
+      - run:
+          name: Verify Expo login
+          command: |
+            if [ -z "$EXPO_TOKEN" ]; then
+              echo "❌ EXPO_TOKEN is missing. Please set it in CircleCI project environment variables."
+              exit 1
+            fi
+            eas whoami --token $EXPO_TOKEN
+
+      - run:
+          name: Build Android (EAS)
+          command: |
+            eas build --platform android --non-interactive --profile production --token $EXPO_TOKEN
+
+      - run:
+          name: Upload build artifact info
+          command: |
+            echo "✅ Android build completed successfully"
+            eas build:list --limit=1 --status finished --token $EXPO_TOKEN
+
+workflows:
+  build-deploy:
+    jobs:
+      - build-android
