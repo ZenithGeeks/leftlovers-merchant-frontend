@@ -1,12 +1,17 @@
+import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import {
   Dimensions,
   ScrollView,
   StyleSheet,
   Text,
-  View
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { useAuth } from "@clerk/clerk-expo";
+import { signOut as fbSignOut, getAuth } from "firebase/auth";
 
 import ContentSwitcher from "@/components/Menu/Content-Switcher";
 import MenuWrapper from "@/components/Menu/Menu-Wrapper";
@@ -22,8 +27,9 @@ interface MenuItem {
   basePrice: number;
   leftoverQty: number;
   photoUrl: string;
+  categoryId?: string | null;
   categoryName?: string | null;
-}
+};
 
 interface Option {
   id: string;
@@ -44,21 +50,25 @@ interface OptionGroup {
   options: Option[];
 }
 
+const toListItem = (m: MenuItemJson): ListItem => ({
+  id: m.id,
+  name: m.name,
+  price: m.basePrice,
+  imageUrl: m.photoUrl,
+  inStock: (m.leftoverQty ?? 0) > 0,
+});
 
-interface Section {
-  id: string;
-  title: string;
-  items: MenuItem[];
-}
-
-const groupByCategory = (items: MenuItem[]): Section[] => {
+const groupByCategory = (items: MenuItemJson[]): Section[] => {
   const map = new Map<string, Section>();
   const UNCATEGORIZED = "Uncategorized";
 
   items.forEach((m) => {
     const title = m.categoryName?.trim() || "Food" || UNCATEGORIZED;
-    if (!map.has(title)) map.set(title, { id: title, title, items: [] });
-    map.get(title)!.items.push(m);
+
+    if (!map.has(title)) {
+      map.set(title, { id: title, title, items: [] });
+    }
+    map.get(title)!.items.push(toListItem(m));
   });
 
   return Array.from(map.values()).sort((a, b) =>
@@ -69,6 +79,20 @@ const groupByCategory = (items: MenuItem[]): Section[] => {
 export default function MenuScreen() {
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<"items" | "options">("items");
+  const router = useRouter();
+  const { signOut } = useAuth(); // Clerk hook
+
+  const onLogout = async () => {
+    try {
+      await signOut?.(); // Clerk logout if available
+    } catch {}
+    try {
+      const auth = getAuth();
+      if (auth?.currentUser) await fbSignOut(auth); // Firebase fallback
+    } catch {}
+
+    router.replace("/(auth)/signin"); // adjust if your sign-in route differs
+  };
 
   const screenWidth = Dimensions.get("window").width;
   const horizontalPadding = useMemo(() => {
@@ -84,79 +108,74 @@ export default function MenuScreen() {
 
   return (
     <ScrollView
-      style={{ flex: 1 }}
-      contentContainerStyle={{ paddingBottom: insets.bottom + SPACING.xl }}
+      style={{ marginBottom: insets.bottom + SPACING.xl, flex: 1, height: "100%" }}
     >
-      <ThemedView
-        style={[
-          styles.screen,
-          {
-            paddingTop: insets.top + SPACING.lg,
-            paddingHorizontal: horizontalPadding,
-          },
-        ]}
-      >
-        <View style={styles.header}>
-          <Text style={styles.title}>Menu</Text>
-          <ContentSwitcher
-            tabs={[
-              { key: "items", label: "Items" },
-              { key: "options", label: "Options" },
+      <FlatList
+        data={sections}
+        keyExtractor={(s) => s.id}
+        contentContainerStyle={{
+          paddingBottom: insets.bottom + SPACING.xl,
+        }}
+        ListHeaderComponent={
+          <ThemedView
+            style={[
+              styles.screen,
+              {
+                paddingTop: insets.top + SPACING.lg,
+                paddingHorizontal: horizontalPadding,
+              },
             ]}
-            value={tab}
-            onChange={(k) => setTab(k as any)}
-          />
-        </View>
-      </ThemedView>
+          >
+            {/* Header */}
+            <View style={styles.header}>
+              <View style={styles.headerTop}>
+                <Text style={styles.title}>Menu</Text>
+                <TouchableOpacity
+                  onPress={onLogout}
+                  style={styles.logoutBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel="Log out"
+                >
+                  <Text style={styles.logoutText}>Log out</Text>
+                </TouchableOpacity>
+              </View>
 
-      <View style={styles.screen}>
-        {sections.map((item, idx) => (
-          <React.Fragment key={item.id}>
-            <ThemedView
-              style={[styles.wrapperRow, { paddingHorizontal: horizontalPadding }]}
-            >
-              {tab === "items" ? (
-                
-                <MenuWrapper
-                  title={item.title}
-                  items={item.items.map((m) => ({
-                    id: m.id,
-                    name: m.name,
-                    price: m.basePrice,
-                    imageUrl: m.photoUrl,
-                    inStock: (m.leftoverQty ?? 0) > 0,
-                  }))}
-                  defaultExpanded
-                  onToggleItem={(id, val) =>
-                    console.log(`[${item.title}] toggle ${id}: ${val}`)
-                  }
-                />
-              ) : (
-                <View>
-                  {optionGroups.map((group) => {
-                    return (
-                      <OptionWrapper
-                        key={group.id}
-                        title={group.name}
-                        options={group.options}
-                        defaultExpanded
-                        onChangeChoice={(groupId, choiceId, val) =>
-                          console.log(
-                            `[${group.name}] [${groupId}] choice ${choiceId} = ${val}`
-                          )
-                        }
-                      />
-                    );
-                  })}
-                </View>
-              )}
-            </ThemedView>
-            {idx < sections.length - 1 && (
-              <View style={{ height: SPACING.lg }} />
+              <ContentSwitcher
+                tabs={[
+                  { key: "items", label: "Items" },
+                  { key: "options", label: "Options" },
+                ]}
+                value={tab}
+                onChange={(k) => setTab(k as any)}
+              />
+            </View>
+          </ThemedView>
+        }
+        renderItem={({ item }) => (
+          <ThemedView
+            style={[styles.wrapperRow, { paddingHorizontal: horizontalPadding }]}
+          >
+            {tab === "items" ? (
+              <MenuWrapper
+                title={item.title}
+                items={item.items}
+                defaultExpanded={true}
+                onToggleItem={(id, val) =>
+                  console.log(`[${item.title}] toggle ${id}: ${val}`)
+                }
+              />
+            ) : (
+              <MenuWrapper
+                title={`${item.title} Options`}
+                items={[]}
+                defaultExpanded={true}
+              />
             )}
-          </React.Fragment>
-        ))}
-      </View>
+          </ThemedView>
+        )}
+        ItemSeparatorComponent={() => <View style={{ height: SPACING.lg }} />}
+        showsVerticalScrollIndicator={false}
+      />
     </ScrollView>
   );
 }
@@ -167,9 +186,25 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xl,
     gap: SPACING.md,
   },
+  headerTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   title: {
     fontSize: 24,
     fontWeight: "bold",
+    color: "#11181C",
+  },
+  logoutBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: "rgba(17, 24, 28, 0.06)",
+  },
+  logoutText: {
+    fontSize: 14,
+    fontWeight: "600",
     color: "#11181C",
   },
   wrapperRow: {
