@@ -2,7 +2,6 @@ import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import {
   Dimensions,
-  FlatList,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,19 +10,18 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-// Optional auth imports — keep only what you use
 import { useAuth } from "@clerk/clerk-expo";
 import { signOut as fbSignOut, getAuth } from "firebase/auth";
 
 import ContentSwitcher from "@/components/Menu/Content-Switcher";
 import MenuWrapper from "@/components/Menu/Menu-Wrapper";
+import OptionWrapper from "@/components/Menu/Option-Wrapper";
 import { ThemedView } from "@/components/themed-view";
-import data from "@/mockupData/menuData.json";
+import menuData from "@/mockupData/menuData.json";
+import optionData from "@/mockupData/optionGroup.json";
 
-const SPACING = { xs: 6, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24 };
-
-// ----- helpers -----
-type MenuItemJson = {
+const SPACING = { sm: 8, md: 12, lg: 16, xl: 20 };
+interface MenuItem {
   id: string;
   name: string;
   basePrice: number;
@@ -33,19 +31,24 @@ type MenuItemJson = {
   categoryName?: string | null;
 };
 
-type ListItem = {
+interface Option {
   id: string;
+  optionGroupId: string;
   name: string;
-  price: number;
-  imageUrl: string;
-  inStock: boolean;
-};
+  active: boolean;
+  priceDelta: number;
+  sortOrder: number;
+}
 
-type Section = {
+interface OptionGroup {
   id: string;
-  title: string;
-  items: ListItem[];
-};
+  menuItemId: string;
+  name: string;
+  minSelect: number;
+  maxSelect: number;
+  sortOrder: number;
+  options: Option[];
+}
 
 const toListItem = (m: MenuItemJson): ListItem => ({
   id: m.id,
@@ -98,9 +101,10 @@ export default function MenuScreen() {
   }, [screenWidth]);
 
   const sections = useMemo(
-    () => groupByCategory((data.menuItems as MenuItemJson[]) || []),
+    () => groupByCategory((menuData.menuItems as MenuItem[]) || []),
     []
   );
+  const optionGroups = optionData.optionGroups as OptionGroup[];
 
   return (
     <ScrollView
@@ -177,9 +181,7 @@ export default function MenuScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-  },
+  screen: { flex: 1 },
   header: {
     marginBottom: SPACING.xl,
     gap: SPACING.md,

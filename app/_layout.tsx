@@ -1,4 +1,3 @@
-// app/_layout.tsx
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   Poppins_400Regular,
@@ -20,8 +19,6 @@ import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import Constants from "expo-constants";
 
 
-
-// Keep splash visible while fonts load
 try { SplashScreen.preventAutoHideAsync(); } catch {}
 
 export const unstable_settings = {
@@ -31,47 +28,6 @@ export const unstable_settings = {
 const clerkPublishableKey =
   Constants.expoConfig?.extra?.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
   
-/*
-
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
-
-  const [fontsLoaded] = useFonts({
-    Poppins_400Regular,
-    Poppins_500Medium,
-    Poppins_600SemiBold,
-    Poppins_700Bold,
-  });
-
-  useEffect(() => {
-    if (fontsLoaded) SplashScreen.hideAsync();
-  }, [fontsLoaded]);
-
-  if (!fontsLoaded) return null;
-
-  return (
-    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      {/*Hide headers globally*//*}
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="(pages)" />
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="(home)" />
-      </Stack>
-
-      <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
-    </ThemeProvider>
-  );
-
-}
-//Authentication
-export default function RootLayout() {
-  return (
-    <ClerkProvider>
-      <Slot />
-    </ClerkProvider>
-  )
-} */
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
