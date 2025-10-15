@@ -3,6 +3,8 @@ import { Colors, Fonts } from '@/constants/theme';
 import React, { useMemo, useState } from 'react';
 import { Dimensions, ScrollView, StyleSheet, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import mockData from '@/mockupData/finance.json';
+
 
 // NEW imports
 import {
@@ -31,22 +33,7 @@ export default function FinanceScreen() {
   const [date, setDate] = useState<DateKey>('Today');
 
   // mock data
-  const transaction: Transaction = {
-    date: '20 Sep 2025',
-    title: 'Payment LL-015',
-    id: '0123456789',
-    amountTHB: 1500,
-    time: '5:43PM',
-  };
-
-  const payout: Payout = {
-    balanceTHB: 1500,
-    oweTHB: 0,
-    detailDate: '22 09 2025',
-    processedAt: '23/09/2025 05:58AM',
-    amountTHB: 1500,
-    status: 'Transferred',
-  };
+  const { transactions, payouts, summary } = mockData;
 
   return (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}>
@@ -63,11 +50,12 @@ export default function FinanceScreen() {
         )}
 
         {activeTab === 'Transaction' && (
-          <TransactionTab date={date} onDateChange={setDate} data={transaction} />
+          <TransactionTab date={date} onDateChange={setDate} data={transactions} />
+
         )}
 
         {activeTab === 'Payout' && (
-          <PayoutTab date={date} onDateChange={setDate} data={payout} />
+          <PayoutTab date={date} onDateChange={setDate} data={payouts} />
         )}
       </ThemedView>
     </ScrollView>

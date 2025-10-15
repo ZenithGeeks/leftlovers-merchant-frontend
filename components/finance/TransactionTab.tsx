@@ -7,7 +7,7 @@ import { financeStyles as s } from './styles';
 type Props = {
   date: DateKey;
   onDateChange: (d: DateKey) => void;
-  data: Transaction;
+  data: Transaction[];            // <-- array
 };
 
 export default function TransactionTab({ date, onDateChange, data }: Props) {

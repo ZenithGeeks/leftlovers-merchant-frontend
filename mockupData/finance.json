@@ -1,0 +1,80 @@
+{
+  "transactions": [
+    {
+      "date": "22 Sep 2025",
+      "title": "Payment GF-015",
+      "id": "GF-015",
+      "amountTHB": 99.44,
+      "time": "01:43PM"
+    },
+    {
+      "date": "28 Aug 2025",
+      "title": "Payment GF-403",
+      "id": "GF-403",
+      "amountTHB": 99.44,
+      "time": "12:40PM"
+    },
+    {
+      "date": "22 Aug 2025",
+      "title": "Payment GF-910",
+      "id": "GF-910",
+      "amountTHB": 119.33,
+      "time": "10:29AM"
+    },
+    {
+      "date": "21 Aug 2025",
+      "title": "Ad spend Automatic Keywords campaign 17 Aug",
+      "id": "AD-001",
+      "amountTHB": -27.76,
+      "time": "09:02PM"
+    }
+  ],
+  "payouts": [
+    {
+      "balanceTHB": 0,
+      "oweTHB": 0,
+      "detailDate": "22 09 2025",
+      "processedAt": "23/09/2025 05:58AM",
+      "amountTHB": 99.44,
+      "status": "Transferred"
+    },
+    {
+      "balanceTHB": 0,
+      "oweTHB": 0,
+      "detailDate": "28 08 2025",
+      "processedAt": "29/08/2025 08:21AM",
+      "amountTHB": 99.44,
+      "status": "Transferred"
+    },
+    {
+      "balanceTHB": 0,
+      "oweTHB": 0,
+      "detailDate": "22 08 2025",
+      "processedAt": "23/08/2025 07:27AM",
+      "amountTHB": 119.33,
+      "status": "Transferred"
+    },
+    {
+      "balanceTHB": 0,
+      "oweTHB": 0,
+      "detailDate": "21 08 2025",
+      "processedAt": "22/08/2025 06:51AM",
+      "amountTHB": 230.79,
+      "status": "Transferred"
+    },
+    {
+      "balanceTHB": 0,
+      "oweTHB": 0,
+      "detailDate": "17 08 2025",
+      "processedAt": "18/08/2025 06:46AM",
+      "amountTHB": 42.22,
+      "status": "Transferred"
+    }
+  ],
+  "summary": {
+    "netSales": 1200.0,
+    "deduction": 413.29,
+    "netEarnings": 786.71,
+    "earnings": 731.19
+  }
+}
