@@ -49,7 +49,7 @@ const groupByCategory = (items: MenuItem[]): Section[] => {
   const UNCATEGORIZED = "Uncategorized";
 
   items.forEach((m) => {
-    const title = m.categoryName?.trim() || "Food" || UNCATEGORIZED;
+    const title = m.categoryName?.trim() || UNCATEGORIZED;
     if (!map.has(title)) map.set(title, { id: title, title, items: [] });
     map.get(title)!.items.push(m);
   });
@@ -90,7 +90,7 @@ export default function MenuScreen() {
       >
         {/* Header */}
         <View className="mb-6 gap-3">
-          <Text className="text-2xl font-bold text-[#11181C]">Menu</Text>
+          <Text className="text-3xl font-bold text-[#11181C]">Menu</Text>
           <ContentSwitcher
             tabs={[
               { key: "items", label: "Items" },
