@@ -1,0 +1,51 @@
+[
+  {
+    "id": "1",
+    "firstName": "John",
+    "lastName": "Doe",
+    "role": "Owner",
+    "email": "john.doe@mail.com",
+    "phone": "+66 91 111 1111",
+    "isOwner": true
+  },
+  {
+    "id": "2",
+    "firstName": "Jane",
+    "lastName": "Doe",
+    "role": "Manager",
+    "email": "jane.doe@mail.com",
+    "phone": "+66 98 765 4321"
+  },
+  {
+    "id": "3",
+    "firstName": "Jay",
+    "lastName": "Doe",
+    "role": "Cashier",
+    "email": "jay.doe@mail.com",
+    "phone": "+66 92 222 2222"
+  },
+  {
+    "id": "4",
+    "firstName": "Joe",
+    "lastName": "Doe",
+    "role": "Stock",
+    "email": "joe.doe@mail.com",
+    "phone": "+66 93 333 3333"
+  },
+  {
+    "id": "5",
+    "firstName": "Jill",
+    "lastName": "Doe",
+    "role": "Owner",
+    "email": "jill.doe@mail.com",
+    "phone": "+66 94 444 4444"
+  },
+  {
+    "id": "6",
+    "firstName": "Joy",
+    "lastName": "Doe",
+    "role": "Owner",
+    "email": "joy.doe@mail.com",
+    "phone": "+66 95 555 5555"
+  }
+]
