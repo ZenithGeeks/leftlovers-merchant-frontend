@@ -46,10 +46,8 @@ interface Section {
 
 const groupByCategory = (items: MenuItem[]): Section[] => {
   const map = new Map<string, Section>();
-  const UNCATEGORIZED = "Uncategorized";
-
   items.forEach((m) => {
-    const title = m.categoryName?.trim() || UNCATEGORIZED;
+    const title = "Menu";
     if (!map.has(title)) map.set(title, { id: title, title, items: [] });
     map.get(title)!.items.push(m);
   });
@@ -151,3 +149,4 @@ export default function MenuScreen() {
     </ScrollView>
   );
 }
+
