@@ -13,7 +13,7 @@ export function TransactionTab({
   data: Transaction[];
 }) {
   const filtered = filterByDateRange(data, date, (t) => t.date);
-  console.log('Filtered transactions', filtered.length);
+  //console.log('Filtered transactions', filtered.length);
 
   if (filtered.length === 0) {
     return (

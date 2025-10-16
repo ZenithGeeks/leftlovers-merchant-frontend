@@ -13,7 +13,7 @@ export function PayoutTab({
   data: Payout[];
 }) {
   const filtered = filterByDateRange(data, date, (p) => p.detailDate);
-  console.log('Filtered payouts', filtered.length);
+  //console.log('Filtered payouts', filtered.length);
 
   if (filtered.length === 0) {
     return (
