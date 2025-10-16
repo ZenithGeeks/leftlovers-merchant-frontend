@@ -6,10 +6,10 @@ import CustomerFeedbackCard from "./CustomerFeedbackCard";
 export default function FeedbackWrapper() {
   const router = useRouter();
   const { reviews, warnings } = feedbackData;
+
   const average = useMemo(() => {
     if (!reviews?.length) return 0;
-    const total = reviews.reduce((sum, r) => sum + r.rating, 0);
-    return total / reviews.length;
+    return reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
   }, [reviews]);
 
   const distribution = useMemo(() => {
@@ -23,7 +23,8 @@ export default function FeedbackWrapper() {
     });
     return dist;
   }, [reviews]);
-  const warningCount = useMemo(() => {
+
+  const activeWarnings = useMemo(() => {
     const now = new Date();
     return warnings.filter((w) => !w.expiresAt || new Date(w.expiresAt) > now)
       .length;
@@ -34,7 +35,7 @@ export default function FeedbackWrapper() {
       average={average}
       totalReviews={reviews.length}
       distribution={distribution}
-      warnings={warningCount}
+      warnings={activeWarnings}
       onPress={() => router.push("/reviews")}
     />
   );
