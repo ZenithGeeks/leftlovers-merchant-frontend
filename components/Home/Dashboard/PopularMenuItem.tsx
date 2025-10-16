@@ -41,7 +41,7 @@ export default function PopularMenuItem({
   return (
     <Pressable
       onPress={onPress}
-      className="bg-white border border-neutral-200 rounded-2xl"
+      className="bg-white border border-neutral-200 rounded-2xl active:opacity-95 active:scale-[0.995]"
       style={{
         padding,
         gap,

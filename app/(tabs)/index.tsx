@@ -17,13 +17,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type ShopStatus = "closed" | "pause" | "busy" | "open";
 
-const STATUS_OPTIONS = [
-  { label: "Closed", value: "closed" },
-  { label: "Pause", value: "pause" },
-  { label: "Busy", value: "busy" },
-  { label: "Open", value: "open" },
-];
-
 const merchant = {
   id: merchantData.id,
   name: merchantData.displayName ?? "",
@@ -82,7 +75,6 @@ export default function HomeScreen() {
             <ShopStatusDropdown
               value={status}
               onChange={(v) => setStatus(v as ShopStatus)}
-              options={STATUS_OPTIONS}
               size="md"
             />
             <Pressable

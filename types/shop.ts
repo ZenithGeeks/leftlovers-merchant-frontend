@@ -1,0 +1,1 @@
+export type ShopStatus = "closed" | "pause" | "busy" | "open";

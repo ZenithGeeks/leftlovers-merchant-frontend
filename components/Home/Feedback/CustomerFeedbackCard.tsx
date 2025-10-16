@@ -1,11 +1,11 @@
 import { Fonts } from "@/constants/theme";
 import React from "react";
 import { Pressable, Text, View, useWindowDimensions } from "react-native";
+import { StarIcon as StarOutline } from "react-native-heroicons/outline";
 import {
   ChevronRightIcon,
   StarIcon as StarSolid,
 } from "react-native-heroicons/solid";
-import { StarIcon as StarOutline } from "react-native-heroicons/outline";
 
 type Distribution = Record<1 | 2 | 3 | 4 | 5, number>;
 

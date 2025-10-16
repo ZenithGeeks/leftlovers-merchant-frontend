@@ -1,4 +1,5 @@
 import { Colors, Fonts } from "@/constants/theme";
+import type { ShopStatus } from "@/types/shop";
 import React, { useMemo, useRef, useState } from "react";
 import {
   findNodeHandle,
@@ -10,11 +11,16 @@ import {
 } from "react-native";
 import { ChevronDownIcon, ChevronUpIcon } from "react-native-heroicons/mini";
 
-type Option = { label: string; value: string };
+const STATUS_OPTIONS: { label: string; value: ShopStatus }[] = [
+  { label: "Closed", value: "closed" },
+  { label: "Pause", value: "pause" },
+  { label: "Busy", value: "busy" },
+  { label: "Open", value: "open" },
+];
+
 type Props = {
-  value: string;
-  onChange: (v: string) => void;
-  options: Option[];
+  value: ShopStatus;
+  onChange: (v: ShopStatus) => void;
   placeholder?: string;
   disabled?: boolean;
   size?: "sm" | "md";
@@ -23,7 +29,6 @@ type Props = {
 export default function ShopStatusDropdown({
   value,
   onChange,
-  options,
   placeholder = "Select…",
   disabled,
   size = "md",
@@ -38,8 +43,8 @@ export default function ShopStatusDropdown({
   const buttonRef = useRef<View>(null);
 
   const selected = useMemo(
-    () => options.find((o) => o.value === value),
-    [options, value]
+    () => STATUS_OPTIONS.find((o) => o.value === value),
+    [value]
   );
 
   const onToggle = () => {
@@ -55,7 +60,7 @@ export default function ShopStatusDropdown({
     }
   };
 
-  const onSelect = (v: string) => {
+  const onSelect = (v: ShopStatus) => {
     onChange(v);
     setOpen(false);
   };
@@ -125,7 +130,7 @@ export default function ShopStatusDropdown({
             elevation: 6,
           }}
         >
-          {options.map((opt) => {
+          {STATUS_OPTIONS.map((opt) => {
             const active = opt.value === value;
             return (
               <Pressable
