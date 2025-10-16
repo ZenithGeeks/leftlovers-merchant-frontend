@@ -6,15 +6,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // NEW imports
 import {
-  Tabs,
-  SummaryTab,
-  TransactionTab,
   PayoutTab,
-  financeStyles as s,
-  type TabKey,
+  SummaryTab,
+  Tabs,
+  TransactionTab,
   type DateKey,
-  type Transaction,
   type Payout,
+  type TabKey,
+  type Transaction
 } from '@/components/finance';
 
 export default function FinanceScreen() {
