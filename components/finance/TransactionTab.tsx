@@ -1,34 +1,38 @@
-import React from 'react';
-import { Text, View } from 'react-native';
-import DatePills from './DatePills';
-import { DateKey, Transaction } from './types';
-import { financeStyles as s } from './styles';
+import { View, Text } from 'react-native';
+import { DatePills } from './DatePills';
+import type { DateKey, Transaction } from './types';
 
-type Props = {
+export function TransactionTab({
+  date,
+  onDateChange,
+  data,
+}: {
   date: DateKey;
-  onDateChange: (d: DateKey) => void;
-  data: Transaction[];            // <-- array
-};
-
-export default function TransactionTab({ date, onDateChange, data }: Props) {
+  onDateChange: (v: DateKey) => void;
+  data: Transaction[];
+}) {
   return (
-    <>
-      
-      <View style={{ marginTop: 8 }}>
-        <Text style={s.subdate}>{data.date}</Text>
-
-        <View style={[s.row, { marginTop: 16, alignItems: 'flex-start' }]}>
-          <View style={{ flexShrink: 1, paddingRight: 8 }}>
-            <Text style={s.txTitle}>{data.title}</Text>
-            <Text style={s.muted}>Transaction ID {data.id}</Text>
-          </View>
-
-          <View style={{ alignItems: 'flex-end' }}>
-            <Text style={s.txAmount}>{data.amountTHB.toFixed(2)} THB</Text>
-            <Text style={s.muted}>{data.time}</Text>
+    <View>
+      <DatePills value={date} onChange={onDateChange} />
+      {data.map((tx) => (
+        <View key={tx.id} className="mt-3">
+          <Text className="text-gray-900 font-bold mb-1">{tx.date}</Text>
+          <View className="flex-row justify-between items-start bg-white rounded-xl border border-gray-200 p-4">
+            <View>
+              <Text className="text-gray-900 font-semibold">{tx.title}</Text>
+              <Text className="text-gray-500 text-xs">
+                Transaction ID {tx.id}
+              </Text>
+            </View>
+            <View className="items-end">
+              <Text className="text-black font-bold">
+                {tx.amountTHB.toFixed(2)} THB
+              </Text>
+              <Text className="text-gray-500 text-xs">{tx.time}</Text>
+            </View>
           </View>
         </View>
-      </View>
-    </>
+      ))}
+    </View>
   );
 }

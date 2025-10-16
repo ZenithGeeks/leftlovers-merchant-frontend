@@ -1,68 +1,51 @@
-import { ThemedView } from '@/components/themed-view';
-import { Colors, Fonts } from '@/constants/theme';
 import React, { useMemo, useState } from 'react';
-import { Dimensions, ScrollView, StyleSheet, Text } from 'react-native';
+import { Dimensions, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import mockData from '@/mockupData/finance.json';
-
-
-// NEW imports
-import {
-  Tabs,
-  SummaryTab,
-  TransactionTab,
-  PayoutTab,
-  DatePills,
-  financeStyles as s,
-  type TabKey,
-  type DateKey,
-  type Transaction,
-  type Payout,
-} from '@/components/finance';
+import { Tabs } from '@/components/finance/Tabs';
+import { DatePills } from '@/components/finance/DatePills';
+import { SummaryTab } from '@/components/finance/SummaryTab';
+import { TransactionTab } from '@/components/finance/TransactionTab';
+import { PayoutTab } from '@/components/finance/PayoutTab';
+import type { TabKey, DateKey } from '@/components/finance/types';
 
 export default function FinanceScreen() {
   const insets = useSafeAreaInsets();
   const screenWidth = Dimensions.get('window').width;
-
-  const horizontalPadding = useMemo(() => {
-    const pct = screenWidth * 0.05;
-    return Math.max(14, Math.min(pct, 24));
-  }, [screenWidth]);
+  const horizontalPadding = useMemo(() => Math.max(14, Math.min(screenWidth * 0.05, 24)), [screenWidth]);
 
   const [activeTab, setActiveTab] = useState<TabKey>('Summary');
   const [date, setDate] = useState<DateKey>('Today');
 
-  // mock data
   const { transactions, payouts, summary } = mockData;
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}>
-      <ThemedView style={[styles.container, { paddingTop: insets.top + 24, paddingHorizontal: horizontalPadding }]}>
-        <Text style={styles.header}>Finance</Text>
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
+    >
+      <View
+        className="flex-1 bg-white"
+        style={{ paddingTop: insets.top + 24, paddingHorizontal: horizontalPadding }}
+      >
+        <Text className="text-2xl font-bold text-black mb-4">Finance</Text>
 
         <Tabs active={activeTab} onChange={setActiveTab} />
-        <DatePills value={date} onChange={setDate} />
         {activeTab === 'Summary' && (
-          <>
-      
-            <SummaryTab selectedDate={date}/>
-          </>
+        <SummaryTab
+          selectedDate={date}
+          onDateChange={setDate}
+          data={summary}
+        />
         )}
-
         {activeTab === 'Transaction' && (
           <TransactionTab date={date} onDateChange={setDate} data={transactions} />
-
         )}
-
         {activeTab === 'Payout' && (
-          <PayoutTab date={date} onDateChange={setDate} data={payouts} />
+          <PayoutTab date={date} onDateChange={setDate} 
+                    data={mockData.payouts.map(p => ({ ...p, status: p.status as 'Transferred' | 'Pending' | 'Failed' }))} />
         )}
-      </ThemedView>
+      </View>
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.light.background },
-  header: { fontSize: 24, fontFamily: Fonts.bold, marginBottom: 16, color: '#000' },
-});

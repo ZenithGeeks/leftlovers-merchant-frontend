@@ -1,21 +1,28 @@
-import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
-import { TabKey } from './types';
-import { financeStyles as s } from './styles';
+import type { TabKey } from './types';
 
-type Props = {
+export function Tabs({
+  active,
+  onChange,
+}: {
   active: TabKey;
-  onChange: (tab: TabKey) => void;
-};
-
-export default function Tabs({ active, onChange }: Props) {
+  onChange: (t: TabKey) => void;
+}) {
   const tabs: TabKey[] = ['Summary', 'Transaction', 'Payout'];
   return (
-    <View style={s.tabContainer}>
-      {tabs.map((label) => (
-        <TouchableOpacity key={label} onPress={() => onChange(label)}>
-          <Text style={[s.tabText, active === label && s.activeTab]}>{label}</Text>
-          {active === label && <View style={s.activeLine} />}
+    <View className="flex-row items-center mb-3 gap-7">
+      {tabs.map((tab) => (
+        <TouchableOpacity key={tab} onPress={() => onChange(tab)}>
+          <Text
+            className={`text-base ${
+              active === tab
+                ? 'text-green-600 font-bold'
+                : 'text-gray-500 font-medium'
+            }`}
+          >
+            {tab}
+          </Text>
+          {active === tab && <View className="h-0.5 bg-green-600 mt-1" />}
         </TouchableOpacity>
       ))}
     </View>
