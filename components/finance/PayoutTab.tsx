@@ -1,7 +1,7 @@
 import { View, Text } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { DatePills } from './DatePills';
-import type { DateKey, Payout } from './types';
+import { filterByDateRange } from '@/utils/financeFilters';
+import type { Payout, DateKey } from './types';
 
 export function PayoutTab({
   date,
@@ -12,46 +12,37 @@ export function PayoutTab({
   onDateChange: (v: DateKey) => void;
   data: Payout[];
 }) {
-  return (
-    <View>
-      <DatePills value={date} onChange={onDateChange} />
+  const filtered = filterByDateRange(data, date, (p) => p.detailDate);
+  console.log('Filtered payouts', filtered.length);
 
-      <View className="flex-row justify-between mb-4">
-        <View>
-          <Text className="text-gray-600 font-medium">Balance</Text>
-          <Text className="text-2xl font-bold text-black">
-            ฿{data[0]?.balanceTHB.toFixed(2)}
-          </Text>
-        </View>
-        <View>
-          <Text className="text-gray-600 font-medium">Owe to Leftlovers</Text>
-          <Text className="text-2xl font-bold text-black">
-            ฿{data[0]?.oweTHB.toFixed(2)}
-          </Text>
-        </View>
+  if (filtered.length === 0) {
+    return (
+      <View className="mt-4">
+        <DatePills value={date} onChange={onDateChange} />
+        <Text className="text-center text-gray-400 mt-4">
+          No payouts found
+        </Text>
       </View>
+    );
+  }
 
-      <Text className="text-lg font-bold mb-3">Payout details</Text>
-
-      {data.map((p, i) => (
+  return (
+    <View className="mt-2">
+      <DatePills value={date} onChange={onDateChange} />
+      {filtered.map((p, idx) => (
         <View
-          key={`${p.detailDate}-${i}`}
-          className="flex-row justify-between items-start bg-white rounded-xl border border-gray-200 p-4 mb-3"
+          key={idx}
+          className="flex-row justify-between border-b border-gray-200 py-2"
         >
           <View>
-            <Text className="text-gray-900 font-semibold">{p.detailDate}</Text>
-            <Text className="text-gray-500 text-xs">{p.processedAt}</Text>
+            <Text className="font-semibold text-gray-900">{p.detailDate}</Text>
+            <Text className="text-xs text-gray-500">{p.processedAt}</Text>
           </View>
           <View className="items-end">
-            <Text className="text-black font-bold">
-              {p.amountTHB.toFixed(2)} THB
+            <Text className="font-bold text-green-600">
+              {p.amountTHB.toFixed(2)} ฿
             </Text>
-            <View className="flex-row items-center gap-1 bg-green-50 rounded-full px-2 py-0.5 mt-1">
-              <Ionicons name="checkmark-circle" size={14} color="#16a34a" />
-              <Text className="text-green-600 text-xs font-semibold">
-                {p.status}
-              </Text>
-            </View>
+            <Text className="text-xs text-gray-500">{p.status}</Text>
           </View>
         </View>
       ))}

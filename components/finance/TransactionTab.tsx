@@ -1,6 +1,7 @@
 import { View, Text } from 'react-native';
 import { DatePills } from './DatePills';
-import type { DateKey, Transaction } from './types';
+import { filterByDateRange } from '@/utils/financeFilters';
+import type { Transaction, DateKey } from './types';
 
 export function TransactionTab({
   date,
@@ -11,26 +12,35 @@ export function TransactionTab({
   onDateChange: (v: DateKey) => void;
   data: Transaction[];
 }) {
+  const filtered = filterByDateRange(data, date, (t) => t.date);
+  console.log('Filtered transactions', filtered.length);
+
+  if (filtered.length === 0) {
+    return (
+      <View className="mt-4">
+        <DatePills value={date} onChange={onDateChange} />
+        <Text className="text-center text-gray-400 mt-4">
+          No transactions found
+        </Text>
+      </View>
+    );
+  }
+
   return (
-    <View>
+    <View className="mt-2">
       <DatePills value={date} onChange={onDateChange} />
-      {data.map((tx) => (
-        <View key={tx.id} className="mt-3">
-          <Text className="text-gray-900 font-bold mb-1">{tx.date}</Text>
-          <View className="flex-row justify-between items-start bg-white rounded-xl border border-gray-200 p-4">
-            <View>
-              <Text className="text-gray-900 font-semibold">{tx.title}</Text>
-              <Text className="text-gray-500 text-xs">
-                Transaction ID {tx.id}
-              </Text>
-            </View>
-            <View className="items-end">
-              <Text className="text-black font-bold">
-                {tx.amountTHB.toFixed(2)} THB
-              </Text>
-              <Text className="text-gray-500 text-xs">{tx.time}</Text>
-            </View>
+      {filtered.map((tx) => (
+        <View
+          key={tx.id}
+          className="flex-row justify-between border-b border-gray-200 py-2"
+        >
+          <View>
+            <Text className="font-semibold text-gray-900">{tx.title}</Text>
+            <Text className="text-xs text-gray-500">{tx.date}</Text>
           </View>
+          <Text className="font-bold text-green-600">
+            {tx.amountTHB.toFixed(2)} ฿
+          </Text>
         </View>
       ))}
     </View>
