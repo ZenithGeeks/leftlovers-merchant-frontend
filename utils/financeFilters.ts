@@ -11,7 +11,7 @@ export function filterByDateRange<T>(
   data: T[],
   range: DateKey,
   getDate: (item: T) => string,
-  now: Dayjs = MOCK_TODAY
+  now: Dayjs = dayjs()
 ): T[] {
   return data.filter((item) => {
     const d = dayjs(getDate(item));
@@ -23,7 +23,7 @@ export function filterByDateRange<T>(
       case 'Yesterday':
         return d.isSame(now.subtract(1, 'day'), 'day');
       case 'This week':
-        return d.isSame(now, 'week');
+        return d.isSame(now, 'isoWeek');
       case 'This month':
         return d.isSame(now, 'month');
       case 'This year':

@@ -12,10 +12,8 @@ export function TransactionTab({
   onDateChange: (v: DateKey) => void;
   data: Transaction[];
 }) {
-  const filtered = filterByDateRange(data, date, (t) => t.date);
-  //console.log('Filtered transactions', filtered.length);
-
-  if (filtered.length === 0) {
+  
+  if (data.length === 0) {
     return (
       <View className="mt-4">
         <DatePills value={date} onChange={onDateChange} />
@@ -29,7 +27,7 @@ export function TransactionTab({
   return (
     <View className="mt-2">
       <DatePills value={date} onChange={onDateChange} />
-      {filtered.map((tx) => (
+      {data.map((tx) => (
         <View
           key={tx.id}
           className="flex-row justify-between border-b border-gray-200 py-2"
