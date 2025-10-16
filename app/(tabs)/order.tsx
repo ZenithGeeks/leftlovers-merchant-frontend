@@ -2,7 +2,6 @@ import React, { useMemo, useState } from "react";
 import {
   FlatList,
   Dimensions,
-  ScrollView,
   StyleSheet,
   Text,
   View
@@ -42,16 +41,15 @@ export default function OrderPage() {
   ];
 
   return (
-     <ScrollView style={{ marginBottom: insets.bottom + SPACING.xl, flex: 1, height: '100%' }}>
-      <ThemedView
-        style={[
-          styles.screen,
-          {
-            paddingTop: insets.top + SPACING.lg,
-            paddingHorizontal: horizontalPadding,
-          },
-        ]}
-      >
+    <ThemedView
+      style={[
+        styles.screen,
+        {
+          paddingTop: insets.top + SPACING.lg,
+          paddingHorizontal: horizontalPadding,
+        },
+      ]}
+    >
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Order</Text>
@@ -87,8 +85,7 @@ export default function OrderPage() {
         }}
         showsVerticalScrollIndicator={false}
       />
-      </ThemedView>
-    </ScrollView>
+    </ThemedView>
   );
 }
 
