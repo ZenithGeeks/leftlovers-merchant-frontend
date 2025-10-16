@@ -18,7 +18,6 @@ type Props = {
 
 export default function MenuList({ items, onToggle }: Props) {
   const [localItems, setLocalItems] = useState(items);
-
   const toggleItem = (id: string, value: boolean) => {
     const updated = localItems.map((item) =>
       item.id === id ? { ...item, inStock: value } : item
@@ -43,17 +42,18 @@ export default function MenuList({ items, onToggle }: Props) {
           <View
             key={item.id}
             className={[
-              "flex-row items-center py-2 gap-3",
+              "flex-row items-center py-4 gap-3",
               !isLast ? "border-b border-gray-100" : "",
             ].join(" ")}
           >
             {/* Image */}
-            <Image
-              source={{ uri: item.imageUrl }}
-              className="w-[70px] h-[70px] rounded-xl bg-gray-100"
-              contentFit="cover"
-              transition={120}
-            />
+             <Image
+                      source={{ uri: item.imageUrl }}
+                      className="bg-neutral-100"
+                      style={{ width: 100, height: 100, borderRadius: 14 }}
+                      contentFit="cover"
+                      transition={120}
+                    />
 
             {/* Info */}
             <View className="flex-1">
@@ -68,7 +68,7 @@ export default function MenuList({ items, onToggle }: Props) {
                 className="mt-0.5 text-sm text-gray-600"
                 style={{ fontFamily: Fonts.regular }}
               >
-                {item.price.toLocaleString('th-TH')} THB
+                {item.price.toLocaleString("th-TH")} THB
               </Text>
 
               <View
@@ -97,7 +97,7 @@ export default function MenuList({ items, onToggle }: Props) {
               value={item.inStock}
               onValueChange={(val) => toggleItem(item.id, val)}
               trackColor={{ false: "#D1D5DB", true: "#86EFAC" }}
-              thumbColor={item.inStock ? "#16A34A" : "#F4F4F5"}  
+              thumbColor={item.inStock ? "#16A34A" : "#F4F4F5"}
             />
           </View>
         );
