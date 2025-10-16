@@ -1,78 +1,80 @@
-import { ThemedView } from '@/components/themed-view';
-import { Colors, Fonts } from '@/constants/theme';
 import React, { useMemo, useState } from 'react';
-import { Dimensions, ScrollView, StyleSheet, Text } from 'react-native';
+import { Dimensions, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-// NEW imports
-import {
-  PayoutTab,
-  SummaryTab,
-  Tabs,
-  TransactionTab,
-  type DateKey,
-  type Payout,
-  type TabKey,
-  type Transaction
-} from '@/components/finance';
+import mockData from '@/mockupData/finance.json';
+import  Tabs  from '@/components/finance/Tabs';
+import { SummaryTab } from '@/components/finance/SummaryTab';
+import { TransactionTab } from '@/components/finance/TransactionTab';
+import { PayoutTab } from '@/components/finance/PayoutTab';
+import type { TabKey, DateKey, Payout } from '@/components/finance/types';
+import { filterByDateRange, computeSummaryFromTransactions } from '@/utils/financeFilters';
 
 export default function FinanceScreen() {
   const insets = useSafeAreaInsets();
   const screenWidth = Dimensions.get('window').width;
-
-  const horizontalPadding = useMemo(() => {
-    const pct = screenWidth * 0.05;
-    return Math.max(14, Math.min(pct, 24));
-  }, [screenWidth]);
+  const horizontalPadding = useMemo(() => Math.max(14, Math.min(screenWidth * 0.05, 24)), [screenWidth]);
 
   const [activeTab, setActiveTab] = useState<TabKey>('Summary');
   const [date, setDate] = useState<DateKey>('Today');
 
-  // mock data
-  const transaction: Transaction = {
-    date: '20 Sep 2025',
-    title: 'Payment LL-015',
-    id: '0123456789',
-    amountTHB: 1500,
-    time: '5:43PM',
-  };
+  const { transactions, payouts, summary } = mockData;
 
-  const payout: Payout = {
-    balanceTHB: 1500,
-    oweTHB: 0,
-    detailDate: '22 09 2025',
-    processedAt: '23/09/2025 05:58AM',
-    amountTHB: 1500,
-    status: 'Transferred',
-  };
+  // Coerce payout.status to the union type once (typed safety)
+  const typedPayouts: Payout[] = useMemo(
+    () =>
+      payouts.map((p) => ({
+        ...p,
+        status: (p.status === 'Transferred' || p.status === 'Pending' || p.status === 'Failed')
+          ? p.status
+          : 'Pending',
+      })),
+    [payouts]
+  );
+
+  // Filtered data (fast & memoized)
+    // For transactions
+  const filteredTransactions = useMemo(
+    () => filterByDateRange(transactions, date, (t) => t.date),
+    [transactions, date]
+  );
+
+  
+  // For payouts (note: using detailDate)
+  const filteredPayouts = useMemo(
+    () => filterByDateRange(typedPayouts, date, (p) => p.detailDate),
+    [typedPayouts, date]
+  );
+
+  // Dynamic summary from filtered transactions (or fallback to mock summary)
+  const dynamicSummary = useMemo(
+    () => computeSummaryFromTransactions(filteredTransactions, { feeRate: 0.08 }),
+    [filteredTransactions]
+  );
+  
+  //console.log('Mock data', mockData);
+  //console.log('Filtered transactions', filteredTransactions.length);
+  //console.log('Filtered payouts', filteredPayouts.length);
 
   return (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}>
-      <ThemedView style={[styles.container, { paddingTop: insets.top + 24, paddingHorizontal: horizontalPadding }]}>
-        <Text style={styles.header}>Finance</Text>
+      <View className="flex-1 bg-white" style={{ paddingTop: insets.top + 24, paddingHorizontal: horizontalPadding }}>
+        <Text className="text-2xl font-bold text-black mb-4">Finance</Text>
 
         <Tabs active={activeTab} onChange={setActiveTab} />
 
         {activeTab === 'Summary' && (
-          <>
-      
-            <SummaryTab />
-          </>
+          <SummaryTab selectedDate={date} onDateChange={setDate} data={dynamicSummary || summary} />
         )}
 
+
         {activeTab === 'Transaction' && (
-          <TransactionTab date={date} onDateChange={setDate} data={transaction} />
+          <TransactionTab date={date} onDateChange={setDate} data={filteredTransactions} />
         )}
 
         {activeTab === 'Payout' && (
-          <PayoutTab date={date} onDateChange={setDate} data={payout} />
+          <PayoutTab date={date} onDateChange={setDate} data={filteredPayouts} />
         )}
-      </ThemedView>
+      </View>
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.light.background },
-  header: { fontSize: 24, fontFamily: Fonts.bold, marginBottom: 16, color: '#000' },
-});

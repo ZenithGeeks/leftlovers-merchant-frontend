@@ -1,49 +1,51 @@
-import React from 'react';
-import { Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import DatePills from './DatePills';
-import { DateKey, Payout } from './types';
-import { financeStyles as s } from './styles';
-import { Colors } from '@/constants/theme';
+import { View, Text } from 'react-native';
+import { DatePills } from './DatePills';
+import { filterByDateRange } from '@/utils/financeFilters';
+import type { Payout, DateKey } from './types';
 
-type Props = {
+export function PayoutTab({
+  date,
+  onDateChange,
+  data,
+}: {
   date: DateKey;
-  onDateChange: (d: DateKey) => void;
-  data: Payout;
-};
+  onDateChange: (v: DateKey) => void;
+  data: Payout[];
+}) {
+  const filtered = filterByDateRange(data, date, (p) => p.detailDate);
+  //console.log('Filtered payouts', filtered.length);
 
-export default function PayoutTab({ date, onDateChange, data }: Props) {
-  return (
-    <>
-      <DatePills value={date} onChange={onDateChange} />
-
-      <View style={[s.row, { marginTop: 8 }]}>
-        <View>
-          <Text style={s.label}>Balance</Text>
-          <Text style={s.value}>{data.balanceTHB.toFixed(2)} THB</Text>
-        </View>
-        <View>
-          <Text style={s.label}>Owe to Leftlovers</Text>
-          <Text style={s.value}>{data.oweTHB.toFixed(2)} THB</Text>
-        </View>
+  if (filtered.length === 0) {
+    return (
+      <View className="mt-4">
+        <DatePills value={date} onChange={onDateChange} />
+        <Text className="text-center text-gray-400 mt-4">
+          No payouts found
+        </Text>
       </View>
+    );
+  }
 
-      <Text style={[s.sectionTitle, { marginTop: 24 }]}>Payout details</Text>
-
-      <View style={[s.row, { alignItems: 'flex-start', marginTop: 8 }]}>
-        <View style={{ flexShrink: 1, paddingRight: 8 }}>
-          <Text style={s.txTitle}>{data.detailDate}</Text>
-          <Text style={s.muted}>{data.processedAt}</Text>
-        </View>
-
-        <View style={{ alignItems: 'flex-end' }}>
-          <Text style={s.txAmount}>{data.amountTHB.toFixed(2)} THB</Text>
-          <View style={s.badge}>
-            <Ionicons name="checkmark-circle" size={14} color={Colors.light.tint} />
-            <Text style={s.badgeText}>{data.status}</Text>
+  return (
+    <View className="mt-2">
+      <DatePills value={date} onChange={onDateChange} />
+      {filtered.map((p, idx) => (
+        <View
+          key={idx}
+          className="flex-row justify-between border-b border-gray-200 py-2"
+        >
+          <View>
+            <Text className="font-semibold text-gray-900">{p.detailDate}</Text>
+            <Text className="text-xs text-gray-500">{p.processedAt}</Text>
+          </View>
+          <View className="items-end">
+            <Text className="font-bold text-green-600">
+              {p.amountTHB.toFixed(2)} ฿
+            </Text>
+            <Text className="text-xs text-gray-500">{p.status}</Text>
           </View>
         </View>
-      </View>
-    </>
+      ))}
+    </View>
   );
 }

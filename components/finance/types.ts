@@ -1,5 +1,12 @@
 export type TabKey = 'Summary' | 'Transaction' | 'Payout';
-export type DateKey = 'Today' | 'Yesterday' | 'This week' | 'This month';
+
+export type DateKey =
+  | 'Today'
+  | 'Yesterday'
+  | 'This week'
+  | 'This month'
+  | 'This year'
+  | 'Last year';
 
 export type Transaction = {
   date: string;
@@ -16,4 +23,11 @@ export type Payout = {
   processedAt: string;
   amountTHB: number;
   status: 'Transferred' | 'Pending' | 'Failed';
+};
+
+export type Summary = {
+  netSales: number;
+  deduction: number;
+  netEarnings: number;
+  earnings: number;
 };

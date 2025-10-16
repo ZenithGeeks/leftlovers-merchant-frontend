@@ -1,43 +1,60 @@
-import React from 'react';
-import { Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Colors, Fonts } from '@/constants/theme';
-import { financeStyles as s } from './styles';
+import { View, Text } from 'react-native';
+import { DatePills } from './DatePills';
+import type { DateKey, Summary } from './types';
 
-export default function SummaryTab() {
+export function SummaryTab({
+  selectedDate,
+  onDateChange,
+  data,
+}: {
+  selectedDate: DateKey;
+  onDateChange: (v: DateKey) => void;
+  data: Summary;
+}) {
   return (
-    <>
-      <View style={{ marginTop: 24 }}>
-        <Text style={s.label}>Net Sales</Text>
-        <Text style={s.value}>+ 2000.00</Text>
+    <View>
+      {/* Date Filter */}
+      <DatePills value={selectedDate} onChange={onDateChange} />
 
-        <Text style={[s.label, { marginTop: 16 }]}>Earnings</Text>
-        <Text style={s.value}>+ 1500.00</Text>
+      {/* Summary Info */}
+      <Text className="text-gray-500 text-sm mb-2">
+        Showing data for {selectedDate}
+      </Text>
+
+      <Text className="text-gray-800 font-medium">Net Sales</Text>
+      <Text className="text-2xl font-bold text-black mb-4">
+        +฿{data.netSales.toFixed(2)}
+      </Text>
+
+      <Text className="text-gray-800 font-medium">Earnings</Text>
+      <Text className="text-2xl font-bold text-black mb-4">
+        +฿{data.earnings.toFixed(2)}
+      </Text>
+
+      <Text className="text-lg font-bold mt-6 mb-3">Summary Details</Text>
+
+      <View className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
+        <View className="flex-row justify-between mb-3">
+          <Text className="text-gray-700 font-medium">Net Sales</Text>
+          <Text className="text-gray-800 font-semibold">
+            {data.netSales.toFixed(2)}
+          </Text>
+        </View>
+
+        <View className="flex-row justify-between mb-3">
+          <Text className="text-gray-700 font-medium">Deduction</Text>
+          <Text className="text-gray-800 font-semibold">
+            -{data.deduction.toFixed(2)}
+          </Text>
+        </View>
+
+        <View className="flex-row justify-between">
+          <Text className="text-gray-900 font-bold">Net earnings</Text>
+          <Text className="text-gray-900 font-bold">
+            +{data.netEarnings.toFixed(2)}
+          </Text>
+        </View>
       </View>
-
-      <Text style={s.sectionTitle}>Summary Details</Text>
-
-      <View style={s.card}>
-        <View style={s.cardHeader}>
-          <View style={s.iconCircle}>
-            <Ionicons name="restaurant" size={20} color={Colors.light.tint} />
-          </View>
-          <Text style={s.cardTitle}>Food</Text>
-        </View>
-
-        <View style={s.row}>
-          <Text style={s.rowLabel}>Net Sales</Text>
-          <Text style={s.rowValue}>2000.00</Text>
-        </View>
-        <View style={s.row}>
-          <Text style={s.rowLabel}>Deduction</Text>
-          <Text style={s.rowValue}>500.00</Text>
-        </View>
-        <View style={s.row}>
-          <Text style={[s.rowLabel, { fontFamily: Fonts.bold }]}>Net earnings</Text>
-          <Text style={[s.rowValue, { fontFamily: Fonts.bold }]}>+1500.00</Text>
-        </View>
-      </View>
-    </>
+    </View>
   );
 }
