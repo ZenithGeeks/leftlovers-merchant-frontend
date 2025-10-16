@@ -1,14 +1,16 @@
-import React, { useMemo, useState } from "react";
-import { Dimensions, ScrollView, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-
 import ContentSwitcher from "@/components/Menu/Content-Switcher";
 import MenuWrapper from "@/components/Menu/Menu-Wrapper";
 import OptionWrapper from "@/components/Menu/Option-Wrapper";
 import { ThemedView } from "@/components/themed-view";
+import React, { useMemo, useState } from "react";
+import { Dimensions, ScrollView, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import Fab from "@/components/common/Fab";
+import AddSheet from "@/components/Menu/AddSheet";
 import menuData from "@/mockupData/menuData.json";
 import optionData from "@/mockupData/optionGroup.json";
+import { useRouter } from "expo-router";
 
 interface MenuItem {
   id: string;
@@ -58,8 +60,16 @@ const groupByCategory = (items: MenuItem[]): Section[] => {
 };
 
 export default function MenuScreen() {
+  const [addOpen, setAddOpen] = useState(false);
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<"items" | "options">("items");
+  const router = useRouter();
+  const handleAddItem = () => {
+    router.push("/add-item");
+  };
+  const handleAddOption = () => {
+    router.push("/add-option");
+  };
 
   const screenWidth = Dimensions.get("window").width;
   const horizontalPadding = useMemo(() => {
@@ -74,79 +84,87 @@ export default function MenuScreen() {
   const optionGroups = optionData.optionGroups as OptionGroup[];
 
   return (
-    <ScrollView
-      className="flex-1"
-      contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
-      showsVerticalScrollIndicator={false}
-    >
-      <ThemedView
-        className="flex-1"
-        style={{
-          paddingTop: insets.top + 16,
-          paddingHorizontal: horizontalPadding,
-        }}
+    <View>
+      <ScrollView
+        className="h-full"
+        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+        showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View className="mb-6 gap-3">
-          <Text className="text-3xl font-bold text-[#11181C]">Menu</Text>
-          <ContentSwitcher
-            tabs={[
-              { key: "items", label: "Items" },
-              { key: "options", label: "Options" },
-            ]}
-            value={tab}
-            onChange={(k) => setTab(k as "items" | "options")}
-          />
+        <ThemedView
+          className="flex-1"
+          style={{
+            paddingTop: insets.top + 16,
+            paddingHorizontal: horizontalPadding,
+          }}
+        >
+          {/* Header */}
+          <View className="mb-6 gap-3">
+            <Text className="text-3xl font-bold text-[#11181C]">Menu</Text>
+            <ContentSwitcher
+              tabs={[
+                { key: "items", label: "Items" },
+                { key: "options", label: "Options" },
+              ]}
+              value={tab}
+              onChange={(k) => setTab(k as "items" | "options")}
+            />
+          </View>
+        </ThemedView>
+
+        {/* Menu Sections */}
+        <View className="flex-1">
+          {sections.map((section, idx) => (
+            <React.Fragment key={section.id}>
+              <ThemedView
+                className="w-full"
+                style={{ paddingHorizontal: horizontalPadding }}
+              >
+                {tab === "items" ? (
+                  <MenuWrapper
+                    title={section.title}
+                    items={section.items.map((m) => ({
+                      id: m.id,
+                      name: m.name,
+                      price: m.basePrice,
+                      imageUrl: m.photoUrl,
+                      inStock: (m.leftoverQty ?? 0) > 0,
+                    }))}
+                    defaultExpanded
+                    onToggleItem={(id, val) =>
+                      console.log(`[${section.title}] toggle ${id}: ${val}`)
+                    }
+                  />
+                ) : (
+                  <View className="gap-3">
+                    {optionGroups.map((group) => (
+                      <OptionWrapper
+                        key={group.id}
+                        title={group.name}
+                        options={group.options}
+                        defaultExpanded
+                        onChangeChoice={(groupId, choiceId, val) =>
+                          console.log(
+                            `[${group.name}] [${groupId}] choice ${choiceId} = ${val}`
+                          )
+                        }
+                      />
+                    ))}
+                  </View>
+                )}
+              </ThemedView>
+
+              {idx < sections.length - 1 && <View className="h-4" />}
+            </React.Fragment>
+          ))}
         </View>
-      </ThemedView>
-
-      {/* Menu Sections */}
-      <View className="flex-1">
-        {sections.map((section, idx) => (
-          <React.Fragment key={section.id}>
-            <ThemedView
-              className="w-full"
-              style={{ paddingHorizontal: horizontalPadding }}
-            >
-              {tab === "items" ? (
-                <MenuWrapper
-                  title={section.title}
-                  items={section.items.map((m) => ({
-                    id: m.id,
-                    name: m.name,
-                    price: m.basePrice,
-                    imageUrl: m.photoUrl,
-                    inStock: (m.leftoverQty ?? 0) > 0,
-                  }))}
-                  defaultExpanded
-                  onToggleItem={(id, val) =>
-                    console.log(`[${section.title}] toggle ${id}: ${val}`)
-                  }
-                />
-              ) : (
-                <View className="gap-3">
-                  {optionGroups.map((group) => (
-                    <OptionWrapper
-                      key={group.id}
-                      title={group.name}
-                      options={group.options}
-                      defaultExpanded
-                      onChangeChoice={(groupId, choiceId, val) =>
-                        console.log(
-                          `[${group.name}] [${groupId}] choice ${choiceId} = ${val}`
-                        )
-                      }
-                    />
-                  ))}
-                </View>
-              )}
-            </ThemedView>
-
-            {idx < sections.length - 1 && <View className="h-4" />}
-          </React.Fragment>
-        ))}
-      </View>
-    </ScrollView>
+      </ScrollView>
+      <Fab onPress={() => setAddOpen(true)} />
+      <AddSheet
+        visible={addOpen}
+        onClose={() => setAddOpen(false)}
+        onAddItem={handleAddItem}
+        onAddOption={handleAddOption}
+      />
+    </View>
   );
 }
-
