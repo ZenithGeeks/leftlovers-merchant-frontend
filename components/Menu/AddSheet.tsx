@@ -22,9 +22,7 @@ export default function AddSheet({
       animationType="fade"
       onRequestClose={onClose}
     >
-      {/* Dimmed background */}
       <Pressable className="flex-1 bg-black/40" onPress={onClose} />
-
       {/* Bottom sheet */}
       <View className="absolute bottom-0 left-0 right-0 rounded-t-3xl bg-white p-5 shadow-xl">
         <View className="flex flex-col justify-center w-full h-[120px] rounded-2xl gap-2">

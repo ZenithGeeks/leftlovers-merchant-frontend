@@ -66,9 +66,11 @@ export default function MenuScreen() {
   const router = useRouter();
   const handleAddItem = () => {
     router.push("/add-item");
+    setAddOpen(false);
   };
   const handleAddOption = () => {
     router.push("/add-option");
+    setAddOpen(false);
   };
 
   const screenWidth = Dimensions.get("window").width;
