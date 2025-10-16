@@ -1,11 +1,11 @@
 import { Fonts } from "@/constants/theme";
 import React from "react";
 import { Pressable, Text, View, useWindowDimensions } from "react-native";
-import { StarIcon as StarOutline } from "react-native-heroicons/outline";
 import {
-    ChevronRightIcon,
-    StarIcon as StarSolid,
+  ChevronRightIcon,
+  StarIcon as StarSolid,
 } from "react-native-heroicons/solid";
+import { StarIcon as StarOutline } from "react-native-heroicons/outline";
 
 type Distribution = Record<1 | 2 | 3 | 4 | 5, number>;
 
@@ -29,103 +29,56 @@ export default function CustomerFeedbackCard({
   const { width } = useWindowDimensions();
   const isSmall = width < 360;
 
-  // unified design constants
-  const radius = 14;
-  const padding = isSmall ? 12 : 16;
-  const gap = isSmall ? 10 : 14;
-  const barTrack = "#E5E7EB";
-  const barFill = "#FACC15";
-  const starColor = "#FACC15";
-
-  /** Round rating to nearest 0.5 for half-stars */
   const roundedAvg = Math.round(average * 2) / 2;
-
-  // --- Star renderer with half-star logic ---
-  const renderStars = (rating: number) => {
-    const fullStars = Math.floor(rating);
-    const hasHalf = rating % 1 !== 0;
-
-    return Array.from({ length: 5 }).map((_, i) => {
-      const index = i + 1;
-      if (index <= fullStars)
-        return <StarSolid key={i} size={16} color={starColor} />;
-      if (index === fullStars + 1 && hasHalf)
-        return (
-          <View key={i} style={{ width: 16, height: 16, position: "relative" }}>
-            <StarOutline size={16} color={barTrack} />
-            <View
-              style={{
-                position: "absolute",
-                left: 0,
-                width: "50%",
-                overflow: "hidden",
-              }}
-            >
-              <StarSolid size={16} color={starColor} />
-            </View>
-          </View>
-        );
-      return <StarOutline key={i} size={16} color={barTrack} />;
-    });
-  };
-
-  // --- Distribution bars ---
   const total = Math.max(
     totalReviews,
     Object.values(distribution).reduce((a, b) => a + b, 0)
   );
+
+  const renderStars = (rating: number) => {
+    const full = Math.floor(rating);
+    const half = rating % 1 !== 0;
+
+    return Array.from({ length: 5 }).map((_, i) => {
+      const idx = i + 1;
+      if (idx <= full)
+        return <StarSolid key={i} size={16} color="#FACC15" />;
+      if (idx === full + 1 && half)
+        return (
+          <View key={i} className="relative w-4 h-4">
+            <StarOutline size={16} color="#E5E7EB" />
+            <View className="absolute left-0 w-1/2 overflow-hidden">
+              <StarSolid size={16} color="#FACC15" />
+            </View>
+          </View>
+        );
+      return <StarOutline key={i} size={16} color="#E5E7EB" />;
+    });
+  };
 
   const renderBar = (star: 1 | 2 | 3 | 4 | 5) => {
     const count = distribution[star] ?? 0;
     const pct = total > 0 ? (count / total) * 100 : 0;
 
     return (
-      <View
-        key={star}
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 8,
-        }}
-      >
+      <View key={star} className="flex-row items-center gap-2">
         <Text
-          style={{
-            width: 16,
-            textAlign: "right",
-            fontFamily: Fonts.bold,
-            fontSize: 16,
-            color: "#11181C",
-          }}
+          className="w-4 text-right text-slate-900 text-[16px]"
+          style={{ fontFamily: Fonts.bold }}
         >
           {star}
         </Text>
 
-        <View
-          style={{
-            flex: 1,
-            height: 6,
-            borderRadius: 999,
-            backgroundColor: barTrack,
-            overflow: "hidden",
-          }}
-        >
+        <View className="flex-1 h-[6px] bg-gray-200 rounded-full overflow-hidden">
           <View
-            style={{
-              width: `${pct}%`,
-              height: "100%",
-              backgroundColor: barFill,
-            }}
+            className="h-full bg-yellow-400"
+            style={{ width: `${pct}%` }}
           />
         </View>
 
         <Text
-          style={{
-            width: 36,
-            textAlign: "right",
-            fontFamily: Fonts.medium,
-            fontSize: 13,
-            color: "#6B7280",
-          }}
+          className="w-9 text-right text-gray-500 text-[13px]"
+          style={{ fontFamily: Fonts.medium }}
         >
           {count}
         </Text>
@@ -136,109 +89,62 @@ export default function CustomerFeedbackCard({
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [
-        {
-          padding,
-          borderRadius: radius,
-          backgroundColor: "#FFFFFF",
-          borderWidth: 1,
-          borderColor: "#E5E7EB",
-          shadowColor: "#000",
-          shadowOpacity: 0.06,
-          shadowRadius: 10,
-          shadowOffset: { width: 0, height: 4 },
-          elevation: 2,
-        },
-        pressed && { opacity: 0.95, transform: [{ scale: 0.997 }] },
-      ]}
+      className="bg-white border border-gray-200 rounded-2xl shadow-sm active:opacity-90 active:scale-[0.99] p-4"
+      style={{
+        shadowColor: "#000",
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 2,
+      }}
     >
       {/* Header */}
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          marginBottom: gap,
-        }}
-      >
+      <View className="flex-row items-center mb-3">
         <Text
-          style={{
-            flex: 1,
-            fontFamily: Fonts.bold,
-            fontSize: 20,
-            color: "#11181C",
-          }}
+          className="flex-1 text-[20px] text-slate-900"
+          style={{ fontFamily: Fonts.bold }}
         >
           {title}
         </Text>
-
-        <View
-          style={{
-            width: 34,
-            height: 34,
-            borderRadius: 17,
-            backgroundColor: "#E5E7EB",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
+        <View className="w-[34px] h-[34px] rounded-full bg-gray-200 items-center justify-center">
           <ChevronRightIcon size={18} color="#11181C" />
         </View>
       </View>
 
       {/* Body */}
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 16,
-        }}
-      >
-        {/* Left: bar distribution */}
-        <View style={{ flex: 1, gap: 10 }}>
+      <View className="flex-row items-center gap-4">
+        {/* Distribution */}
+        <View className="flex-1 gap-2">
           {[5, 4, 3, 2, 1].map((s) => renderBar(s as 1 | 2 | 3 | 4 | 5))}
         </View>
 
-        {/* Right: summary */}
+        {/* Summary */}
         <View
-          style={{
-            width: isSmall ? 108 : 120,
-            alignItems: "center",
-          }}
+          className="items-center"
+          style={{ width: isSmall ? 108 : 120 }}
         >
           <Text
-            style={{
-              fontFamily: Fonts.bold,
-              fontSize: 34,
-              color: "#11181C",
-              lineHeight: 40,
-            }}
+            className="text-slate-900 leading-10"
+            style={{ fontFamily: Fonts.bold, fontSize: 34 }}
           >
             {roundedAvg.toFixed(1)}
           </Text>
 
-          <View style={{ flexDirection: "row", gap: 2, marginTop: 4 }}>
+          <View className="flex-row mt-1 gap-[2px]">
             {renderStars(roundedAvg)}
           </View>
 
           <Text
-            style={{
-              marginTop: 6,
-              fontFamily: Fonts.regular,
-              fontSize: 13,
-              color: "#6B7280",
-            }}
+            className="mt-1 text-gray-500 text-[13px]"
+            style={{ fontFamily: Fonts.regular }}
           >
             {totalReviews} reviews
           </Text>
 
           {warnings > 0 && (
             <Text
-              style={{
-                marginTop: 4,
-                fontFamily: Fonts.bold,
-                fontSize: 13,
-                color: "#EF4444",
-              }}
+              className="mt-1 text-red-500 text-[13px]"
+              style={{ fontFamily: Fonts.bold }}
             >
               {warnings} warning{warnings > 1 ? "s" : ""}!
             </Text>

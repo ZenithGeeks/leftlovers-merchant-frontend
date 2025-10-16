@@ -10,27 +10,18 @@ import merchantData from "@/mockupData/merchant.json";
 import UserData from "@/mockupData/user.json";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Dimensions, Pressable, ScrollView, Text, View } from "react-native";
 import { MapPinIcon } from "react-native-heroicons/outline";
 import { ChartBarIcon, HandRaisedIcon } from "react-native-heroicons/solid";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type ShopStatus = "closed" | "pause" | "busy" | "open";
 
-const SPACING = {
-  xs: 6,
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
-  xxl: 24,
-};
-
 const STATUS_OPTIONS = [
-  { label: "Closed", value: "closed" as ShopStatus },
-  { label: "Pause", value: "pause" as ShopStatus },
-  { label: "Busy", value: "busy" as ShopStatus },
-  { label: "Open", value: "open" as ShopStatus },
+  { label: "Closed", value: "closed" },
+  { label: "Pause", value: "pause" },
+  { label: "Busy", value: "busy" },
+  { label: "Open", value: "open" },
 ];
 
 const merchant = {
@@ -40,15 +31,13 @@ const merchant = {
   address: merchantData.address ?? "",
 };
 
-const User = {
+const user = {
   id: UserData.id,
   name: UserData.name ?? "",
-  email: UserData.email ?? "",
-  phone: UserData.phone ?? "",
   role: UserData.role ?? "",
 };
 
-const mockupMenuItems = data.menuItems.slice(0, 3).map((item) => ({
+const mockMenu = data.menuItems.slice(0, 3).map((item) => ({
   id: item.id,
   imageUrl: item.photoUrl,
   title: item.name,
@@ -62,43 +51,34 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const screenWidth = Dimensions.get("window").width;
-  const horizontalPadding = useMemo(() => {
-    const pct = screenWidth * 0.05;
-    return Math.max(14, Math.min(pct, 24));
-  }, [screenWidth]);
+  const horizontalPadding = useMemo(() => Math.max(14, Math.min(screenWidth * 0.05, 24)), [screenWidth]);
 
   return (
-    <ScrollView
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ marginBottom: insets.bottom + SPACING.xl }}
-    >
+    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
       <ThemedView
-        style={[
-          styles.screen,
-          {
-            paddingTop: insets.top + SPACING.lg,
-            paddingHorizontal: horizontalPadding,
-          },
-        ]}
+        className="flex-1"
+        style={{ paddingTop: insets.top + 16, paddingHorizontal: horizontalPadding }}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          {/* location row */}
-          <View style={styles.locationRow}>
+        <View className="mb-6">
+          <View className="flex-row items-center gap-2 pb-2">
             <MapPinIcon size={22} color={Colors.light.icon} />
-            <Text style={styles.locationText}>{merchant.name}</Text>
+            <Text className="text-base text-[#11181C]" style={{ fontFamily: Fonts.medium }}>
+              {merchant.name}
+            </Text>
           </View>
 
-          {/* greeting + role */}
-          <View style={styles.userRow}>
-            <Text style={styles.greetingText}>Hello, {User.name.split(" ")[0]} </Text>
-            <View style={styles.roleBadge}>
-              <Text style={styles.roleText}>{User.role.replace("_", " ")}</Text>
+          <View className="flex-row items-center gap-2 mb-3">
+            <Text className="text-lg text-[#11181C]" style={{ fontFamily: Fonts.bold }}>
+              Hello, {user.name.split(" ")[0]}
+            </Text>
+            <View className="rounded-full px-2 py-1" style={{ backgroundColor: Colors.light.tint }}>
+              <Text className="text-xs" style={{ fontFamily: Fonts.bold, color: Colors.light.background }}>
+                {user.role.replace("_", " ")}
+              </Text>
             </View>
           </View>
 
-          {/* status + edit */}
-          <View style={styles.controlsRow}>
+          <View className="flex-row items-center justify-between py-2">
             <ShopStatusDropdown
               value={status}
               onChange={(v) => setStatus(v as ShopStatus)}
@@ -107,21 +87,17 @@ export default function HomeScreen() {
             />
             <Pressable
               onPress={() => router.push("/edit-store")}
-              style={styles.editBtn}
+              className="min-h-[40px] border border-gray-300 bg-white rounded-2xl px-4 py-2 justify-center items-center"
             >
-              <Text style={styles.editBtnText}>Edit Store</Text>
+              <Text className="text-[16px] text-gray-800" style={{ fontFamily: Fonts.medium }}>
+                Edit Store
+              </Text>
             </Pressable>
           </View>
         </View>
 
-        {/* Cards Row */}
-        <View style={styles.cardsRow}>
-          <InformationCard
-            icon={HandRaisedIcon}
-            count={0}
-            label="Preparing"
-            backgroundColor="#fff"
-          />
+        <View className="flex-row gap-3 bg-white rounded-2xl border border-gray-200 p-3 mb-6">
+          <InformationCard icon={HandRaisedIcon} count={0} label="Preparing" backgroundColor="#fff" />
           <InformationCard
             icon={ChartBarIcon}
             count={0}
@@ -132,10 +108,9 @@ export default function HomeScreen() {
           />
         </View>
 
-        {/* Popular Menu */}
-        <View style={styles.section}>
+        <View className="mb-10">
           <PopularMenuSection title="Popular Dishes">
-            {mockupMenuItems.map((item) => (
+            {mockMenu.map((item) => (
               <PopularMenuItem
                 key={item.id}
                 imageUrl={item.imageUrl}
@@ -148,94 +123,10 @@ export default function HomeScreen() {
           </PopularMenuSection>
         </View>
 
-        {/* Feedback */}
-        <View style={styles.section}>
+        <View className="mb-10">
           <FeedbackWrapper />
         </View>
       </ThemedView>
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-  },
-
-  // ---- Header ----
-  header: {
-    marginBottom: SPACING.xl,
-  },
-  locationRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: SPACING.sm,
-    paddingBottom: SPACING.sm,
-  },
-  locationText: {
-    fontSize: 16,
-    fontFamily: Fonts.medium,
-    color: "#11181C",
-  },
-  userRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: SPACING.sm,
-    marginBottom: SPACING.md,
-  },
-  greetingText: {
-    fontSize: 18,
-    fontFamily: Fonts.bold,
-    color: "#11181C",
-  },
-  roleBadge: {
-    borderRadius: 25,
-    backgroundColor: Colors.light.tint,
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: 2,
-  },
-  roleText: {
-    fontSize: 12,
-    fontFamily: Fonts.bold,
-    color: Colors.light.background,
-  },
-  controlsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: SPACING.sm,
-  },
-  editBtn: {
-    minHeight: 40,
-    borderWidth: 1.5,
-    borderColor: Colors.light.border,
-    backgroundColor: Colors.light.background,
-    borderRadius: 25,
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: 8,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  editBtnText: {
-    fontSize: 16,
-    fontFamily: Fonts.medium,
-    color: Colors.light.text,
-  },
-
-  // ---- Cards Row ----
-  cardsRow: {
-    flexDirection: "row",
-    gap: SPACING.md,
-    backgroundColor: "#fff",
-    borderRadius: 20,
-    borderWidth: 0.5,
-    borderColor: Colors.light.border,
-    padding: SPACING.md,
-    marginBottom: SPACING.xl,
-  },
-
-  // ---- Sections ----
-  section: {
-    marginBottom: SPACING.xxl,
-  },
-});
