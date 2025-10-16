@@ -1,6 +1,5 @@
-import { Fonts } from "@/constants/theme";
 import React, { useState } from "react";
-import { Animated, Easing, Pressable, StyleSheet, Text, View } from "react-native";
+import { Animated, Easing, Pressable, Text, View } from "react-native";
 import { ChevronUpIcon } from "react-native-heroicons/solid";
 import MenuList, { MenuItem } from "./Menu-List";
 
@@ -19,19 +18,16 @@ export default function MenuWrapper({
 }: Props) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const rotation = new Animated.Value(expanded ? 0 : 1);
-  const rotateTo = (open: boolean) => {
-    Animated.timing(rotation, {
-      toValue: open ? 0 : 1,
-      duration: 160,
-      easing: Easing.out(Easing.quad),
-      useNativeDriver: true,
-    }).start();
-  };
 
   const toggle = () => {
     const next = !expanded;
     setExpanded(next);
-    rotateTo(next);
+    Animated.timing(rotation, {
+      toValue: next ? 0 : 1,
+      duration: 160,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: true,
+    }).start();
   };
 
   const rotate = rotation.interpolate({
@@ -40,64 +36,30 @@ export default function MenuWrapper({
   });
 
   return (
-    <View style={styles.section}>
+    <View className="w-full">
       {/* Header */}
-      <View style={styles.headerRow}>
-        <Text style={styles.title}>{title}</Text>
+      <View className="flex-row items-center mb-2.5">
+        <Text className="flex-1 text-[22px] font-bold text-[#11181C]">
+          {title}
+        </Text>
 
-        <Pressable onPress={toggle} style={styles.chevronBtn} hitSlop={8}>
+        <Pressable
+          onPress={toggle}
+          hitSlop={8}
+          className="w-[38px] h-[38px] rounded-full bg-[#DCFCE7] items-center justify-center"
+        >
           <Animated.View style={{ transform: [{ rotate }] }}>
             <ChevronUpIcon size={18} color="#22C55E" />
           </Animated.View>
         </Pressable>
       </View>
 
-      {/* Body (collapsible) */}
+      {/* Collapsible Body */}
       {expanded && (
-        <View style={styles.body}>
+        <View className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
           <MenuList items={items} onToggle={onToggleItem} />
         </View>
       )}
     </View>
   );
 }
-
-const RADIUS = 16;
-
-const styles = StyleSheet.create({
-  section: {
-    width: "100%",
-    height  : "auto",
-  },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  title: {
-    flex: 1,
-    fontFamily: Fonts.bold,
-    fontSize: 22,
-    color: "#11181C",
-  },
-  chevronBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: "#DCFCE7",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  body: {
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: RADIUS,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-});

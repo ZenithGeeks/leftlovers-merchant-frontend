@@ -1,112 +1,109 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useMemo, useState } from "react";
+import {
+  FlatList,
+  Dimensions,
+  StyleSheet,
+  Text,
+  View
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Collapsible } from '@/components/ui/collapsible';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+import ContentSwitcher from "@/components/Menu/Content-Switcher";
+import OrderListRow from "@/components/Order/OrderListRow";
 
-export default function TabTwoScreen() {
+import { ThemedView } from "@/components/themed-view";
+
+import { SPACING } from "@/constants/theme";
+import { ORDER_STATUS, OrderListItem } from "@/constants/order.type";
+
+export default function OrderPage() {
+  const insets = useSafeAreaInsets();
+  const [orderListFilter, setOrderListFilter] = useState<ORDER_STATUS>("upcoming");
+
+  const screenWidth = Dimensions.get("window").width;
+  const horizontalPadding = useMemo(() => {
+      const pct = screenWidth * 0.05;
+      return Math.max(14, Math.min(pct, 24));
+    }, [screenWidth]);
+
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = today.getMonth();
+  const day = today.getDate();
+
+  const orders: OrderListItem[] = [
+    { bookingId: 'B001', userName: 'Alice', pickupTime: new Date(year, month, day, 18, 0), status: 'upcoming' },
+    { bookingId: 'B002', userName: 'Bob', pickupTime: new Date(year, month, day, 18, 30), status: 'upcoming' },
+    { bookingId: 'B003', userName: 'Charlie', pickupTime: new Date(year, month, day, 14, 0), status: 'history' },
+    { bookingId: 'B004', userName: 'David', pickupTime: new Date(year, month, day, 19, 30), status: 'ready' },
+    { bookingId: 'B005', userName: 'Eve', pickupTime: new Date(year, month, day, 14, 0), status: 'history' },
+    { bookingId: 'B006', userName: 'Frank', pickupTime: new Date(year, month, day, 20, 30), status: 'upcoming' },
+  ];
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
+    <ThemedView
+      style={[
+        styles.screen,
+        {
+          paddingTop: insets.top + SPACING.lg,
+          paddingHorizontal: horizontalPadding,
+        },
+      ]}
+    >
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.title}>Order</Text>
+        <ContentSwitcher
+          tabs={[
+            { key: "upcoming", label: "Upcoming" },
+            { key: "ready", label: "Ready" },
+            { key: "history", label: "History" },
+          ]}
+          value={orderListFilter}
+          onChange={(k) => setOrderListFilter(k as any)}
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.medium,
-          }}>
-          Explore
-        </ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
-        />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.medium }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+      </View>
+      {/* Order List */}
+      <FlatList
+        data={orders}
+        keyExtractor={(s) => s.bookingId}
+        contentContainerStyle={{
+          paddingBottom: insets.bottom + SPACING.xl,
+        }}
+        renderItem={({ item }) => {
+          if (item.status !== orderListFilter) return null;
+          return (
+            <View
+              style={[
+                styles.wrapperRow,
+                { paddingHorizontal: horizontalPadding },
+               ]}
+            >
+              <OrderListRow item={item} />
+            </View>
+          );
+        }}
+        showsVerticalScrollIndicator={false}
+      />
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  screen: {
+    flex: 1,
   },
-  titleContainer: {
-    flexDirection: 'row',
-    gap: 8,
+  header: {
+    marginBottom: SPACING.xl,
+    gap: SPACING.md,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#11181C",
+  },
+  wrapperRow: {
+    width: "100%",
+    marginBottom: SPACING.lg,
   },
 });

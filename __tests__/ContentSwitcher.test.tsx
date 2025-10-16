@@ -1,4 +1,3 @@
-// components/Menu/__tests__/ContentSwitcher.test.tsx
 import ContentSwitcher from "@/components/Menu/Content-Switcher";
 import { fireEvent, render } from "@testing-library/react-native";
 import React from "react";
@@ -17,7 +16,7 @@ describe("ContentSwitcher", () => {
         value="items"
         onChange={onChange}
         animated={false}
-        containerWidth={300}  // deterministic width
+        containerWidth={300}
         testID="switcher"
       />
     );

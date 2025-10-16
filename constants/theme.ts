@@ -32,3 +32,5 @@ export const Fonts = {
   semibold: 'Poppins_600SemiBold',
   bold: 'Poppins_700Bold',
 };
+
+export const SPACING = { xs: 6, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24 };

@@ -1,21 +1,17 @@
-import React, { useMemo, useState } from "react";
-import {
-  Dimensions,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-
 import ContentSwitcher from "@/components/Menu/Content-Switcher";
 import MenuWrapper from "@/components/Menu/Menu-Wrapper";
 import OptionWrapper from "@/components/Menu/Option-Wrapper";
 import { ThemedView } from "@/components/themed-view";
+import React, { useMemo, useState } from "react";
+import { Dimensions, ScrollView, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import Fab from "@/components/common/Fab";
+import AddSheet from "@/components/Menu/AddSheet";
 import menuData from "@/mockupData/menuData.json";
 import optionData from "@/mockupData/optionGroup.json";
+import { useRouter } from "expo-router";
 
-const SPACING = { sm: 8, md: 12, lg: 16, xl: 20 };
 interface MenuItem {
   id: string;
   name: string;
@@ -44,7 +40,6 @@ interface OptionGroup {
   options: Option[];
 }
 
-
 interface Section {
   id: string;
   title: string;
@@ -53,10 +48,8 @@ interface Section {
 
 const groupByCategory = (items: MenuItem[]): Section[] => {
   const map = new Map<string, Section>();
-  const UNCATEGORIZED = "Uncategorized";
-
   items.forEach((m) => {
-    const title = m.categoryName?.trim() || "Food" || UNCATEGORIZED;
+    const title = "Menu";
     if (!map.has(title)) map.set(title, { id: title, title, items: [] });
     map.get(title)!.items.push(m);
   });
@@ -67,8 +60,16 @@ const groupByCategory = (items: MenuItem[]): Section[] => {
 };
 
 export default function MenuScreen() {
+  const [addOpen, setAddOpen] = useState(false);
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<"items" | "options">("items");
+  const router = useRouter();
+  const handleAddItem = () => {
+    router.push("/add-item");
+  };
+  const handleAddOption = () => {
+    router.push("/add-option");
+  };
 
   const screenWidth = Dimensions.get("window").width;
   const horizontalPadding = useMemo(() => {
@@ -83,58 +84,59 @@ export default function MenuScreen() {
   const optionGroups = optionData.optionGroups as OptionGroup[];
 
   return (
-    <ScrollView
-      style={{ flex: 1 }}
-      contentContainerStyle={{ paddingBottom: insets.bottom + SPACING.xl }}
-    >
-      <ThemedView
-        style={[
-          styles.screen,
-          {
-            paddingTop: insets.top + SPACING.lg,
-            paddingHorizontal: horizontalPadding,
-          },
-        ]}
+    <View>
+      <ScrollView
+        className="h-full"
+        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+        showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          <Text style={styles.title}>Menu</Text>
-          <ContentSwitcher
-            tabs={[
-              { key: "items", label: "Items" },
-              { key: "options", label: "Options" },
-            ]}
-            value={tab}
-            onChange={(k) => setTab(k as any)}
-          />
-        </View>
-      </ThemedView>
+        <ThemedView
+          className="flex-1"
+          style={{
+            paddingTop: insets.top + 16,
+            paddingHorizontal: horizontalPadding,
+          }}
+        >
+          {/* Header */}
+          <View className="mb-6 gap-3">
+            <Text className="text-3xl font-bold text-[#11181C]">Menu</Text>
+            <ContentSwitcher
+              tabs={[
+                { key: "items", label: "Items" },
+                { key: "options", label: "Options" },
+              ]}
+              value={tab}
+              onChange={(k) => setTab(k as "items" | "options")}
+            />
+          </View>
+        </ThemedView>
 
-      <View style={styles.screen}>
-        {sections.map((item, idx) => (
-          <React.Fragment key={item.id}>
-            <ThemedView
-              style={[styles.wrapperRow, { paddingHorizontal: horizontalPadding }]}
-            >
-              {tab === "items" ? (
-                
-                <MenuWrapper
-                  title={item.title}
-                  items={item.items.map((m) => ({
-                    id: m.id,
-                    name: m.name,
-                    price: m.basePrice,
-                    imageUrl: m.photoUrl,
-                    inStock: (m.leftoverQty ?? 0) > 0,
-                  }))}
-                  defaultExpanded
-                  onToggleItem={(id, val) =>
-                    console.log(`[${item.title}] toggle ${id}: ${val}`)
-                  }
-                />
-              ) : (
-                <View>
-                  {optionGroups.map((group) => {
-                    return (
+        {/* Menu Sections */}
+        <View className="flex-1">
+          {sections.map((section, idx) => (
+            <React.Fragment key={section.id}>
+              <ThemedView
+                className="w-full"
+                style={{ paddingHorizontal: horizontalPadding }}
+              >
+                {tab === "items" ? (
+                  <MenuWrapper
+                    title={section.title}
+                    items={section.items.map((m) => ({
+                      id: m.id,
+                      name: m.name,
+                      price: m.basePrice,
+                      imageUrl: m.photoUrl,
+                      inStock: (m.leftoverQty ?? 0) > 0,
+                    }))}
+                    defaultExpanded
+                    onToggleItem={(id, val) =>
+                      console.log(`[${section.title}] toggle ${id}: ${val}`)
+                    }
+                  />
+                ) : (
+                  <View className="gap-3">
+                    {optionGroups.map((group) => (
                       <OptionWrapper
                         key={group.id}
                         title={group.name}
@@ -146,33 +148,23 @@ export default function MenuScreen() {
                           )
                         }
                       />
-                    );
-                  })}
-                </View>
-              )}
-            </ThemedView>
-            {idx < sections.length - 1 && (
-              <View style={{ height: SPACING.lg }} />
-            )}
-          </React.Fragment>
-        ))}
-      </View>
-    </ScrollView>
+                    ))}
+                  </View>
+                )}
+              </ThemedView>
+
+              {idx < sections.length - 1 && <View className="h-4" />}
+            </React.Fragment>
+          ))}
+        </View>
+      </ScrollView>
+      <Fab onPress={() => setAddOpen(true)} />
+      <AddSheet
+        visible={addOpen}
+        onClose={() => setAddOpen(false)}
+        onAddItem={handleAddItem}
+        onAddOption={handleAddOption}
+      />
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  header: {
-    marginBottom: SPACING.xl,
-    gap: SPACING.md,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#11181C",
-  },
-  wrapperRow: {
-    width: "100%",
-  },
-});
