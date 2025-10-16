@@ -4,9 +4,6 @@ dayjs.extend(isoWeek);
 
 import type { DateKey } from '@/components/finance/types';
 
-// 💡 When testing mock data, pretend "today" = October 16, 2025
-const MOCK_TODAY = dayjs('2025-10-16');
-
 export function filterByDateRange<T>(
   data: T[],
   range: DateKey,
