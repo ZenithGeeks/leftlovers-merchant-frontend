@@ -9,8 +9,10 @@ const map: Record<Role, { bg: string; text: string }> = {
   Stock:   { bg: 'bg-amber-50',   text: 'text-amber-600' },
 };
 
+const defaultStyle = { bg: 'bg-gray-100', text: 'text-gray-800' };
+
 export default function RoleBadge({ role }: { role: Role }) {
-  const s = map[role] ?? map.Manager;
+  const s = map[role] ?? defaultStyle;
   return (
     <View className={`self-start rounded-full px-2.5 py-1 ${s.bg}`}>
       <Text className={`text-xs font-bold ${s.text}`}>{role}</Text>

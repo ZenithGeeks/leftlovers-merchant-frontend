@@ -14,20 +14,17 @@ import {
   RoleBadge,
 } from '@/components/employees';
 
-import rawEmployees from '@/mockupData/employees.json';
-import type { Employee as EmployeeType } from '@/components/employees/types';
-const mockEmployees: EmployeeType[] = rawEmployees as EmployeeType[];
+import { useEmployees } from '@/hooks/useEmployees';
 
 export default function EmployeesScreen() {
   const insets = useSafeAreaInsets();
   const screenWidth = Dimensions.get('window').width;
+  const horizontalPadding = useMemo(() => Math.max(14, Math.min(screenWidth * 0.05, 24)), [screenWidth]);
 
-  const horizontalPadding = useMemo(() => {
-    const pct = screenWidth * 0.05;
-    return Math.max(14, Math.min(pct, 24));
-  }, [screenWidth]);
+  // ✅ use hook
+  const { employees, owner, addEmployee, removeEmployee } = useEmployees();
 
-  const [employees, setEmployees] = useState<Employee[]>(mockEmployees);
+  // UI state
   const [selected, setSelected] = useState<Employee | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
@@ -41,36 +38,35 @@ export default function EmployeesScreen() {
 
   const openDetail = (emp: Employee) => { setSelected(emp); setDetailOpen(true); };
   const closeDetail = () => setDetailOpen(false);
-  const openAdd = () => {
-    setNewRole('Manager'); setNewFirst(''); setNewUser('');
-    setNewEmail(''); setNewPhone(''); setAddOpen(true);
-  };
+  const openAdd = () => { setNewRole('Manager'); setNewFirst(''); setNewUser(''); setNewEmail(''); setNewPhone(''); setAddOpen(true); };
 
-  const addEmployee = () => {
+  const handleAdd = () => {
     const parts = newFirst.trim().split(/\s+/);
     const first = parts[0] || 'New';
     const last = parts.slice(1).join(' ') || 'Employee';
-    const newEmp: Employee = {
-      id: String(Date.now()),
+
+    addEmployee({
+      id: crypto.randomUUID(),
       firstName: first,
       lastName: last,
       email: newEmail || undefined,
       phone: newPhone || undefined,
       role: newRole,
-    };
-    setEmployees(prev => [...prev, newEmp]);
+    });
+
     setAddOpen(false);
   };
 
-  const disableAccess = (id: string) => {
-    setEmployees(prev => prev.filter(e => e.id !== id));
-    setDetailOpen(false);
+  const handleDisableAccess = (id: string) => {
+    removeEmployee(id);
+    closeDetail();
   };
 
   return (
     <ScrollView
+      className="flex-1 bg-white"
+      contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + 16 }}
       showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
     >
       <ThemedView
         className="flex-1 bg-white"
@@ -79,28 +75,26 @@ export default function EmployeesScreen() {
         <Text className="text-2xl font-bold text-[#11181C] mb-4">Employees</Text>
 
         {/* Owner (first owner) */}
-        {(() => {
-          const owner = employees.find(e => e.role === 'Owner');
-          if (!owner) return null;
-          return (
-            <View className="flex-row items-center gap-4 mb-6">
-              <AvatarInitial name={owner.firstName} />
-              <View className="flex-1">
-                <Text className="text-base font-bold text-[#11181C] mb-1">
-                  {owner.firstName} {owner.lastName}
-                </Text>
-                <RoleBadge role="Owner" />
-              </View>
+        {owner && (
+          <View className="flex-row items-center gap-4 mb-6">
+            <AvatarInitial name={owner.firstName} />
+            <View className="flex-1">
+              <Text className="text-base font-bold text-[#11181C] mb-1">
+                {owner.firstName} {owner.lastName}
+              </Text>
+              <RoleBadge role="Owner" />
             </View>
-          );
-        })()}
+          </View>
+        )}
 
         <EmployeesHeader onAdd={openAdd} />
 
         <View className="mt-2 gap-5">
-          {employees.filter(e => !e.isOwner).map(emp => (
-            <EmployeeRow key={emp.id} item={emp} onPress={openDetail} />
-          ))}
+          {employees
+            .filter(e => !e.isOwner)
+            .map(emp => (
+              <EmployeeRow key={emp.id} item={emp} onPress={openDetail} />
+            ))}
         </View>
       </ThemedView>
 
@@ -108,7 +102,7 @@ export default function EmployeesScreen() {
         visible={detailOpen}
         onClose={closeDetail}
         employee={selected}
-        onDisable={disableAccess}
+        onDisable={handleDisableAccess}
         bottomPadding={insets.bottom}
       />
 
@@ -128,7 +122,7 @@ export default function EmployeesScreen() {
         setEmail={setNewEmail}
         phone={newPhone}
         setPhone={setNewPhone}
-        onSubmit={addEmployee}
+        onSubmit={handleAdd}
       />
     </ScrollView>
   );

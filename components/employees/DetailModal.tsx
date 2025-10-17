@@ -55,7 +55,7 @@ export default function DetailModal({
             </View>
 
             <TouchableOpacity
-              onPress={() => employee.id && onDisable(employee.id)}
+              onPress={() => onDisable(employee.id)}
               className="bg-[#E05858] rounded-full items-center justify-center py-3.5 mt-6"
             >
               <Text className="text-white font-bold text-base">Disable Employee Access</Text>
