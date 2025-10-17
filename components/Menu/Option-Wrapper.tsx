@@ -1,4 +1,3 @@
-// components/Menu/Option-Wrapper.tsx
 import OptionList, { OptionItem } from "@/components/Menu/Option-List";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Easing, Pressable, Text, View } from "react-native";
@@ -61,7 +60,7 @@ export default function OptionWrapper({
     <View>
       {/* Header */}
       <View className="flex-row items-center mb-2 px-0 py-4">
-        <Text className="flex-1 text-xl font-semibold text-gray-900">
+        <Text className="flex-1 text-2xl font-semibold text-gray-900">
           {title}
         </Text>
 
@@ -81,7 +80,7 @@ export default function OptionWrapper({
 
       {/* Body */}
       {expanded && (
-        <View className="bg-white rounded-2xl p-2 shadow-md">
+        <View className="bg-white rounded-2xl p-2 border border-gray-200">
           {sortedOptions.length === 0 ? (
             <View className="items-center py-4">
               <Text className="text-gray-500 text-base font-medium">
@@ -90,9 +89,9 @@ export default function OptionWrapper({
             </View>
           ) : (
             <OptionList
-              title={undefined} // header already shows the group label
+              title={undefined}
               options={sortedOptions}
-              maxSelect={maxSelect ?? sortedOptions.length} // allow all by default
+              maxSelect={maxSelect ?? sortedOptions.length}
               onToggle={(optionId, value) => onChangeChoice?.(title, optionId, value)}
             />
           )}

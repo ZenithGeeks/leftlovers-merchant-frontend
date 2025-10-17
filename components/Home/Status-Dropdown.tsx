@@ -1,5 +1,5 @@
 import { Colors, Fonts } from "@/constants/theme";
-import type { ShopStatus } from "@/types/shop";
+import type { ShopStatus } from "@/types/types";
 import React, { useMemo, useRef, useState } from "react";
 import {
   findNodeHandle,
