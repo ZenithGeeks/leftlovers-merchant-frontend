@@ -36,7 +36,7 @@
     "id": "5",
     "firstName": "Jill",
     "lastName": "Doe",
-    "role": "Owner",
+    "role": "Cashier",
     "email": "jill.doe@mail.com",
     "phone": "+66 94 444 4444"
   },
@@ -44,7 +44,7 @@
     "id": "6",
     "firstName": "Joy",
     "lastName": "Doe",
-    "role": "Owner",
+    "role": "Stock",
     "email": "joy.doe@mail.com",
     "phone": "+66 95 555 5555"
   }

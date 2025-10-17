@@ -1,20 +1,30 @@
 import React from 'react';
-import { Pressable, View, Text } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { empStyles as s } from './styles';
+import type { Employee } from './types';
 import AvatarInitial from './AvatarInitial';
 import RoleBadge from './RoleBadge';
-import type { Employee } from './types';
 
-export default function EmployeeRow({ item, onPress }: { item: Employee; onPress: (e: Employee) => void }) {
+export default function EmployeeRow({
+  item,
+  onPress,
+}: {
+  item: Employee;
+  onPress: (emp: Employee) => void;
+}) {
   return (
-    <Pressable style={s.rowItem} onPress={() => onPress(item)}>
+    <TouchableOpacity
+      className="flex-row items-center gap-4"
+      onPress={() => onPress(item)}
+    >
       <AvatarInitial name={item.firstName} />
-      <View style={{ flex: 1 }}>
-        <Text style={s.name}>{item.firstName} {item.lastName}</Text>
+      <View className="flex-1">
+        <Text className="text-base font-bold text-[#11181C] mb-1">
+          {item.firstName} {item.lastName}
+        </Text>
         <RoleBadge role={item.role} />
       </View>
       <Ionicons name="chevron-forward" size={20} color="#11181C" />
-    </Pressable>
+    </TouchableOpacity>
   );
 }

@@ -1,10 +1,8 @@
-import { ThemedView } from '@/components/themed-view';
-import { Colors } from '@/constants/theme';
 import React, { useMemo, useState } from 'react';
-import { Dimensions, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ThemedView } from '@/components/themed-view';
 
-// --- Components ---
 import {
   AddEmployeeModal,
   AvatarInitial,
@@ -14,10 +12,8 @@ import {
   EmployeesHeader,
   type Role,
   RoleBadge,
-  empStyles as s,
 } from '@/components/employees';
 
-// --- Mock Data ---
 import rawEmployees from '@/mockupData/employees.json';
 import type { Employee as EmployeeType } from '@/components/employees/types';
 const mockEmployees: EmployeeType[] = rawEmployees as EmployeeType[];
@@ -31,41 +27,29 @@ export default function EmployeesScreen() {
     return Math.max(14, Math.min(pct, 24));
   }, [screenWidth]);
 
-  // --- State ---
   const [employees, setEmployees] = useState<Employee[]>(mockEmployees);
   const [selected, setSelected] = useState<Employee | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
 
-  // --- Add Form ---
+  // Add form state
   const [newRole, setNewRole] = useState<Role>('Manager');
   const [newFirst, setNewFirst] = useState('');
   const [newUser, setNewUser] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newPhone, setNewPhone] = useState('');
 
-  // --- Handlers ---
-  const openDetail = (emp: Employee) => {
-    setSelected(emp);
-    setDetailOpen(true);
-  };
-
+  const openDetail = (emp: Employee) => { setSelected(emp); setDetailOpen(true); };
   const closeDetail = () => setDetailOpen(false);
-
   const openAdd = () => {
-    setNewRole('Manager');
-    setNewFirst('');
-    setNewUser('');
-    setNewEmail('');
-    setNewPhone('');
-    setAddOpen(true);
+    setNewRole('Manager'); setNewFirst(''); setNewUser('');
+    setNewEmail(''); setNewPhone(''); setAddOpen(true);
   };
 
   const addEmployee = () => {
     const parts = newFirst.trim().split(/\s+/);
     const first = parts[0] || 'New';
     const last = parts.slice(1).join(' ') || 'Employee';
-
     const newEmp: Employee = {
       id: String(Date.now()),
       firstName: first,
@@ -74,39 +58,35 @@ export default function EmployeesScreen() {
       phone: newPhone || undefined,
       role: newRole,
     };
-
-    setEmployees((prev) => [...prev, newEmp]);
+    setEmployees(prev => [...prev, newEmp]);
     setAddOpen(false);
   };
 
   const disableAccess = (id: string) => {
-    setEmployees((prev) => prev.filter((e) => e.id !== id));
+    setEmployees(prev => prev.filter(e => e.id !== id));
     setDetailOpen(false);
   };
 
-  // --- Render ---
   return (
     <ScrollView
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
     >
       <ThemedView
-        style={[
-          styles.container,
-          { paddingTop: insets.top + 24, paddingHorizontal: horizontalPadding },
-        ]}
+        className="flex-1 bg-white"
+        style={{ paddingTop: insets.top + 24, paddingHorizontal: horizontalPadding }}
       >
-        <Text style={s.header}>Employees</Text>
+        <Text className="text-2xl font-bold text-[#11181C] mb-4">Employees</Text>
 
-        {/* Owner (first owner found) */}
+        {/* Owner (first owner) */}
         {(() => {
-          const owner = employees.find((e) => e.role === 'Owner');
+          const owner = employees.find(e => e.role === 'Owner');
           if (!owner) return null;
           return (
-            <View style={[s.rowItem, { marginBottom: 24 }]}>
+            <View className="flex-row items-center gap-4 mb-6">
               <AvatarInitial name={owner.firstName} />
-              <View style={{ flex: 1 }}>
-                <Text style={s.name}>
+              <View className="flex-1">
+                <Text className="text-base font-bold text-[#11181C] mb-1">
                   {owner.firstName} {owner.lastName}
                 </Text>
                 <RoleBadge role="Owner" />
@@ -115,20 +95,15 @@ export default function EmployeesScreen() {
           );
         })()}
 
-        {/* Header with Add button */}
         <EmployeesHeader onAdd={openAdd} />
 
-        {/* Employees List */}
-        <View style={{ gap: 22, marginTop: 8 }}>
-          {employees
-            .filter((e) => !e.isOwner)
-            .map((emp) => (
-              <EmployeeRow key={emp.id} item={emp} onPress={openDetail} />
-            ))}
+        <View className="mt-2 gap-5">
+          {employees.filter(e => !e.isOwner).map(emp => (
+            <EmployeeRow key={emp.id} item={emp} onPress={openDetail} />
+          ))}
         </View>
       </ThemedView>
 
-      {/* Detail Modal */}
       <DetailModal
         visible={detailOpen}
         onClose={closeDetail}
@@ -137,7 +112,6 @@ export default function EmployeesScreen() {
         bottomPadding={insets.bottom}
       />
 
-      {/* Add Employee Modal */}
       <AddEmployeeModal
         visible={addOpen}
         onClose={() => setAddOpen(false)}
@@ -159,7 +133,3 @@ export default function EmployeesScreen() {
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.light.background },
-});

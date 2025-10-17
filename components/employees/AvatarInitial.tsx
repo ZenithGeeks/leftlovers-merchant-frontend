@@ -1,12 +1,11 @@
 import React from 'react';
 import { Text, View } from 'react-native';
-import { empStyles as s } from './styles';
 
 export default function AvatarInitial({ name }: { name: string }) {
-  const letter = name.trim()[0]?.toUpperCase() ?? '?';
+  const letter = name?.trim()?.[0]?.toUpperCase() ?? '?';
   return (
-    <View style={s.avatar}>
-      <Text style={s.avatarText}>{letter}</Text>
+    <View className="w-14 h-14 rounded-full bg-gray-200 items-center justify-center">
+      <Text className="text-base font-semibold text-[#11181C]">{letter}</Text>
     </View>
   );
 }

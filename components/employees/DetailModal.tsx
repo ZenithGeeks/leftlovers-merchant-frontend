@@ -1,25 +1,30 @@
 import React from 'react';
-import { Modal, Pressable, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { empStyles as s } from './styles';
 import RoleBadge from './RoleBadge';
 import type { Employee } from './types';
 
-type Props = {
+export default function DetailModal({
+  visible,
+  onClose,
+  employee,
+  onDisable,
+  bottomPadding,
+}: {
   visible: boolean;
   onClose: () => void;
   employee: Employee | null;
   onDisable: (id: string) => void;
   bottomPadding: number;
-};
-
-export default function DetailModal({ visible, onClose, employee, onDisable, bottomPadding }: Props) {
+}) {
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <Pressable style={s.overlay} onPress={onClose} />
-      <View style={[s.sheet, { paddingBottom: bottomPadding + 16 }]}>
-        <View style={s.sheetHeader}>
-          <Text style={s.sheetTitle}>{employee ? `${employee.firstName} ${employee.lastName}` : 'Employee'}</Text>
+      <TouchableOpacity activeOpacity={1} className="flex-1 bg-black/35" onPress={onClose} />
+      <View className="bg-white rounded-t-3xl p-5" style={{ paddingBottom: bottomPadding + 16 }}>
+        <View className="flex-row items-center justify-between">
+          <Text className="text-xl font-bold text-[#11181C]">
+            {employee ? `${employee.firstName} ${employee.lastName}` : 'Employee'}
+          </Text>
           <TouchableOpacity onPress={onClose} hitSlop={8}>
             <Ionicons name="close" size={22} color="#11181C" />
           </TouchableOpacity>
@@ -27,28 +32,33 @@ export default function DetailModal({ visible, onClose, employee, onDisable, bot
 
         {employee && (
           <>
-            <View style={{ alignItems: 'center', marginTop: 2 }}>
+            <View className="items-center mt-1">
               <RoleBadge role={employee.role} />
             </View>
 
-            <View style={s.infoGrid}>
-              <View style={s.infoCol}>
-                <Text style={s.mutedLabel}>Full name</Text>
-                <Text style={s.infoValue}>{employee.firstName} {employee.lastName}</Text>
+            <View className="flex-row flex-wrap mt-4 gap-x-4 gap-y-4">
+              <View className="w-[48%]">
+                <Text className="text-sm text-gray-500 mb-1">Full name</Text>
+                <Text className="text-base font-bold text-[#11181C]">
+                  {employee.firstName} {employee.lastName}
+                </Text>
               </View>
-              <View style={s.infoCol} />
-              <View style={s.infoCol}>
-                <Text style={s.mutedLabel}>Email</Text>
-                <Text style={s.infoValue}>{employee.email || '-'}</Text>
+              <View className="w-[48%]" />
+              <View className="w-[48%]">
+                <Text className="text-sm text-gray-500 mb-1">Email</Text>
+                <Text className="text-base font-bold text-[#11181C]">{employee.email || '-'}</Text>
               </View>
-              <View style={s.infoCol}>
-                <Text style={s.mutedLabel}>Mobile number</Text>
-                <Text style={s.infoValue}>{employee.phone || '-'}</Text>
+              <View className="w-[48%]">
+                <Text className="text-sm text-gray-500 mb-1">Mobile number</Text>
+                <Text className="text-base font-bold text-[#11181C]">{employee.phone || '-'}</Text>
               </View>
             </View>
 
-            <TouchableOpacity onPress={() => onDisable(employee.id)} style={s.dangerBtn}>
-              <Text style={s.dangerText}>Disable Employee Access</Text>
+            <TouchableOpacity
+              onPress={() => employee.id && onDisable(employee.id)}
+              className="bg-[#E05858] rounded-full items-center justify-center py-3.5 mt-6"
+            >
+              <Text className="text-white font-bold text-base">Disable Employee Access</Text>
             </TouchableOpacity>
           </>
         )}

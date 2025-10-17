@@ -1,16 +1,16 @@
 import React from 'react';
-import { Text, View, TouchableOpacity } from 'react-native';
-import { empStyles as s } from './styles';
+import { Text, TouchableOpacity, View } from 'react-native';
 
 export default function EmployeesHeader({ onAdd }: { onAdd: () => void }) {
   return (
-    <View style={s.sectionHeader}>
+    <View className="flex-row items-end justify-between mb-2">
       <View>
-        <Text style={s.sectionTitle}>Your employees</Text>
-        <Text style={s.sectionSub}>Manage what others can access</Text>
+        <Text className="text-lg font-bold text-[#11181C]">Your employees</Text>
+        <Text className="text-sm text-[#6B7280] mt-1">Manage what others can access</Text>
       </View>
+
       <TouchableOpacity onPress={onAdd} hitSlop={8}>
-        <Text style={s.addText}>+ Add</Text>
+        <Text className="text-lg font-bold text-green-600">+ Add</Text>
       </TouchableOpacity>
     </View>
   );

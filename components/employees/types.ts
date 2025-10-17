@@ -1,11 +1,11 @@
 export type Role = 'Owner' | 'Manager' | 'Cashier' | 'Stock';
 
-export type Employee = {
+export interface Employee {
   id: string;
   firstName: string;
   lastName: string;
+  role: Role;
   email?: string;
   phone?: string;
-  role: Role;
   isOwner?: boolean;
-};
+}
