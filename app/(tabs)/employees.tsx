@@ -1,7 +1,7 @@
+import { ThemedView } from '@/components/themed-view';
 import React, { useMemo, useState } from 'react';
 import { Dimensions, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ThemedView } from '@/components/themed-view';
 
 import {
   AddEmployeeModal,
@@ -91,7 +91,7 @@ export default function EmployeesScreen() {
 
         <View className="mt-2 gap-5">
           {employees
-            .filter(e => !e.isOwner)
+            .filter(e => !e.role || e.role !== 'Owner')
             .map(emp => (
               <EmployeeRow key={emp.id} item={emp} onPress={openDetail} />
             ))}

@@ -1,7 +1,7 @@
+import type { Employee } from '@/types/employee';
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import type { Employee } from './types';
 import AvatarInitial from './AvatarInitial';
 import RoleBadge from './RoleBadge';
 

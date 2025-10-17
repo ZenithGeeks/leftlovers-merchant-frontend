@@ -5,8 +5,7 @@
     "lastName": "Doe",
     "role": "Owner",
     "email": "john.doe@mail.com",
-    "phone": "+66 91 111 1111",
-    "isOwner": true
+    "phone": "+66 91 111 1111"
   },
   {
     "id": "2",

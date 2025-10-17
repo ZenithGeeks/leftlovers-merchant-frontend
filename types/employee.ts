@@ -1,4 +1,4 @@
-export type Role = 'Owner' | 'Manager' | 'Cashier' | 'Stock';
+export type Role = "Owner" | "Manager" | "Cashier" | "Stock";
 
 export interface Employee {
   id: string;
@@ -7,5 +7,4 @@ export interface Employee {
   role: Role;
   email?: string;
   phone?: string;
-  isOwner?: boolean;
 }
