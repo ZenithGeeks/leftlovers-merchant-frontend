@@ -15,7 +15,7 @@ type Props = {
 };
 
 export default function OptionList({
-  title = "Options",
+  title,
   options,
   maxSelect = options.length,
   onToggle,

@@ -1,16 +1,17 @@
+// app/(tabs)/menu.tsx (or your screen file)
+import Fab from "@/components/common/Fab";
+import AddSheet from "@/components/Menu/AddSheet";
 import ContentSwitcher from "@/components/Menu/Content-Switcher";
 import MenuWrapper from "@/components/Menu/Menu-Wrapper";
 import OptionWrapper from "@/components/Menu/Option-Wrapper";
 import { ThemedView } from "@/components/themed-view";
+import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import { Dimensions, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import Fab from "@/components/common/Fab";
-import AddSheet from "@/components/Menu/AddSheet";
 import menuData from "@/mockupData/menuData.json";
 import optionData from "@/mockupData/optionGroup.json";
-import { useRouter } from "expo-router";
 
 interface MenuItem {
   id: string;
@@ -20,61 +21,28 @@ interface MenuItem {
   photoUrl: string;
   categoryName?: string | null;
 }
-
-interface Option {
-  id: string;
-  optionGroupId: string;
-  name: string;
-  active: boolean;
-  priceDelta: number;
-  sortOrder: number;
-}
-
+interface Option { id: string; optionGroupId: string; name: string; active: boolean; priceDelta: number; sortOrder: number; }
 interface OptionGroup {
-  id: string;
-  menuItemId: string;
-  name: string;
-  minSelect: number;
-  maxSelect: number;
-  sortOrder: number;
-  options: Option[];
+  id: string; menuItemId: string; name: string; minSelect: number; maxSelect: number; sortOrder: number; options: Option[];
 }
-
-interface Section {
-  id: string;
-  title: string;
-  items: MenuItem[];
-}
+interface Section { id: string; title: string; items: MenuItem[]; }
 
 const groupByCategory = (items: MenuItem[]): Section[] => {
-  const map = new Map<string, Section>();
-  items.forEach((m) => {
-    const title = "Menu";
-    if (!map.has(title)) map.set(title, { id: title, title, items: [] });
-    map.get(title)!.items.push(m);
-  });
-
-  return Array.from(map.values()).sort((a, b) =>
-    a.title.localeCompare(b.title)
-  );
+  const title = "Menu";
+  return [{ id: title, title, items }];
 };
 
 export default function MenuScreen() {
   const [addOpen, setAddOpen] = useState(false);
-  const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<"items" | "options">("items");
+
   const router = useRouter();
-  const handleAddItem = () => {
-    router.push("/add-item");
-  };
-  const handleAddOption = () => {
-    router.push("/add-option");
-  };
+  const insets = useSafeAreaInsets();
 
   const screenWidth = Dimensions.get("window").width;
   const horizontalPadding = useMemo(() => {
-    const pct = screenWidth * 0.05;
-    return Math.max(14, Math.min(pct, 24));
+    const pct = screenWidth * 0.05; // 5% gutter
+    return Math.max(16, Math.min(pct, 28));
   }, [screenWidth]);
 
   const sections = useMemo(
@@ -83,23 +51,27 @@ export default function MenuScreen() {
   );
   const optionGroups = optionData.optionGroups as OptionGroup[];
 
+  const handleAddItem = () => router.push("/add-item");
+  const handleAddOption = () => router.push("/add-option");
+
   return (
-    <View>
+    <View className="flex-1">
       <ScrollView
-        className="h-full"
-        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 96 }}
         showsVerticalScrollIndicator={false}
       >
+        {/* Page header */}
         <ThemedView
-          className="flex-1"
+          className="w-full"
           style={{
             paddingTop: insets.top + 16,
             paddingHorizontal: horizontalPadding,
           }}
         >
-          {/* Header */}
           <View className="mb-6 gap-3">
-            <Text className="text-3xl font-bold text-[#11181C]">Menu</Text>
+            <Text className="text-[36px] font-extrabold text-[#0B1220]">
+              Menu
+            </Text>
             <ContentSwitcher
               tabs={[
                 { key: "items", label: "Items" },
@@ -111,54 +83,55 @@ export default function MenuScreen() {
           </View>
         </ThemedView>
 
-        {/* Menu Sections */}
-        <View className="flex-1">
-          {sections.map((section, idx) => (
-            <React.Fragment key={section.id}>
-              <ThemedView
-                className="w-full"
-                style={{ paddingHorizontal: horizontalPadding }}
-              >
-                {tab === "items" ? (
-                  <MenuWrapper
-                    title={section.title}
-                    items={section.items.map((m) => ({
-                      id: m.id,
-                      name: m.name,
-                      price: m.basePrice,
-                      imageUrl: m.photoUrl,
-                      inStock: (m.leftoverQty ?? 0) > 0,
-                    }))}
-                    defaultExpanded
-                    onToggleItem={(id, val) =>
-                      console.log(`[${section.title}] toggle ${id}: ${val}`)
-                    }
-                  />
-                ) : (
-                  <View className="gap-3">
-                    {optionGroups.map((group) => (
-                      <OptionWrapper
-                        key={group.id}
-                        title={group.name}
-                        options={group.options}
-                        defaultExpanded
-                        onChangeChoice={(groupId, choiceId, val) =>
-                          console.log(
-                            `[${group.name}] [${groupId}] choice ${choiceId} = ${val}`
-                          )
-                        }
-                      />
-                    ))}
-                  </View>
-                )}
-              </ThemedView>
-
-              {idx < sections.length - 1 && <View className="h-4" />}
-            </React.Fragment>
-          ))}
-        </View>
+        {/* Sections */}
+        <ThemedView
+          className="w-full"
+          style={{ paddingHorizontal: horizontalPadding }}
+        >
+          {tab === "items" ? (
+            sections.map((section) => (
+              <View key={section.id} className="mb-10">
+                <MenuWrapper
+                  title={section.title}
+                  items={section.items.map((m) => ({
+                    id: m.id,
+                    name: m.name,
+                    price: m.basePrice,
+                    imageUrl: m.photoUrl,
+                    inStock: (m.leftoverQty ?? 0) > 0,
+                    leftoverQty: m.leftoverQty
+                  }))}
+                  defaultExpanded
+                  onToggleItem={(id, val) =>
+                    console.log(`[${section.title}] toggle ${id}: ${val}`)
+                  }
+                />
+              </View>
+            ))
+          ) : (
+            <View className="mb-10 gap-4">
+              {optionGroups.map((group) => (
+                <OptionWrapper
+                  key={group.id}
+                  title={group.name}
+                  options={group.options}
+                  defaultExpanded
+                  onChangeChoice={(groupId, choiceId, val) =>
+                    console.log(
+                      `[${group.name}] [${groupId}] choice ${choiceId} = ${val}`
+                    )
+                  }
+                />
+              ))}
+            </View>
+          )}
+        </ThemedView>
       </ScrollView>
+
+      {/* Floating Action Button */}
       <Fab onPress={() => setAddOpen(true)} />
+
+      {/* Action Sheet */}
       <AddSheet
         visible={addOpen}
         onClose={() => setAddOpen(false)}

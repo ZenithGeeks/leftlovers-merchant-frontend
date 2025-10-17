@@ -39,7 +39,7 @@ export default function MenuWrapper({
     <View className="w-full">
       {/* Header */}
       <View className="flex-row items-center mb-2.5">
-        <Text className="flex-1 text-[22px] font-bold text-[#11181C]">
+        <Text className="flex-1 text-2xl font-bold text-[#11181C]">
           {title}
         </Text>
 
@@ -56,7 +56,7 @@ export default function MenuWrapper({
 
       {/* Collapsible Body */}
       {expanded && (
-        <View className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
+        <View className="bg-white border border-gray-200 rounded-2xl p-2">
           <MenuList items={items} onToggle={onToggleItem} />
         </View>
       )}
