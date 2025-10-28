@@ -1,6 +1,6 @@
-import { View, Text } from 'react-native';
+import { Text, View } from 'react-native';
+import type { DateKey, Summary } from '../../types/finance';
 import { DatePills } from './DatePills';
-import type { DateKey, Summary } from './types';
 
 export function SummaryTab({
   selectedDate,
@@ -22,16 +22,16 @@ export function SummaryTab({
       </Text>
 
       <Text className="text-gray-800 font-medium">Net Sales</Text>
-      <Text className="text-2xl font-bold text-black mb-4">
+      <Text className="text-[22px] font-bold text-black mb-4">
         +฿{data.netSales.toFixed(2)}
       </Text>
 
       <Text className="text-gray-800 font-medium">Earnings</Text>
-      <Text className="text-2xl font-bold text-black mb-4">
+      <Text className="text-[22px] font-bold text-black mb-4">
         +฿{data.earnings.toFixed(2)}
       </Text>
 
-      <Text className="text-lg font-bold mt-6 mb-3">Summary Details</Text>
+      <Text className="text-[20px] font-semibold mt-6 mb-3">Summary Details</Text>
 
       <View className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
         <View className="flex-row justify-between mb-3">

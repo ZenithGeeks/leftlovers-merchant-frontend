@@ -1,7 +1,6 @@
-import { View, Text } from 'react-native';
+import { Text, View } from 'react-native';
+import type { DateKey, Transaction } from '../../types/finance';
 import { DatePills } from './DatePills';
-import { filterByDateRange } from '@/utils/financeFilters';
-import type { Transaction, DateKey } from './types';
 
 export function TransactionTab({
   date,

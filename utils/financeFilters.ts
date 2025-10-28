@@ -2,7 +2,7 @@ import dayjs, { Dayjs } from 'dayjs';
 import isoWeek from 'dayjs/plugin/isoWeek';
 dayjs.extend(isoWeek);
 
-import type { DateKey } from '@/components/finance/types';
+import type { DateKey } from '@/types/finance';
 
 export function filterByDateRange<T>(
   data: T[],
