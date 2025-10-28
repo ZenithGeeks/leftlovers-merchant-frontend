@@ -1,7 +1,7 @@
-import { View, Text } from 'react-native';
-import { DatePills } from './DatePills';
 import { filterByDateRange } from '@/utils/financeFilters';
-import type { Payout, DateKey } from './types';
+import { Text, View } from 'react-native';
+import type { DateKey, Payout } from '../../types/finance';
+import { DatePills } from './DatePills';
 
 export function PayoutTab({
   date,

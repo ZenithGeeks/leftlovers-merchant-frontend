@@ -1,5 +1,5 @@
-import { Text, TouchableOpacity, ScrollView, View } from 'react-native';
-import type { DateKey } from './types';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import type { DateKey } from '../../types/finance';
 
 export function DatePills({
   value,
