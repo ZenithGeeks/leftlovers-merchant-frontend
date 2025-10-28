@@ -29,13 +29,13 @@ export function TransactionTab({
       {data.map((tx) => (
         <View
           key={tx.id}
-          className="flex-row justify-between border-b border-gray-200 py-2"
+          className="flex-row justify-between border-b border-gray-200 py-4"
         >
           <View>
-            <Text className="font-semibold text-gray-900">{tx.title}</Text>
+            <Text className="font-semibold text-gray-900 py-2">{tx.title}</Text>
             <Text className="text-xs text-gray-500">{tx.date}</Text>
           </View>
-          <Text className="font-bold text-green-600">
+          <Text className="font-bold text-gray-900 py-2">
             {tx.amountTHB.toFixed(2)} ฿
           </Text>
         </View>
