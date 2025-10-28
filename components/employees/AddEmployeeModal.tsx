@@ -1,7 +1,7 @@
 import React from 'react';
 import { Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import type { Role } from './types';
+import type { Role } from '@/types/employee.ts';
 
 export default function AddEmployeeModal({
   visible,

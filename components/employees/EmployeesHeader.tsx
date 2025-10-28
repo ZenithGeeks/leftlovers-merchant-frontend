@@ -10,7 +10,7 @@ export default function EmployeesHeader({ onAdd }: { onAdd: () => void }) {
       </View>
 
       <TouchableOpacity onPress={onAdd} hitSlop={8}>
-        <Text className="text-lg font-bold text-green-600">+ Add</Text>
+        <Text className="text-[18px] font-bold text-[#26BD68]">+ Add</Text>
       </TouchableOpacity>
     </View>
   );
