@@ -1,18 +1,22 @@
+// app/edit-store.tsx  (full file for convenience)
 import React from "react";
 import { Image, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 
 import storeData from "@/mockupData/storeData.json";
+import { Fonts } from "@/constants/theme";
 
 import {
   ChevronRightIcon,
   MapPinIcon,
   PhoneIcon,
   UserIcon,
+  ClockIcon,
+  AdjustmentsHorizontalIcon,
+  BuildingStorefrontIcon,
+  PhotoIcon,
 } from "react-native-heroicons/outline";
-import { CurrencyDollarIcon } from "react-native-heroicons/solid";
-import { Colors, Fonts } from "@/constants/theme";
 
 function Divider() {
   return <View className="h-[1px] w-full bg-gray-200 my-5" />;
@@ -53,12 +57,15 @@ export default function EditStoreScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  const hoursPreview = storeData.businessHours
-    .slice(0, 3)
-    .map((h) => `${h.day}: ${h.hours}`)
-    .join("   ");
-
-  const addressLine = `${storeData.address.line1}, ${storeData.address.subDistrict}, ${storeData.address.district}, ${storeData.address.province} ${storeData.address.postalCode}`;
+  const addressLine = [
+    storeData.address.line1,
+    storeData.address.line2,
+    storeData.address.city,
+    storeData.address.province,
+    storeData.address.postalCode,
+  ]
+    .filter(Boolean)
+    .join(", ");
 
   return (
     <ScrollView
@@ -89,55 +96,53 @@ export default function EditStoreScreen() {
           </Pressable>
         </View>
 
-        <View className="flex-row gap-4 mb-4">
-
-          <View className="w-40">
-            <View className="w-40 h-40 rounded-2xl bg-gray-100 border border-gray-200 overflow-hidden items-center justify-center">
+        {/* === Images section: each row has image (left) + text (right) === */}
+        <View className="gap-6 mb-4">
+          {/* Store image row */}
+          <View className="flex-row items-start gap-4">
+            <View className="w-32 h-32 rounded-2xl bg-gray-100 border border-gray-200 overflow-hidden items-center justify-center">
               {storeData.storeImage ? (
-                <Image
-                  source={{ uri: storeData.storeImage }}
-                  resizeMode="cover"
-                  className="w-full h-full"
-                />
+                <Image source={{ uri: storeData.storeImage}} resizeMode="cover" className="w-full h-full" />
               ) : (
-                <CurrencyDollarIcon size={28} color="#22C55E" />
+                <PhotoIcon size={28} color="#22C55E" />
               )}
             </View>
-            <Text className="text-[16px] font-semibold text-[#11181C] mt-2">
-              Store image
-            </Text>
-            <Text className="text-[13px] text-gray-500 mt-0.5">
-              This is the image for the top of your store menu.
-            </Text>
+            <View className="flex-1">
+              <Text className="text-[16px] font-semibold text-[#11181C]">Store image</Text>
+              <Text className="text-[13px] text-gray-500 mt-1">
+                This is the image for the top of your store menu.
+              </Text>
+            </View>
           </View>
 
-          <View className="flex-1">
-            <View className="w-full h-40 rounded-2xl bg-gray-100 border border-gray-200 overflow-hidden items-center justify-center">
+          {/* List image row */}
+          <View className="flex-row items-start gap-4">
+            <View className="w-32 h-32 rounded-2xl bg-gray-100 border border-gray-200 overflow-hidden items-center justify-center">
               {storeData.listImage ? (
-                <Image
-                  source={{ uri: storeData.listImage }}
-                  resizeMode="cover"
-                  className="w-full h-full"
-                />
+                <Image source={{ uri: storeData.listImage }} resizeMode="cover" className="w-full h-full" />
               ) : (
-                <CurrencyDollarIcon size={28} color="#22C55E" />
+                <PhotoIcon size={28} color="#22C55E" />
               )}
             </View>
-            <Text className="text-[16px] font-semibold text-[#11181C] mt-2">
-              List image
-            </Text>
-            <Text className="text-[13px] text-gray-500 mt-0.5">
-              Appears alongside other businesses in the restaurant list.
-            </Text>
+            <View className="flex-1">
+              <Text className="text-[16px] font-semibold text-[#11181C]">List image</Text>
+              <Text className="text-[13px] text-gray-500 mt-1">
+                This image will appear alongside other businesses when customers browse the restaurant list.
+              </Text>
+            </View>
           </View>
         </View>
 
         <Divider />
 
         <Row
-          icon={<Text className="text-emerald-600 text-xl">🍽️</Text>}
+          icon={<AdjustmentsHorizontalIcon size={18} color="#22C55E" />}
           title="Cuisine and certification"
-          subtitle={`${storeData.cuisine.type}${storeData.cuisine.certification ? " • " + storeData.cuisine.certification : ""}`}
+          subtitle={
+            storeData.cuisine.certification
+              ? `${storeData.cuisine.type} • ${storeData.cuisine.certification}`
+              : storeData.cuisine.type
+          }
           onPress={() => router.push("/edit-cuisine-certification")}
         />
 
@@ -145,12 +150,12 @@ export default function EditStoreScreen() {
 
         <View className="w-full">
           <Row
-            icon={<Text className="text-emerald-600 text-xl">🕒</Text>}
+            icon={<ClockIcon size={18} color="#22C55E" />}
             title="Business hours"
             onPress={() => router.push("/edit-business-hours")}
           />
           <View className="mt-2 pl-12">
-            {storeData.businessHours.map((h) => (
+            {storeData.businessHours.map((h: { day: string; hours: string }) => (
               <View key={h.day} className="flex-row items-center justify-between pr-2 py-1">
                 <Text className="text-[15px] text-[#11181C]">{h.day}</Text>
                 <Text className="text-[15px] text-[#11181C]">{h.hours}</Text>
@@ -163,7 +168,7 @@ export default function EditStoreScreen() {
 
         <Row
           icon={<UserIcon size={18} color="#22C55E" />}
-          title={"Owner’s contact"}
+          title="Owner’s contact"
           subtitle={`${storeData.owner.phone}\n${storeData.owner.email}`}
           onPress={() => router.push("/edit-owner-contact")}
         />
@@ -172,7 +177,7 @@ export default function EditStoreScreen() {
 
         <Row
           icon={<PhoneIcon size={18} color="#22C55E" />}
-          title={"Store contact number"}
+          title="Store contact number"
           subtitle={storeData.contact.storePhone}
           onPress={() => router.push("/edit-store-contact")}
         />
@@ -189,7 +194,7 @@ export default function EditStoreScreen() {
         <Divider />
 
         <Row
-          icon={<Text className="text-emerald-600 text-xl">🏬</Text>}
+          icon={<BuildingStorefrontIcon size={18} color="#22C55E" />}
           title="Store ID"
           subtitle={storeData.storeId}
         />

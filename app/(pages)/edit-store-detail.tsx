@@ -8,11 +8,11 @@ import ImagePickerField from "@/components/ImagePickerField";
 import UploadBox from "@/components/add-item/UploadBox";
 import { ChevronLeftIcon, XMarkIcon } from "react-native-heroicons/outline";
 
-export default function EditStoreDetails() {
+export default function EditStoreDetail() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const [storeName, setStoreName] = useState("ANYA Restaurant - Bangmod");
+  const [storeName, setStoreName] = useState("CPE SHOP - Pracha Uthit");
   const [storeImage, setStoreImage] = useState<string | null>(null);
   const [listImage, setListImage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -23,20 +23,19 @@ export default function EditStoreDetails() {
     if (!canSave) return;
     setSubmitting(true);
     try {
+      // TODO: Save logic (API or Supabase upload)
       router.back();
     } finally {
       setSubmitting(false);
     }
   };
 
-  const horizontalPadding = 20;
-
   return (
     <ThemedView
       className="flex-1 bg-white"
       style={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 8 }}
     >
-
+      {/* Header */}
       <View className="px-5 pb-2 flex-row items-center justify-between">
         <Pressable
           onPress={() => router.back()}
@@ -51,10 +50,11 @@ export default function EditStoreDetails() {
         </Pressable>
       </View>
 
+      {/* Content */}
       <ScrollView
         className="flex-1"
         contentContainerStyle={{
-          paddingHorizontal: horizontalPadding,
+          paddingHorizontal: 20,
           paddingBottom: insets.bottom + 24,
         }}
         keyboardShouldPersistTaps="handled"
@@ -66,29 +66,41 @@ export default function EditStoreDetails() {
           placeholder="Your store name"
           value={storeName}
           onChangeText={setStoreName}
+          placeholderTextColor="#9AA0A6"
           className="w-full rounded-xl border border-gray-300 px-4 py-3 text-[16px] text-[#11181C]"
         />
 
-        {/* Store Image */}
-        <Text className="mb-2 mt-8 text-xl font-bold text-[#11181C]">Store Image</Text>
-        {storeImage ? (
-          <ImagePickerField value={storeImage} onChange={setStoreImage} />
-        ) : (
-          <UploadBox onPress={() => setStoreImage("pick://open")} />
-        )}
+        {/* Store Image (Column layout) */}
+        <View className="mt-8">
+          <Text className="text-[18px] font-bold text-[#11181C] mb-2">Store image</Text>
+          <Text className="text-[14px] text-[#6B7280] mb-3">
+            This is the image for the top of your store menu.
+          </Text>
+          {storeImage ? (
+            <ImagePickerField value={storeImage} onChange={setStoreImage} />
+          ) : (
+            <UploadBox onPress={() => setStoreImage("pick://open-store-image")} />
+          )}
+        </View>
 
-        {/* List Image */}
-        <Text className="mb-2 mt-8 text-xl font-bold text-[#11181C]">List Image</Text>
-        {listImage ? (
-          <ImagePickerField value={listImage} onChange={setListImage} />
-        ) : (
-          <UploadBox onPress={() => setListImage("pick://open")} />
-        )}
+        {/* List Image (Column layout) */}
+        <View className="mt-8">
+          <Text className="text-[18px] font-bold text-[#11181C] mb-2">List image</Text>
+          <Text className="text-[14px] text-[#6B7280] mb-3">
+            This image will appear alongside other businesses when customers browse
+            the restaurant list.
+          </Text>
+          {listImage ? (
+            <ImagePickerField value={listImage} onChange={setListImage} />
+          ) : (
+            <UploadBox onPress={() => setListImage("pick://open-list-image")} />
+          )}
+        </View>
 
-        {/* Save */}
+        {/* Save button */}
         <Pressable
           onPress={onSave}
-          accessibilityLabel="save-store"
+          accessibilityLabel="save-store-detail"
           accessibilityState={{ disabled: !canSave }}
           disabled={!canSave}
           className={`mt-10 w-full rounded-2xl py-4 items-center justify-center ${

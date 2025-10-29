@@ -12,7 +12,7 @@ export default function EditCuisineCertification() {
   const insets = useSafeAreaInsets();
 
   const [cuisine, setCuisine] = useState("Japanese");
-  const [certification, setCertification] = useState("Clean Food Good Taste");
+  const [certification, setCertification] = useState("Halal");
   const [saving, setSaving] = useState(false);
 
   const canSave = useMemo(
