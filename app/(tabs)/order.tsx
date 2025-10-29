@@ -14,66 +14,10 @@ import OrderListRow from "@/components/Order/OrderListRow";
 import { ThemedView } from "@/components/themed-view";
 
 import { SPACING } from "@/constants/theme";
-import { ORDER_STATUS, OrderItem, OrderListItem } from "@/constants/order.type";
+import { ORDER_STATUS, OrderListItem } from "@/constants/order.type";
 
 import orderMockupData from "@/mockupData/order.json";
 
-// const today = new Date();
-// const year = today.getFullYear();
-// const month = today.getMonth();
-// const day = today.getDate();
-
-// const orderDataFromJson:OrderItem[] = orderMockupData.bookingList as OrderItem[];
-// const orders: OrderListItem[] = [
-//   {
-//     bookingId: 'B001',
-//     userName: 'Alice',
-//     pickupTime: new Date(year, month, day, 18, 0),
-//     telephone: '123-456-7890',
-//     status: 'upcoming',
-//     orderItems: orderDataFromJson,
-//   },
-//   {
-//     bookingId: 'B002',
-//     userName: 'Bob',
-//     pickupTime: new Date(year, month, day, 18, 30),
-//     telephone: '987-654-3210',
-//     status: 'upcoming',
-//     orderItems: [],
-//   },
-//   {
-//     bookingId: 'B003',
-//     userName: 'Charlie',
-//     pickupTime: new Date(year, month, day, 14, 0),
-//     telephone: '555-666-7777',
-//     status: 'history',
-//     orderItems: [],
-//   },
-//   {
-//     bookingId: 'B004',
-//     userName: 'David',
-//     pickupTime: new Date(year, month, day, 19, 30),
-//     telephone: '444-555-6666',
-//     status: 'ready',
-//     orderItems: [],
-//   },
-//   {
-//     bookingId: 'B005',
-//     userName: 'Eve',
-//     pickupTime: new Date(year, month, day, 14, 0),
-//     telephone: '222-333-4444',
-//     status: 'history',
-//     orderItems: [],
-//   },
-//   {
-//     bookingId: 'B006',
-//     userName: 'Frank',
-//     pickupTime: new Date(year, month, day, 20, 30),
-//     telephone: '111-222-3333',
-//     status: 'upcoming',
-//     orderItems: [],
-//   },
-// ];
 
 export default function OrderPage() {
   const insets = useSafeAreaInsets();

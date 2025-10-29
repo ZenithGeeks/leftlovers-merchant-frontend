@@ -56,7 +56,6 @@ export default function OrderListRow({ item }: OrderListRowProps) {
                   <CardItem
                      key={index}
                      orderItem={card}
-                     onEdit={() => console.log("Edit", card.name)}
                   />
                ))}
             </View>

@@ -8,12 +8,10 @@ import {
 
 interface CardItemProps {
   orderItem: OrderItem;
-  onEdit: () => void;
 };
 
 export default function CardItem({
   orderItem,
-  onEdit,
 }: CardItemProps) {
   return (
     <View className="px-5 flex-row justify-between items-start mt-6">
