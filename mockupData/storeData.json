@@ -1,0 +1,36 @@
+{
+  "id": "STORE001",
+  "name": "CPE SHOP – Pracha Uthit",
+  "storeImage": "https://example.com/images/store-banner.png",
+  "listImage": "https://example.com/images/store-thumbnail.png",
+  "cuisine": {
+    "type": "Thai Fusion",
+    "certification": "Clean Food Good Taste"
+  },
+  "businessHours": [
+    { "day": "Monday", "hours": "15:00 – 19:00" },
+    { "day": "Tuesday", "hours": "15:00 – 19:00" },
+    { "day": "Wednesday", "hours": "Closed" },
+    { "day": "Thursday", "hours": "15:00 – 19:00" },
+    { "day": "Friday", "hours": "15:00 – 20:00" },
+    { "day": "Saturday", "hours": "15:00 – 20:00" },
+    { "day": "Sunday", "hours": "15:00 – 20:00" }
+  ],
+  "owner": {
+    "name": "Vitawat Kitipatthavorn",
+    "phone": "+66 012 345 6789",
+    "email": "cpe.gogo@kmutt.com"
+  },
+  "contact": {
+    "storePhone": "+66 012 345 6789"
+  },
+  "address": {
+    "line1": "126 Pracha Uthit Rd",
+    "subDistrict": "Bang Mot",
+    "district": "Thung Khru",
+    "province": "Bangkok",
+    "postalCode": "10140"
+  },
+  "storeId": "555-ABCD",
+  "lastUpdated": "2025-10-29T12:00:00Z"
+}

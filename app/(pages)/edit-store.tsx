@@ -1,103 +1,199 @@
-import { Image } from 'expo-image';
-import { Platform, ScrollView, StyleSheet } from 'react-native';
+import React from "react";
+import { Image, Pressable, ScrollView, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 
-import { ExternalLink } from '@/components/external-link';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Collapsible } from '@/components/ui/collapsible';
-import { Fonts } from '@/constants/theme';
+import storeData from "@/mockupData/storeData.json";
 
-export const options = { headerShown: false };
+import {
+  ChevronRightIcon,
+  MapPinIcon,
+  PhoneIcon,
+  UserIcon,
+} from "react-native-heroicons/outline";
+import { CurrencyDollarIcon } from "react-native-heroicons/solid";
+import { Colors, Fonts } from "@/constants/theme";
 
-export default function reviews() {
+function Divider() {
+  return <View className="h-[1px] w-full bg-gray-200 my-5" />;
+}
+
+function Row({
+  icon,
+  title,
+  subtitle,
+  onPress,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  subtitle?: string;
+  onPress?: () => void;
+}) {
   return (
-    <ScrollView>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.medium,
-          }}>
-          Explore
-        </ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
-        />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.medium }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ScrollView>
+    <Pressable
+      onPress={onPress}
+      className="w-full flex-row items-center py-4 active:bg-gray-50"
+      accessibilityRole={onPress ? "button" : undefined}
+    >
+      <View className="w-9 h-9 rounded-xl bg-emerald-50 items-center justify-center mr-3">
+        {icon}
+      </View>
+      <View className="flex-1">
+        <Text className="text-[16px] font-semibold text-[#11181C]">{title}</Text>
+        {!!subtitle && (
+          <Text className="text-[13px] text-gray-500 mt-0.5">{subtitle}</Text>
+        )}
+      </View>
+      {onPress ? <ChevronRightIcon size={20} color="#11181C" /> : null}
+    </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
-  },
-  titleContainer: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-});
+export default function EditStoreScreen() {
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
+
+  const hoursPreview = storeData.businessHours
+    .slice(0, 3)
+    .map((h) => `${h.day}: ${h.hours}`)
+    .join("   ");
+
+  const addressLine = `${storeData.address.line1}, ${storeData.address.subDistrict}, ${storeData.address.district}, ${storeData.address.province} ${storeData.address.postalCode}`;
+
+  return (
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+    >
+      <View
+        className="bg-white"
+        style={{ paddingTop: insets.top + 16, paddingHorizontal: 20 }}
+      >
+        <Text
+          className="text-[28px] font-extrabold text-[#0B1220] mb-6"
+          style={{ fontFamily: Fonts.bold }}
+        >
+          Settings
+        </Text>
+
+        <View className="flex-row items-center justify-between mb-4">
+          <Text className="text-[22px] font-extrabold text-[#0B1220]">
+            {storeData.name}
+          </Text>
+          <Pressable
+            onPress={() => router.push("/edit-store-detail")}
+            className="w-8 h-8 rounded-full items-center justify-center active:bg-gray-100"
+            accessibilityLabel="edit-store-detail"
+          >
+            <ChevronRightIcon size={18} color="#11181C" />
+          </Pressable>
+        </View>
+
+        <View className="flex-row gap-4 mb-4">
+
+          <View className="w-40">
+            <View className="w-40 h-40 rounded-2xl bg-gray-100 border border-gray-200 overflow-hidden items-center justify-center">
+              {storeData.storeImage ? (
+                <Image
+                  source={{ uri: storeData.storeImage }}
+                  resizeMode="cover"
+                  className="w-full h-full"
+                />
+              ) : (
+                <CurrencyDollarIcon size={28} color="#22C55E" />
+              )}
+            </View>
+            <Text className="text-[16px] font-semibold text-[#11181C] mt-2">
+              Store image
+            </Text>
+            <Text className="text-[13px] text-gray-500 mt-0.5">
+              This is the image for the top of your store menu.
+            </Text>
+          </View>
+
+          <View className="flex-1">
+            <View className="w-full h-40 rounded-2xl bg-gray-100 border border-gray-200 overflow-hidden items-center justify-center">
+              {storeData.listImage ? (
+                <Image
+                  source={{ uri: storeData.listImage }}
+                  resizeMode="cover"
+                  className="w-full h-full"
+                />
+              ) : (
+                <CurrencyDollarIcon size={28} color="#22C55E" />
+              )}
+            </View>
+            <Text className="text-[16px] font-semibold text-[#11181C] mt-2">
+              List image
+            </Text>
+            <Text className="text-[13px] text-gray-500 mt-0.5">
+              Appears alongside other businesses in the restaurant list.
+            </Text>
+          </View>
+        </View>
+
+        <Divider />
+
+        <Row
+          icon={<Text className="text-emerald-600 text-xl">🍽️</Text>}
+          title="Cuisine and certification"
+          subtitle={`${storeData.cuisine.type}${storeData.cuisine.certification ? " • " + storeData.cuisine.certification : ""}`}
+          onPress={() => router.push("/edit-cuisine-certification")}
+        />
+
+        <Divider />
+
+        <View className="w-full">
+          <Row
+            icon={<Text className="text-emerald-600 text-xl">🕒</Text>}
+            title="Business hours"
+            onPress={() => router.push("/edit-business-hours")}
+          />
+          <View className="mt-2 pl-12">
+            {storeData.businessHours.map((h) => (
+              <View key={h.day} className="flex-row items-center justify-between pr-2 py-1">
+                <Text className="text-[15px] text-[#11181C]">{h.day}</Text>
+                <Text className="text-[15px] text-[#11181C]">{h.hours}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <Divider />
+
+        <Row
+          icon={<UserIcon size={18} color="#22C55E" />}
+          title={"Owner’s contact"}
+          subtitle={`${storeData.owner.phone}\n${storeData.owner.email}`}
+          onPress={() => router.push("/edit-owner-contact")}
+        />
+
+        <Divider />
+
+        <Row
+          icon={<PhoneIcon size={18} color="#22C55E" />}
+          title={"Store contact number"}
+          subtitle={storeData.contact.storePhone}
+          onPress={() => router.push("/edit-store-contact")}
+        />
+
+        <Divider />
+
+        <Row
+          icon={<MapPinIcon size={18} color="#22C55E" />}
+          title="Address"
+          subtitle={addressLine}
+          onPress={() => router.push("/edit-address")}
+        />
+
+        <Divider />
+
+        <Row
+          icon={<Text className="text-emerald-600 text-xl">🏬</Text>}
+          title="Store ID"
+          subtitle={storeData.storeId}
+        />
+      </View>
+    </ScrollView>
+  );
+}
