@@ -1,0 +1,4 @@
+appId: com.earthwttw.leftloversmerchantfronend
+env:
+  MERCHANT_ID: "c4c9f4f8-2315-4b1e-8d55-6a8f85bb599f"
+  API_HOST: "http://localhost:3000"

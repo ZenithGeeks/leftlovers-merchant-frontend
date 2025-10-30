@@ -1,7 +1,20 @@
 export type ShopStatus = "closed" | "pause" | "busy" | "open";
-export type MenuItemStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
-
 export type Option = { label: string; value: string };
+
+export interface MenuItemAPI {
+  id: string;
+  merchantId: string;
+  name: string;
+  description?: string | null;
+  basePrice: number;
+  originalPrice?: number | null;
+  leftoverQty: number;
+  expiresAt?: string | null;
+  status: "DRAFT" | "LIVE" | "SOLD_OUT" | "EXPIRED";
+  createdAt: string;
+  photoUrl?: string | null;
+  expireLabelUrl?: string | null;
+}
 
 // Reusable templates (selectable in the Add Item screen)
 export type OptionTemplateInput = {
@@ -36,23 +49,6 @@ export type CreateMenuItemForm = {
   groupTemplates: GroupTemplate[];
 };
 
-// Server DTO used after parsing multipart/form-data (strings → numbers, dates)
-export type CreateMenuItemDTO = {
-  merchantId: string;
-  categoryId: string | null;
-  name: string;
-  description: string | null;
-  basePrice: string;            // serialize Decimals as strings
-  originalPrice: string | null;
-  leftoverQty: number;
-  expiresAt: string | null;     // ISO string
-  status: "DRAFT" | "LIVE" | "SOLD_OUT" | "EXPIRED";
-  // uploaded file locations (S3, etc.)
-  photoUrl: string | null;
-  expireLabelUrl: string | null;
-  // which template IDs to apply; optional expanded details if you allow overrides
-  groupTemplateIds: string[];
-};
 
 
 export type UpdateMenuItemForm = {
@@ -67,4 +63,15 @@ export type UpdateMenuItemForm = {
   expirePhotoUri: string | null;
   categoryId: string | null;
   groupTemplates: GroupTemplate[];
+};
+
+export type WarningTag = string;
+
+export type WarningCardDTO = {
+  id: string;                 // warning id
+  customerName: string;       // from Complaint.customer.name
+  message: string;            // from Complaint.description
+  tags: WarningTag[];         // derive from Complaint.type or moderation tags
+  createdAt: string;          // warning.issuedAt
+  expiresAt?: string | null;  // warning.expiresAt
 };

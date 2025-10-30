@@ -1,11 +1,10 @@
 import { Fonts } from "@/constants/theme";
+import { DeleteMenuItem } from "@/services/menu";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
-import { Alert, Pressable, Switch, Text, View } from "react-native";
-// Import TrashIcon for the new delete button
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, Alert, Pressable, Switch, Text, View } from "react-native";
 import { PencilSquareIcon, TrashIcon } from "react-native-heroicons/outline";
-import ToastManager, { Toast } from "toastify-react-native";
 
 export type MenuItem = {
   id: string;
@@ -19,46 +18,59 @@ export type MenuItem = {
 type Props = {
   items: MenuItem[];
   onToggle?: (id: string, value: boolean) => void;
-  onDelete?: (id: string) => void; // New onDelete prop
+  onDelete?: (id: string) => void; // let parent refresh if needed
+  merchantId?: string;             // default used if not provided
 };
 
-export default function MenuList({ items, onToggle, onDelete }: Props) {
-  const [localItems, setLocalItems] = useState(items);
+export default function MenuList({
+  items,
+  onToggle,
+  onDelete,
+  merchantId = "c4c9f4f8-2315-4b1e-8d55-6a8f85bb599f",
+}: Props) {
+  const [localItems, setLocalItems] = useState<MenuItem[]>(items);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const router = useRouter();
 
+  // keep localItems in sync when parent items change
+  useEffect(() => setLocalItems(items), [items]);
+
   const toggleItem = (id: string, value: boolean) => {
-    const updated = localItems.map((item) =>
-      item.id === id ? { ...item, inStock: value } : item
-    );
-    setLocalItems(updated);
+    setLocalItems(prev => prev.map(it => it.id === id ? { ...it, inStock: value } : it));
     onToggle?.(id, value);
   };
 
-  // --- NEW: Delete handler with confirmation alert ---
-  const handleDelete = (id: string, name: string) => {
+  const handleDelete = (menuId: string) => {
     Alert.alert(
-      `Delete "${name}"`,
-      "Are you sure you want to delete this item? This action cannot be undone.",
+      "Delete item",
+      "This action cannot be undone. Do you want to continue?",
       [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
+        { text: "Cancel", style: "cancel" },
         {
           text: "Delete",
-          onPress: () => {
-            // Optimistically update the UI by removing the item locally
-            setLocalItems((prevItems) => prevItems.filter((item) => item.id !== id));
-            // Call the parent onDelete handler to perform the actual deletion
-            onDelete?.(id);
-          },
           style: "destructive",
+          onPress: async () => {
+            // optimistic update
+            setDeletingId(menuId);
+            const prev = localItems;
+            setLocalItems(p => p.filter(i => i.id !== menuId));
+            try {
+              await DeleteMenuItem(merchantId, menuId);
+              onDelete?.(menuId); // let parent refetch if desired
+            } catch (err: any) {
+              // rollback on failure
+              setLocalItems(prev);
+              Alert.alert("Error", err?.message ?? "Failed to delete menu item.");
+            } finally {
+              setDeletingId(null);
+            }
+          },
         },
       ]
     );
   };
 
-  if (!localItems || localItems.length === 0) {
+  if (!localItems.length) {
     return (
       <View className="rounded-2xl p-4 bg-white shadow">
         <Text className="text-gray-500">No items</Text>
@@ -70,12 +82,12 @@ export default function MenuList({ items, onToggle, onDelete }: Props) {
     <View className="flex flex-col rounded-2xl px-4 bg-white">
       {localItems.map((item, idx) => {
         const isLast = idx === localItems.length - 1;
+        const isDeleting = deletingId === item.id;
+
         return (
           <View
             key={item.id}
-            className={`flex flex-row items-center py-4 gap-3 ${
-              !isLast ? "border-b border-gray-100" : ""
-            }`}
+            className={`flex flex-row items-center py-4 gap-3 ${!isLast ? "border-b border-gray-100" : ""}`}
           >
             <Image
               source={{ uri: item.imageUrl }}
@@ -106,9 +118,7 @@ export default function MenuList({ items, onToggle, onDelete }: Props) {
                 }`}
               >
                 <Text
-                  className={`text-xs ${
-                    item.inStock ? "text-green-700" : "text-gray-500"
-                  }`}
+                  className={`text-xs ${item.inStock ? "text-green-700" : "text-gray-500"}`}
                   style={{ fontFamily: Fonts.medium }}
                 >
                   {item.inStock ? "In-Stock:" : "Out of Stock:"} {item.leftoverQty}
@@ -120,15 +130,12 @@ export default function MenuList({ items, onToggle, onDelete }: Props) {
               <Switch
                 accessibilityRole="switch"
                 accessibilityLabel={`${item.name}-switch`}
-                accessibilityState={{ checked: item.inStock }}
+                accessibilityState={{ checked: item.inStock, disabled: isDeleting }}
                 value={item.inStock}
+                disabled={isDeleting}
                 onValueChange={(val) => {
                   if (val && item.leftoverQty === 0) {
-                    Toast.show({
-                      type: "error",
-                      text1: "Cannot mark as in-stock with 0 quantity",
-                      position: "bottom",
-                    });
+                    Alert.alert("Cannot enable", "No stock left.");
                   } else {
                     toggleItem(item.id, val);
                   }
@@ -136,28 +143,34 @@ export default function MenuList({ items, onToggle, onDelete }: Props) {
                 trackColor={{ false: "#D1D5DB", true: "#86EFAC" }}
                 thumbColor={item.inStock ? "#16A34A" : "#F4F4F5"}
               />
-              {/* --- NEW: Wrapper for edit and delete buttons --- */}
+
               <View className="flex-row items-center justify-end">
                 <Pressable
+                  disabled={isDeleting}
                   onPress={() => router.push(`/edit-item/${item.id}`)}
                   className="p-2"
                   accessibilityLabel={`edit-${item.name}`}
                 >
                   <PencilSquareIcon size={18} color="#696969" />
                 </Pressable>
+
                 <Pressable
-                  onPress={() => handleDelete(item.id, item.name)}
+                  disabled={isDeleting}
+                  onPress={() => handleDelete(item.id)}
                   className="p-2"
                   accessibilityLabel={`delete-${item.name}`}
                 >
-                  <TrashIcon size={18} color="#EF4444" />
+                  {isDeleting ? (
+                    <ActivityIndicator />
+                  ) : (
+                    <TrashIcon size={18} color="#EF4444" />
+                  )}
                 </Pressable>
               </View>
             </View>
           </View>
         );
       })}
-      <ToastManager />
     </View>
   );
 }

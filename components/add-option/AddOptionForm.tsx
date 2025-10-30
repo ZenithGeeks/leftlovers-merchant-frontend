@@ -1,6 +1,6 @@
 import NumberStepper from "@/components/add-item/NumberStepper";
 import React, { useMemo, useState } from "react";
-import { Pressable, Text, TextInput, View } from "react-native";
+import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { PlusIcon } from "react-native-heroicons/outline";
 import SelectionRow, { Selection } from "./SelectionRow";
 
@@ -73,11 +73,12 @@ export default function AddOptionForm({
   };
 
   return (
-    <View className="flex-1">
+    <ScrollView className="flex-1">
       <Text className="mb-2 text-[16px] font-semibold text-gray-900">
         Group name <Text className="text-red-500">*</Text>
       </Text>
       <TextInput
+        testID="group-name"
         placeholder="Enter group name (e.g., Sweetness)"
         value={name}
         onChangeText={setName}
@@ -90,15 +91,14 @@ export default function AddOptionForm({
           <Text className="mb-2 text-[16px] font-semibold text-gray-900">Min Select</Text>
           <NumberStepper
             value={minSelect}
-            onChange={handleMinChange}
+            onChange={handleMinChange} testID={"Min"}            
           />
         </View>
         <View className="flex-1">
           <Text className="mb-2 text-[16px] font-semibold text-gray-900">Max Select</Text>
           <NumberStepper
             value={maxSelect}
-            onChange={handleMaxChange}
-          />
+            onChange={handleMaxChange} testID={"Max"}          />
         </View>
       </View>
 
@@ -114,6 +114,7 @@ export default function AddOptionForm({
           onChange={(patch) => updateRow(idx, patch)}
           onRemove={() => removeRow(idx)}
           canRemove={rows.length > 1}
+
         />
       ))}
 
@@ -124,14 +125,15 @@ export default function AddOptionForm({
       >
         <View className="flex-row items-center gap-2">
           <PlusIcon size={16} color="#059669" />
-          <Text className="text-[14px] font-semibold text-emerald-700">
+          <Text  className="text-[14px] font-semibold text-emerald-700">
             Add new selection
           </Text>
         </View>
       </Pressable>
 
       <Pressable
-        accessibilityLabel="submit"
+        accessibilityLabel="done"
+        testID="done"
         disabled={!canSubmit}
         onPress={submit}
         className={`mt-auto w-full items-center justify-center rounded-2xl py-4 ${
@@ -140,6 +142,6 @@ export default function AddOptionForm({
       >
         <Text className="text-[16px] font-semibold text-white">Done</Text>
       </Pressable>
-    </View>
+    </ScrollView>
   );
 }

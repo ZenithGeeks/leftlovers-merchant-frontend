@@ -16,7 +16,7 @@ import ImagePickerField from "@/components/ImagePickerField";
 
 import menuData from "@/mockupData/menuData.json";
 import optionData from "@/mockupData/optionGroup.json";
-import { fetchMenuItem, updateMenuItem } from "@/app/api/menu";
+import { fetchMenuItem, updateMenuItem } from "@/services/menu";
 import type { GroupTemplate, UpdateMenuItemForm } from "@/types/types";
 
 const categoriesAll: Option[] = (menuData.categories ?? []).map((c: any) => ({
