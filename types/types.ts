@@ -68,3 +68,14 @@ export type UpdateMenuItemForm = {
   categoryId: string | null;
   groupTemplates: GroupTemplate[];
 };
+
+export type WarningTag = string;
+
+export type WarningCardDTO = {
+  id: string;                 // warning id
+  customerName: string;       // from Complaint.customer.name
+  message: string;            // from Complaint.description
+  tags: WarningTag[];         // derive from Complaint.type or moderation tags
+  createdAt: string;          // warning.issuedAt
+  expiresAt?: string | null;  // warning.expiresAt
+};
