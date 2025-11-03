@@ -2,7 +2,7 @@ import FieldLabel from "@/components/add-item/FieldLabel";
 import NumberStepper from "@/components/add-item/NumberStepper";
 import SelectBox from "@/components/add-item/SelectBox";
 import SelectModal, { Option } from "@/components/add-item/SelectModal";
-import DatePickerField from "@/components/DatePickerField";
+import DatePickerField from "@/components/common/DatePickerField";
 import ImagePickerField from "@/components/ImagePickerField";
 import { ThemedView } from "@/components/themed-view";
 

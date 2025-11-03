@@ -1,5 +1,5 @@
-import { httpDelete, httpGet, postJSON } from "@/lib/api";
-import { MenuItemAPI } from "@/types/types";
+import { httpDelete, httpGet, postJSON, putJSON } from "@/lib/api";
+import { MenuItemAPI, UpdateMenuItemForm } from "@/types/types";
 
 export interface Option {
   id: string;
@@ -40,3 +40,23 @@ export async function getOptionGroups(merchantId: string) {
   return httpGet<OptionGroup[]>(`/api/merchant/${merchantId}/group`);
 }
 
+// GET /api/menu/:id
+export async function fetchMenuItem(merchantId:string, id: string): Promise<MenuItemAPI> {
+  return httpGet<MenuItemAPI>(`/api/merchant/${merchantId}/menu/${id}`)
+}
+
+// PUT /api/menu/:id
+export async function updateMenuItem(payload: UpdateMenuItemForm, merchantId:string): Promise<MenuItemAPI> {
+  const body = {
+    name: payload.name,
+    description: payload.description,
+    basePrice: payload.basePrice,
+    originalPrice: payload.originalPrice,
+    leftoverQty: payload.leftoverQty,
+    expiresAt: payload.expiresAt ? payload.expiresAt.toISOString() : null,
+    photoUrl: payload.photoUri ?? "",
+    expirePhotoUrl: payload.expirePhotoUri ?? "",
+    groupTemplates: payload.groupTemplates ?? []
+  }
+  return putJSON<MenuItemAPI>(`/api/merchant/${merchantId}/menu/${payload.id}`, body)
+}

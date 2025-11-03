@@ -45,7 +45,6 @@ export type CreateMenuItemForm = {
   status: "DRAFT" | "LIVE" | "SOLD_OUT" | "EXPIRED";
   photoUri: string | null;         // local file uri
   expirePhotoUri: string | null;   // local file uri (expiry label)
-  // multi-group selection from templates (client chooses which templates to apply)
   groupTemplates: GroupTemplate[];
 };
 
@@ -61,7 +60,6 @@ export type UpdateMenuItemForm = {
   expiresAt: Date | null;
   photoUri: string | null;
   expirePhotoUri: string | null;
-  categoryId: string | null;
   groupTemplates: GroupTemplate[];
 };
 

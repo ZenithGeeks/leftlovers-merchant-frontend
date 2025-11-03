@@ -1,4 +1,3 @@
-// app/(tabs)/menu.tsx
 import Fab from "@/components/common/Fab";
 import AddSheet from "@/components/Menu/AddSheet";
 import ContentSwitcher from "@/components/Menu/Content-Switcher";
@@ -24,7 +23,8 @@ import {
 import { getMenuItems } from "@/services/menu";
 import type { MenuItemAPI } from "@/types/types";
 
-const MERCHANT_ID = "c4c9f4f8-2315-4b1e-8d55-6a8f85bb599f";
+const EXPO_PUBLIC_MERCHANT_ID = process.env.EXPO_PUBLIC_MERCHANT_ID!;
+console.log(EXPO_PUBLIC_MERCHANT_ID)
 
 type Section = { id: string; title: string; items: MenuItemAPI[] };
 const groupByCategory = (items: MenuItemAPI[]): Section[] => {
@@ -56,8 +56,8 @@ export default function MenuScreen() {
       setError(null);
       setLoading(true);
       const [menuRes, groupRes] = await Promise.all([
-        getMenuItems(MERCHANT_ID),
-        fetchMerchantOptionGroups(MERCHANT_ID),
+        getMenuItems(EXPO_PUBLIC_MERCHANT_ID),
+        fetchMerchantOptionGroups(EXPO_PUBLIC_MERCHANT_ID),
       ]);
       setMenu(menuRes);
       setGroups(groupRes);
@@ -73,8 +73,8 @@ export default function MenuScreen() {
     try {
       setError(null);
       const [menuRes, groupRes] = await Promise.all([
-        getMenuItems(MERCHANT_ID),
-        fetchMerchantOptionGroups(MERCHANT_ID),
+        getMenuItems(EXPO_PUBLIC_MERCHANT_ID),
+        fetchMerchantOptionGroups(EXPO_PUBLIC_MERCHANT_ID),
       ]);
       setMenu(menuRes);
       setGroups(groupRes);
@@ -84,16 +84,11 @@ export default function MenuScreen() {
       setRefreshing(false);
     }
   }, []);
-
-  // Initial load
   useEffect(() => {
     load();
   }, [load]);
-
-  // 🔁 Auto-refresh when returning from Add Item / Add Option screens
   useFocusEffect(
     useCallback(() => {
-      // re-fetch every time the screen comes back into focus
       load();
     }, [load])
   );
@@ -197,7 +192,7 @@ export default function MenuScreen() {
                 {groups.map((group) => (
                   <OptionWrapper
                     key={group.id}
-                    merchantId={MERCHANT_ID}
+                    merchantId={EXPO_PUBLIC_MERCHANT_ID}
                     groupId={group.id}
                     title={group.name}
                     options={group.options.map((o) => ({

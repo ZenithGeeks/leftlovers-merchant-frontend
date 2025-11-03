@@ -1,4 +1,3 @@
-// components/Menu/Option-Wrapper.tsx
 import OptionList, { OptionItem } from "@/components/Menu/Option-List";
 import { deleteGroupOption, deleteOptionGroup } from "@/services/group";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -15,14 +14,14 @@ type Option = {
 };
 
 type Props = {
-  merchantId: string;               // ⬅️ NEW
-  groupId: string;                  // ⬅️ NEW
+  merchantId: string;
+  groupId: string;
   title?: string;
   options: Option[];
   defaultExpanded?: boolean;
   maxSelect?: number;
   onChangeChoice?: (groupLabel: string, optionId: string, value: boolean) => void;
-  onAfterChange?: () => void;       // ⬅️ ask parent to refresh (or update locally)
+  onAfterChange?: () => void;
 };
 
 export default function OptionWrapper({
@@ -157,8 +156,8 @@ export default function OptionWrapper({
               options={sortedOptions}
               maxSelect={maxSelect ?? sortedOptions.length}
               onToggle={(optionId, value) => onChangeChoice?.(title, optionId, value)}
-              onDelete={handleDeleteOption}                 // ⬅️ wire delete
-              deletingId={deletingOptionId}                 // ⬅️ UX state
+              onDelete={handleDeleteOption}
+              deletingId={deletingOptionId}
             />
           )}
         </View>

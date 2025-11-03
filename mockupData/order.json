@@ -79,7 +79,7 @@
       "userName": "David",
       "pickupTime": "2025-10-29T19:30:00",
       "telephone": "444-555-6666",
-      "status": "ready",
+      "status": "history",
       "orderItems": [
         {
           "name": "Shrimp Tempura Udon",

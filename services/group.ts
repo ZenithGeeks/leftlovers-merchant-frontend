@@ -1,4 +1,3 @@
-// services/group.ts
 import { httpDelete, httpGet, postJSON } from "@/lib/api";
 
 export interface OptionAPI {
@@ -27,8 +26,8 @@ export type OptionCreateInput = {
   sortOrder?: number;
 };
 export type OptionGroupCreateInput = {
-  menuId: string;                 // required by your endpoint
   name: string;
+  merchantId: string;
   minSelect: number;
   maxSelect: number;
   options: OptionCreateInput[];

@@ -1,5 +1,4 @@
-// app/add-option.tsx
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Alert, Pressable, Text, View } from "react-native";
 import { ChevronLeftIcon } from "react-native-heroicons/outline";
@@ -12,24 +11,20 @@ import { createMerchantOptionGroup } from "@/services/group";
 export default function AddOptionScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const params = useLocalSearchParams<{ merchantId?: string; menuId?: string }>();
-
-  // Fallbacks if not provided in route
-  const merchantId = params.merchantId || "c4c9f4f8-2315-4b1e-8d55-6a8f85bb599f";
-  const menuId = params.menuId || "ba872c78-7531-4901-b0cc-aba2d26a9662";
+  const merchantId = process.env.EXPO_PUBLIC_EXPO_PUBLIC_MERCHANT_ID!;
 
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (data: OptionGroupPayload) => {
-    if (!merchantId || !menuId) {
+    if (!merchantId) {
       Alert.alert("Missing info", "merchantId or menuId is missing.");
       return;
     }
     try {
       setSubmitting(true);
       const payload = {
-        menuId,
         name: data.name,
+        merchantId: merchantId,
         minSelect: data.minSelect,
         maxSelect: data.maxSelect,
         options: data.options.map(o => ({

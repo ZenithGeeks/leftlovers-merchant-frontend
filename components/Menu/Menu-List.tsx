@@ -3,7 +3,14 @@ import { DeleteMenuItem } from "@/services/menu";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, Switch, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  Switch,
+  Text,
+  View,
+} from "react-native";
 import { PencilSquareIcon, TrashIcon } from "react-native-heroicons/outline";
 
 export type MenuItem = {
@@ -18,25 +25,24 @@ export type MenuItem = {
 type Props = {
   items: MenuItem[];
   onToggle?: (id: string, value: boolean) => void;
-  onDelete?: (id: string) => void; // let parent refresh if needed
-  merchantId?: string;             // default used if not provided
+  onDelete?: (id: string) => void;
+  merchantId?: string;
 };
-
+const EXPO_PUBLIC_MERCHANT_ID = process.env.EXPO_PUBLIC_MERCHANT_ID;
 export default function MenuList({
   items,
   onToggle,
   onDelete,
-  merchantId = "c4c9f4f8-2315-4b1e-8d55-6a8f85bb599f",
+  merchantId = EXPO_PUBLIC_MERCHANT_ID,
 }: Props) {
   const [localItems, setLocalItems] = useState<MenuItem[]>(items);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const router = useRouter();
-
-  // keep localItems in sync when parent items change
   useEffect(() => setLocalItems(items), [items]);
-
   const toggleItem = (id: string, value: boolean) => {
-    setLocalItems(prev => prev.map(it => it.id === id ? { ...it, inStock: value } : it));
+    setLocalItems((prev) =>
+      prev.map((it) => (it.id === id ? { ...it, inStock: value } : it))
+    );
     onToggle?.(id, value);
   };
 
@@ -50,17 +56,18 @@ export default function MenuList({
           text: "Delete",
           style: "destructive",
           onPress: async () => {
-            // optimistic update
             setDeletingId(menuId);
             const prev = localItems;
-            setLocalItems(p => p.filter(i => i.id !== menuId));
+            setLocalItems((p) => p.filter((i) => i.id !== menuId));
             try {
-              await DeleteMenuItem(merchantId, menuId);
-              onDelete?.(menuId); // let parent refetch if desired
+              await DeleteMenuItem(merchantId!, menuId);
+              onDelete?.(menuId);
             } catch (err: any) {
-              // rollback on failure
               setLocalItems(prev);
-              Alert.alert("Error", err?.message ?? "Failed to delete menu item.");
+              Alert.alert(
+                "Error",
+                err?.message ?? "Failed to delete menu item."
+              );
             } finally {
               setDeletingId(null);
             }
@@ -87,7 +94,9 @@ export default function MenuList({
         return (
           <View
             key={item.id}
-            className={`flex flex-row items-center py-4 gap-3 ${!isLast ? "border-b border-gray-100" : ""}`}
+            className={`flex flex-row items-center py-4 gap-3 ${
+              !isLast ? "border-b border-gray-100" : ""
+            }`}
           >
             <Image
               source={{ uri: item.imageUrl }}
@@ -118,10 +127,13 @@ export default function MenuList({
                 }`}
               >
                 <Text
-                  className={`text-xs ${item.inStock ? "text-green-700" : "text-gray-500"}`}
+                  className={`text-xs ${
+                    item.inStock ? "text-green-700" : "text-gray-500"
+                  }`}
                   style={{ fontFamily: Fonts.medium }}
                 >
-                  {item.inStock ? "In-Stock:" : "Out of Stock:"} {item.leftoverQty}
+                  {item.inStock ? "In-Stock:" : "Out of Stock:"}{" "}
+                  {item.leftoverQty}
                 </Text>
               </View>
             </View>
@@ -130,7 +142,10 @@ export default function MenuList({
               <Switch
                 accessibilityRole="switch"
                 accessibilityLabel={`${item.name}-switch`}
-                accessibilityState={{ checked: item.inStock, disabled: isDeleting }}
+                accessibilityState={{
+                  checked: item.inStock,
+                  disabled: isDeleting,
+                }}
                 value={item.inStock}
                 disabled={isDeleting}
                 onValueChange={(val) => {

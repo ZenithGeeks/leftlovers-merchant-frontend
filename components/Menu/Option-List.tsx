@@ -1,4 +1,3 @@
-// components/Menu/Option-List.tsx
 import React, { useState } from "react";
 import { Pressable, Switch, Text, View } from "react-native";
 import { TrashIcon } from "react-native-heroicons/outline";
@@ -15,8 +14,8 @@ type Props = {
   options: OptionItem[];
   maxSelect?: number;
   onToggle?: (id: string, value: boolean) => void;
-  onDelete?: (id: string) => void;  // ⬅️ NEW
-  deletingId?: string | null;       // ⬅️ Optional UX disable state
+  onDelete?: (id: string) => void;
+  deletingId?: string | null;
 };
 
 export default function OptionList({
