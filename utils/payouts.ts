@@ -1,38 +1,71 @@
 // utils/payouts.ts
 import dayjs from 'dayjs';
-import type { PaymentTxn, Payout } from '@/types/finance'; // <-- use the shared types
+import type { PaymentTxn, Payout } from '@/types/finance';
 
 /**
- * Build payouts from paid transactions.
- * - transfer date = paidAt + 1 day
- * - net = amountTHB * (1 - feeRate)
- * - today’s transfers are still "Pending"
+ * Group an array by a string key function (tiny lodash-free helper).
  */
-export function buildPayoutsFromPayments(
+function groupBy<T>(arr: T[], keyFn: (x: T) => string): Record<string, T[]> {
+  return arr.reduce<Record<string, T[]>>((acc, item) => {
+    const k = keyFn(item);
+    (acc[k] ||= []).push(item);
+    return acc;
+  }, {});
+}
+
+/**
+ * Sum by numeric selector (tiny lodash-free helper).
+ */
+function sumBy<T>(arr: T[], sel: (x: T) => number): number {
+  let s = 0;
+  for (let i = 0; i < arr.length; i++) s += sel(arr[i]);
+  return s;
+}
+
+/**
+ * Build **one payout per paid day**, transferring **the next day**,
+ * with net = gross - fee, where fee = gross * feeRate.
+ *
+ * - detailDate = transfer date (YYYY-MM-DD)
+ * - processedAt = ISO string only if already transferred (today > transfer day)
+ * - status = 'Transferred' if already transferred; otherwise 'Pending'
+ * - balanceTHB / oweTHB = 0 (placeholders for future logic)
+ */
+export function buildDailyPayoutsFromPayments(
   txns: PaymentTxn[],
   feeRate = 0.15
 ): Payout[] {
-  const now = dayjs();
+  if (!Array.isArray(txns) || txns.length === 0) return [];
 
-  return txns.map((t, idx) => {
-    const gross = t.amountTHB;
+  // Group by the original PAID date (YYYY-MM-DD)
+  const byPaidDate = groupBy(txns, (t) => dayjs(t.paidAt).format('YYYY-MM-DD'));
+
+  const payouts: Payout[] = Object.entries(byPaidDate).map(([paidDate, list]) => {
+    const gross = sumBy(list, (t) => t.amountTHB);
     const feeTHB = +(gross * feeRate).toFixed(2);
     const net = +(gross - feeTHB).toFixed(2);
 
-    const transferAt = dayjs(t.paidAt).add(1, 'day');
+    // Transfer is next calendar day
+    const transferDate = dayjs(paidDate).add(1, 'day');
+
+    // Consider 'Transferred' only when **today is after** the transfer day
+    const isTransferred = dayjs().isAfter(transferDate, 'day');
 
     const payout: Payout = {
-      id: t.paymentId || t.orderId || String(idx),
-      detailDate: transferAt.format('YYYY-MM-DD'),
-      processedAt: transferAt.toISOString(),
+      id: `payout-${paidDate}`,                 // stable id for the group
+      detailDate: transferDate.format('YYYY-MM-DD'), // transfer (detail) date
+      processedAt: isTransferred ? transferDate.toISOString() : undefined,
       amountTHB: net,
       feeTHB,
-      // Fill required fields so the shape matches your types/finance.Payout
+      status: isTransferred ? 'Transferred' : 'Pending',
       balanceTHB: 0,
       oweTHB: 0,
-      status: transferAt.isAfter(now) ? 'Pending' : 'Transferred',
     };
-
     return payout;
   });
+
+  // Optional: sort newest transfer first
+  payouts.sort((a, b) => (a.detailDate < b.detailDate ? 1 : -1));
+
+  return payouts;
 }

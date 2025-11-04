@@ -16,7 +16,7 @@ export type PayoutStatus = 'Transferred' | 'Pending' | 'Failed';
 export type Payout = {
   id: string;
   detailDate: string;      // yyyy-mm-dd (transfer date = paidAt + 1 day)
-  processedAt: string;     // ISO or pretty string for “processed”
+  processedAt?: string;     // ISO or pretty string for “processed”
   amountTHB: number;       // net after fee
   feeTHB: number;          // fee applied
   balanceTHB: number;      // optional running balance (can be 0 in UI)

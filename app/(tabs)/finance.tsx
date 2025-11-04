@@ -11,8 +11,8 @@ import { PayoutTab } from '@/components/finance/PayoutTab';
 import mockData from '@/mockupData/finance.json';
 import type { DateKey, Payout, TabKey, Transaction } from '@/types/finance';
 
-import { filterByDateRange, computeSummaryFromTransactions } from '@/utils/financeFilters'; // <= singular
-import { buildPayoutsFromPayments } from '@/utils/payouts';
+import { filterByDateRange, computeSummaryFromTransactions } from '@/utils/financeFilters';
+import { buildDailyPayoutsFromPayments } from '@/utils/payouts'; 
 
 const FEE_RATE = 0.15;
 
@@ -25,30 +25,34 @@ export default function FinanceScreen() {
     [screenWidth]
   );
 
-  // ✅ restore the missing state
   const [activeTab, setActiveTab] = useState<TabKey>('Summary');
   const [selectedDate, setSelectedDate] = useState<DateKey>('Today');
 
-  // Mock data (can be only transactions; payouts/summary are computed)
+  // Mock data (payments-like transactions)
   const transactions = (mockData.transactions ?? []) as Transaction[];
 
-  // Filtered transactions by pill
+  // Filter payments by the pill (Today/This week/etc.) using their paid date (`date` in the mock)
   const filteredTransactions = useMemo(
     () => filterByDateRange(transactions, selectedDate, (t) => t.date),
     [transactions, selectedDate]
   );
 
-  // Summary uses 15% fee
+  // Summary (net sales, fees, earnings) from filtered payments
   const dynamicSummary = useMemo(
     () => computeSummaryFromTransactions(filteredTransactions, { feeRate: FEE_RATE }),
     [filteredTransactions]
   );
 
-  // Compute payouts from filtered txns (next day, net of 15%)
+  // ⚠️ Daily-grouped payouts: all payments from the same day are aggregated
+  // into a SINGLE payout that transfers the NEXT day.
+  //
+  // utils/payouts.ts should export:
+  //   export function buildDailyPayoutsFromPayments(txns: PaymentTxn[], feeRate?: number): Payout[]
+  //
   const computedPayouts: Payout[] = useMemo(
-  () => buildPayoutsFromPayments(filteredTransactions, FEE_RATE),
-  [filteredTransactions]
-);
+    () => buildDailyPayoutsFromPayments(filteredTransactions as any, FEE_RATE),
+    [filteredTransactions]
+  );
 
   return (
     <ScrollView
@@ -59,15 +63,10 @@ export default function FinanceScreen() {
         className="flex-1 bg-white"
         style={{ paddingTop: insets.top + 16, paddingHorizontal: horizontalPadding }}
       >
-        {/* Page header */}
-        <Text className="text-[32px] font-extrabold text-[#0B1220] mb-4">
-          Finance
-        </Text>
+        <Text className="text-[32px] font-extrabold text-[#0B1220] mb-4">Finance</Text>
 
-        {/* Tabs */}
         <Tabs active={activeTab} onChange={setActiveTab} />
 
-        {/* Summary */}
         {activeTab === 'Summary' && (
           <SummaryTab
             selectedDate={selectedDate}
@@ -76,7 +75,6 @@ export default function FinanceScreen() {
           />
         )}
 
-        {/* Transactions */}
         {activeTab === 'Transaction' && (
           <TransactionTab
             date={selectedDate}
@@ -85,7 +83,6 @@ export default function FinanceScreen() {
           />
         )}
 
-        {/* Payouts */}
         {activeTab === 'Payout' && (
           <PayoutTab
             date={selectedDate}
