@@ -1,7 +1,15 @@
 // components/Authen/PasswordInput.tsx
 import { InputBox } from "@/components/Authen/InputBox";
 import React, { useEffect, useMemo, useState } from "react";
-import { StyleSheet, Text, TextStyle, TouchableOpacity, View, ViewStyle } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  type TextInputProps,
+  type TextStyle,
+  type ViewStyle,
+} from "react-native";
 
 type PasswordInputProps = {
   label?: string;
@@ -17,7 +25,7 @@ type PasswordInputProps = {
   // Behavior
   disabled?: boolean;
   rulesVisible?: boolean;
-  showRulesInitially?: boolean; // if true, rules are shown even before focus/typing
+  showRulesInitially?: boolean;
 
   // Policy
   minLength?: number;
@@ -26,15 +34,17 @@ type PasswordInputProps = {
   requireNumber?: boolean;
   requireSpecial?: boolean;
 
-  // Callback to parent when overall validity changes (password policy only)
+  // Notify parent about validity against the policy
   onValidityChange?: (isValid: boolean) => void;
+
+  // NEW: native TextInput hints to control autofill/AutoFill
+  autoComplete?: TextInputProps["autoComplete"];
+  textContentType?: TextInputProps["textContentType"];
+  importantForAutofill?: TextInputProps["importantForAutofill"];
+  autoCorrect?: boolean;
 };
 
-const BRAND = {
-  ok: "#059669",
-  err: "#B91C1C",
-  green: "#26BD68",
-};
+const BRAND = { ok: "#059669", err: "#B91C1C", green: "#26BD68" };
 
 export const PasswordInput: React.FC<PasswordInputProps> = ({
   label = "Password",
@@ -52,41 +62,40 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({
   requireNumber = true,
   requireSpecial = true,
   onValidityChange,
+
+  // Defaults that DISABLE autofill/AutoFill
+  autoComplete = "off",
+  textContentType = "none",
+  importantForAutofill = "no",
+  autoCorrect = false,
 }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [focused, setFocused] = useState(false);
   const [showRules, setShowRules] = useState(showRulesInitially);
 
-  // Compute rules
-  const rules = useMemo(() => {
-    return {
+  const rules = useMemo(
+    () => ({
       length: value.length >= minLength,
       upper: !requireUpper || /[A-Z]/.test(value),
       lower: !requireLower || /[a-z]/.test(value),
       number: !requireNumber || /\d/.test(value),
       special: !requireSpecial || /[!@#$%^&*(),.?":{}|<>_\-\\[\];'/+=~`]/.test(value),
-    };
-  }, [value, minLength, requireUpper, requireLower, requireNumber, requireSpecial]);
+    }),
+    [value, minLength, requireUpper, requireLower, requireNumber, requireSpecial]
+  );
 
   const policyOk = rules.length && rules.upper && rules.lower && rules.number && rules.special;
 
-  // Auto show/hide rules: show when focused OR has any value; hide on blur if empty
   useEffect(() => {
-    if (showRulesInitially) {
-      setShowRules(true);
-    } else {
-      setShowRules( value.length > 0);
-    }
-  }, [focused, value, showRulesInitially]);
+    setShowRules(showRulesInitially ? true : value.length > 0);
+  }, [value, showRulesInitially, focused]);
 
-  // Notify parent when policy validity changes
   useEffect(() => {
     onValidityChange?.(policyOk);
   }, [policyOk, onValidityChange]);
 
   return (
     <View style={style}>
-      {/* Field with Show/Hide overlay */}
       <View style={{ position: "relative" }}>
         <InputBox
           label={label}
@@ -100,6 +109,10 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({
           containerTop={containerTop}
           editable={!disabled}
           style={{ paddingRight: 64 }}
+          autoComplete={autoComplete}
+          textContentType={textContentType}
+          importantForAutofill={importantForAutofill}
+          autoCorrect={autoCorrect}
         />
 
         {!!value && (
@@ -115,7 +128,6 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({
         )}
       </View>
 
-      {/* Inline rules */}
       {showRules && (
         <View style={{ marginTop: 8 }}>
           {[
@@ -129,7 +141,6 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({
             .map((r: any) => (
               <Text
                 key={r.label}
-                accessibilityRole="text"
                 style={[styles.ruleText, { color: r.ok ? BRAND.ok : BRAND.err }, textStyle]}
               >
                 {r.ok ? "✓" : "•"} {r.label}

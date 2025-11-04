@@ -10,7 +10,7 @@ export const SignOutButton = () => {
     try {
       await signOut()
       // Redirect to your desired page after sign-out
-      router.replace('../(home)/index')
+      router.replace('/(landing)')
     } catch (err) {
       // See https://clerk.com/docs/guides/development/custom-flows/error-handling
       // for more info on error handling
