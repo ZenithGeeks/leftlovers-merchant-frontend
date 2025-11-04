@@ -2,7 +2,7 @@
 import { useSignIn } from "@clerk/clerk-expo";
 import { Link, Stack, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ClickButton } from "@/components/Authen/ClickButton";
@@ -22,28 +22,48 @@ export default function SignInPage() {
   const inputsDisabled = loadingEmail || !isLoaded;
 
   const handleEmailPasswordSignIn = useCallback(async () => {
-    if (!isLoaded || loadingEmail) return;
-    setLoadingEmail(true);
-    try {
-      const attempt = await signIn.create({
-        identifier,
-        password,
-      });
+  if (!isLoaded || loadingEmail) return;
+  setLoadingEmail(true);
 
-      if (attempt.status === "complete") {
-        await setActive({ session: attempt.createdSessionId });
-        // ✅ Go to your first private page (change if needed)
-        router.replace("../(home)/Check_can_login"); // or "/(home)/Check_can_login" if that screen exists
-      } else {
-        console.error("Unexpected sign-in step:", JSON.stringify(attempt, null, 2));
-      }
-    } catch (err: any) {
-      // See Clerk error shape: https://clerk.com/docs/guides/development/custom-flows/error-handling
-      console.error("Sign-in error:", JSON.stringify(err, null, 2));
-    } finally {
-      setLoadingEmail(false);
+  try {
+    const attempt = await signIn.create({
+      identifier,
+      password,
+    });
+
+    if (attempt.status === "complete") {
+      await setActive({ session: attempt.createdSessionId });
+      router.replace("/(landing)/Check_can_login");
+    } else {
+      console.error("Unexpected sign-in step:", JSON.stringify(attempt, null, 2));
     }
-  }, [identifier, password, isLoaded, loadingEmail, setActive, signIn, router]);
+  } catch (err: any) {
+    console.error("Sign-in error:", JSON.stringify(err, null, 2));
+
+    // 🔹 Clerk errors come in a predictable shape (errors[0].code)
+    const code = err?.errors?.[0]?.code;
+    let message = "Something went wrong. Please try again.";
+
+    switch (code) {
+      case "form_identifier_not_found":
+        message = "This account does not exist.";
+        break;
+      case "form_password_incorrect":
+        message = "Incorrect email or password.";
+        break;
+      case "form_identifier_exists_but_not_allowed":
+        message = "This account cannot sign in with password.";
+        break;
+      default:
+        // fallback: try longMessage from Clerk if available
+        message = err?.errors?.[0]?.longMessage || message;
+    }
+
+    Alert.alert("Sign-in failed", message);
+  } finally {
+    setLoadingEmail(false);
+  }
+}, [identifier, password, isLoaded, loadingEmail, setActive, signIn, router]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
@@ -112,7 +132,7 @@ export default function SignInPage() {
           </View>
 
           <View style={{ width: "100%", alignItems: "flex-end", marginTop: 20, marginBottom: 15 }}>
-            <Link href="/" asChild>
+            <Link href="/(auth)/forgotPassword" asChild>
               <TouchableOpacity disabled={inputsDisabled}>
                 <Text style={{ fontSize: 12, fontFamily: "Poppins_700Bold", textDecorationLine: "underline", color: BRAND.green }}>
                   Forgot password?

@@ -69,7 +69,7 @@ export default function SignUpScreen() {
 
       // 3) Show code screen
       setPendingVerification(true);
-      setCooldown(30);
+      setCooldown(60);
     } catch (err: any) {
       console.error("SignUp error:", JSON.stringify(err, null, 2));
       Alert.alert(
@@ -94,7 +94,7 @@ export default function SignUpScreen() {
 
       if (attempt.status === "complete") {
         await setActive({ session: attempt.createdSessionId });
-        router.replace("/(home)"); // change to your desired first private page
+        router.replace("/(auth)/phone");
       } else {
         console.warn("Next step required:", JSON.stringify(attempt, null, 2));
         Alert.alert("Almost there", "Please complete the next step to finish sign-up.");
@@ -114,7 +114,7 @@ export default function SignUpScreen() {
     if (!isLoaded || cooldown > 0) return;
     try {
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
-      setCooldown(30);
+      setCooldown(60);
       Alert.alert("Code sent", "We’ve sent a new code to your email.");
     } catch (err: any) {
       console.warn("Resend error:", JSON.stringify(err, null, 2));
@@ -247,7 +247,7 @@ export default function SignUpScreen() {
             <Text style={{ color: BRAND.text, fontSize: 12, fontFamily: "Poppins_400Regular" }}>
               Already have an account?{" "}
               <Link
-                href="../(auth)/signin"
+                href="/(auth)/signin"
                 style={{
                   fontFamily: "Poppins_700Bold",
                   fontSize: 12,
