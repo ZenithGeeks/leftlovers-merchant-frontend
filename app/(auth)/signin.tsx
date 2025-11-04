@@ -134,7 +134,7 @@ export default function SignInPage() {
           <View style={{ width: "100%", alignItems: "flex-end", marginTop: 20, marginBottom: 15 }}>
             <Link href="/(auth)/forgotPassword" asChild>
               <TouchableOpacity disabled={inputsDisabled}>
-                <Text style={{ fontSize: 12, fontFamily: "Poppins_700Bold", textDecorationLine: "underline", color: BRAND.green }}>
+                <Text style={{ fontSize: 12, fontFamily: "Poppins_600SemiBold", textDecorationLine: "underline", color: BRAND.green }}>
                   Forgot password?
                 </Text>
               </TouchableOpacity>
