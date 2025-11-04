@@ -13,13 +13,13 @@ export function getStep(user?: UserResource | null): OnboardingStep {
 export function pathForStep(step: OnboardingStep): string {
   switch (step) {
     case "email":
-      return "/(auth)/phone";        // after email verification
+      return "/(auth)/phone";       
     case "phone":
-      return "/(auth)/storeInfo";    // after phone verification
+      return "/(auth)/storeInfo";    
     case "store":
-      return "/(auth)/storeInfo";    // stay on store form until submitted
+      return "/(auth)/storeInfo";    
     case "notifyPage":
-      return "/(auth)/notifyPage";       // waiting for approval → back to sign-in
+      return "/(auth)/notifyPage";       
   }
 }
 
