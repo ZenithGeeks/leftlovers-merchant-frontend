@@ -4,6 +4,7 @@ import { CheckIcon } from 'react-native-heroicons/outline';
 import type { DateKey, Payout } from '../../types/finance';
 import { DatePills } from './DatePills';
 import { filterByDateRange } from '@/utils/financeFilters';
+import dayjs from 'dayjs';
 
 export function PayoutTab({
   date,
@@ -38,7 +39,9 @@ export function PayoutTab({
         >
           <View>
             <Text className="font-semibold text-gray-900">{p.detailDate}</Text>
-            <Text className="text-xs text-gray-500 mt-0.5">{p.processedAt}</Text>
+            <Text className="text-xs text-gray-500 py-1">
+              {dayjs(p.processedAt).format('DD/MM/YYYY hh:mma')}
+            </Text>
           </View>
 
           <View className="items-end">
