@@ -22,12 +22,22 @@ export function buildDailyPayoutsFromPayments(
 ): Payout[] {
   if (!Array.isArray(txns) || txns.length === 0) return [];
 
-  const byPaidDate = groupBy(txns, (t) => dayjs(t.paidAt).format('YYYY-MM-DD'));
+// Guard: only consider transactions with valid paidAt
+  const valid = txns.filter((t) => {
+    const d = dayjs(t.paidAt);
+    return d.isValid();
+  });
+  if (valid.length === 0) return [];
+
+  const round2 = (n: number) => Math.round(n * 100) / 100;
+
+
+  const byPaidDate = groupBy(valid, (t) => dayjs(t.paidAt).format('YYYY-MM-DD'));
 
   const payouts: Payout[] = Object.entries(byPaidDate).map(([paidDate, list]) => {
-    const gross = sumBy(list, (t) => t.amountTHB);
-    const feeTHB = +(gross * feeRate).toFixed(2);
-    const net = +(gross - feeTHB).toFixed(2);
+    const gross = list.reduce((s, t) => s + t.amountTHB, 0);
+    const feeTHB = round2(gross * feeRate);
+    const net = round2(gross - feeTHB);
 
     const transferDate = dayjs(paidDate).add(1, 'day');
     const isTransferred = dayjs().isAfter(transferDate, 'day');
