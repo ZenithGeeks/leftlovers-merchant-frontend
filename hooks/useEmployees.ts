@@ -23,6 +23,6 @@ export function useEmployees() {
     owner,
     addEmployee,
     removeEmployee,
-    setEmployees, // optional escape hatch
+    setEmployees,
   };
 }

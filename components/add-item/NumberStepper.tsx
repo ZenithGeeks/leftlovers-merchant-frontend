@@ -4,7 +4,8 @@ import { Pressable, Text, View } from "react-native";
 export default function NumberStepper({
   value,
   onChange,
-}: { value: number; onChange: (v: number) => void }) {
+  testID,
+}: { value: number; onChange: (v: number) => void; testID: string }) {
   const dec = () => onChange(Math.max(0, value - 1));
   const inc = () => onChange(value + 1);
 
@@ -13,7 +14,7 @@ export default function NumberStepper({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="stepper-decrement"
-        testID="stepper-decrement"
+        testID={testID+"-stepper-decrement"}
         onPress={dec}
         disabled={value <= 0}
         className={`w-8 h-8 rounded-lg items-center justify-center ${value <= 0 ? "bg-gray-200" : "bg-emerald-500"}`}
@@ -28,7 +29,7 @@ export default function NumberStepper({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="stepper-increment"
-        testID="stepper-increment"
+        testID={testID+"-stepper-increment"}
         onPress={inc}
         className="w-8 h-8 rounded-lg items-center justify-center bg-emerald-500"
       >

@@ -8,7 +8,7 @@ type Props<T = string> = {
   selected: T[];
   onClose: () => void;
   onApply: (values: T[]) => void;
-  a11yPrefix?: string; // e.g., "groups"
+  a11yPrefix?: string;
 };
 
 export default function SelectMultiModal<T = string>({
