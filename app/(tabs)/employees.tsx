@@ -51,22 +51,23 @@ export default function EmployeesScreen() {
     setAddOpen(true);
   };
 
-  const handleAdd = () => {
-    const parts = newFirst.trim().split(/\s+/);
-    const first = parts[0] || 'New';
-    const last = parts.slice(1).join(' ') || 'Employee';
+  const handleAdd = async () => {
+  const parts = newFirst.trim().split(/\s+/);
+  const first = parts[0] || 'New';
+  const last = parts.slice(1).join(' ') || 'Employee';
 
-    addEmployee({
-      id: (global as any).crypto?.randomUUID?.() ?? String(Date.now()),
-      firstName: first,
-      lastName: last,
-      email: newEmail || undefined,
-      phone: newPhone || undefined,
-      role: newRole,
-    });
+  await addEmployee({
+    firstName: first,
+    lastName: last,
+    username: newUser,          
+    email: newEmail || undefined,
+    phone: newPhone || undefined,
+    role: newRole,
+  });
 
-    setAddOpen(false);
-  };
+  setAddOpen(false);
+};
+
 
   const handleDisableAccess = (id: string) => {
     removeEmployee(id);
