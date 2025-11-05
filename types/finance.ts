@@ -1,47 +1,68 @@
 // types/finance.ts
 export type DateKey =
-  | 'Today' | 'Yesterday' | 'This week' | 'This month' | 'This year' | 'Last year';
+  | 'Today'
+  | 'Yesterday'
+  | 'This week'
+  | 'This month'
+  | 'This year'
+  | 'Last year'
+  | 'All';
 
+/**
+ * The top tab keys in your Finance page
+ */
 export type TabKey = 'Summary' | 'Transaction' | 'Payout';
 
-export type Summary = {
-  netSales: number;
-  deduction: number;
-  netEarnings: number;
-  earnings: number;
-};
-
-export type PayoutStatus = 'Transferred' | 'Pending' | 'Failed';
-
-export type Payout = {
-  id: string;
-  detailDate: string;      // yyyy-mm-dd (transfer date = paidAt + 1 day)
-  processedAt?: string;     // ISO or pretty string for “processed”
-  amountTHB: number;       // net after fee
-  feeTHB: number;          // fee applied
-  balanceTHB: number;      // optional running balance (can be 0 in UI)
-  oweTHB: number;          // optional owe (can be 0 in UI)
-  status: PayoutStatus;
-};
-
-// ⬇︎ Make Transaction include paidAt + paymentId (matches your mock JSON)
-export type Transaction = {
+/**
+ * A record of one successful payment (a "transaction").
+ * This corresponds directly to your backend’s PaymentTxn object.
+ */
+export interface Transaction {
   paymentId: string;
   orderId: string;
   merchantId: string;
   provider: string;
   providerChargeId?: string | null;
-  currency: 'THB';
+  currency: string;
   status: 'PAID' | 'UNPAID' | 'REFUNDED';
   amountTHB: number;
-  paidAt: string;   // ISO string, e.g., "2025-10-16T09:45:00+07:00"
+  paidAt: string; // ISO string from backend
+  date: string; // YYYY-MM-DD for pill filtering
+  time: string; // hh:mma display
+  id: string; // same as orderId (UI shorthand)
+  title: string; // “Order #<id>”
+}
 
-  // UI helpers already in your mock
-  date: string;     // "yyyy-mm-dd"
-  time: string;     // "01:43PM"
-  id: string;       // duplicate of orderId for list keys
-  title: string;    // "Order #LL-150"
-};
+/**
+ * A payout record (aggregated per day, net after 15% fee).
+ * Matches the backend’s Payout object from /finance/payouts.
+ */
+export type PayoutStatus = 'Transferred' | 'Pending' | 'Failed';
 
-// The payouts util expects PaymentTxn — just alias it to Transaction
-export type PaymentTxn = Transaction;
+export interface Payout {
+  id: string;
+  detailDate: string; // transfer date (YYYY-MM-DD)
+  processedAt: string; // ISO timestamp (backend may omit for Pending; normalized in frontend)
+  amountTHB: number; // net (after fee)
+  feeTHB: number; // deducted 15%
+  status: PayoutStatus;
+  balanceTHB: number;
+  oweTHB: number;
+}
+
+/**
+ * A summary of totals for the selected date range.
+ * Used in SummaryTab.
+ */
+export interface Summary {
+  netSales: number; // total before fee
+  deduction: number; // total fee (15%)
+  netEarnings: number; // net after fee
+  earnings: number; // alias for display
+}
+
+/**
+ * Utility type used in filters or components.
+ * Example: filterByDateRange<T>(arr: T[], key: DateKey, getDate: (x:T)=>string)
+ */
+export type DateRangeFilter<T> = (arr: T[], key: DateKey, getDate: (x: T) => string) => T[];
