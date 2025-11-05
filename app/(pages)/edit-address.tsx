@@ -1,18 +1,16 @@
+import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
-import { useRouter } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ChevronLeftIcon } from "react-native-heroicons/outline";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import storeData from "@/mockupData/storeData.json";
 import { ThemedView } from "@/components/themed-view";
 import { Fonts } from "@/constants/theme";
+import storeData from "@/mockupData/storeData.json";
 
 export default function EditAddressScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-
-  // Pull current values (add `.label ?? ""` for optional)
   const initial = useMemo(
     () => ({
       label: storeData.address?.label ?? "",
@@ -35,7 +33,6 @@ export default function EditAddressScreen() {
   const canSave = line1.trim().length > 0;
 
   const onSave = () => {
-    // Replace with API call later
     console.log("Saving address:", {
       label: label.trim() || undefined,
       line1: line1.trim(),

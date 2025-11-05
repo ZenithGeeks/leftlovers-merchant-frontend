@@ -1,0 +1,52 @@
+appId: com.earthwttw.leftloversmerchantfronend
+---
+- launchApp
+- assertVisible: "Hello, Natthapon"
+- tapOn: 'Menu.*'
+- assertVisible: 'Menu'
+- tapOn: 'Options.*'
+- tapOn:
+    id: "fab"
+    optional: true
+- tapOn: "Add Option"
+- assertVisible: "Add group"
+- tapOn: "group-name"
+- inputText: "Sweetness"
+- tapOn:
+    id: "Min-stepper-increment"
+    optional: true
+- tapOn: "selection-0-name"
+- inputText: "100%"
+- pressKey: Enter
+- tapOn: "selection-0-price"
+- inputText: "0"
+- pressKey: Enter
+- tapOn: "add-selection"
+- scrollUntilVisible:
+    element:
+      id: "selection-1-name"
+    direction: DOWN
+- tapOn: "selection-1-name"
+- inputText: "50%"
+- pressKey: Enter
+- tapOn: "selection-1-price"
+- inputText: "0"
+- pressKey: Enter
+- tapOn: "add-selection"
+- scrollUntilVisible:
+    element:
+      id: "selection-1-name"
+    direction: DOWN
+- tapOn: "selection-2-name"
+- inputText: "0%"
+- pressKey: Enter
+- tapOn: "selection-2-price"
+- inputText: "0"
+- pressKey: Enter
+- scrollUntilVisible:
+    element:
+      id: "done"
+    direction: DOWN
+- tapOn: 'done'
+- tapOn: 'OK.*'
+- tapOn: 'Options.*'
