@@ -1,8 +1,7 @@
-// app/(auth)/phone.tsx  (single-screen flow for send + verify)
+// app/(authen)/phone.tsx
 import { useUser } from "@clerk/clerk-expo";
 import { FirebaseRecaptchaVerifierModal } from "expo-firebase-recaptcha";
-import { Stack, useRouter } from "expo-router";
-import { getApp } from "firebase/app";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import {
   PhoneAuthProvider,
   signInWithCredential,
@@ -22,40 +21,48 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ClickButton } from "@/components/Authen/ClickButton";
-import { PhoneInput } from "@/components/Authen/PhoneInput";
 import { OtpInput } from "@/components/Authen/VerifyBox";
 import { auth } from "@/src/lib/firebase";
 import { setStep } from "@/src/lib/onboarding";
+import Constants from "expo-constants";
 
-type Mode = "enter" | "verify";
+const firebaseWebConfig = {
+  apiKey: Constants.expoConfig?.extra?.EXPO_PUBLIC_FB_API_KEY || process.env.EXPO_PUBLIC_FB_API_KEY,
+  authDomain: Constants.expoConfig?.extra?.EXPO_PUBLIC_FB_AUTH_DOMAIN || process.env.EXPO_PUBLIC_FB_AUTH_DOMAIN,
+  projectId: Constants.expoConfig?.extra?.EXPO_PUBLIC_FB_PROJECT_ID || process.env.EXPO_PUBLIC_FB_PROJECT_ID,
+  storageBucket: Constants.expoConfig?.extra?.EXPO_PUBLIC_FB_STORAGE_BUCKET || process.env.EXPO_PUBLIC_FB_STORAGE_BUCKET,
+  messagingSenderId: Constants.expoConfig?.extra?.EXPO_PUBLIC_FB_MESSAGING_SENDER_ID || process.env.EXPO_PUBLIC_FB_MESSAGING_SENDER_ID,
+  appId: Constants.expoConfig?.extra?.EXPO_PUBLIC_FB_APP_ID || process.env.EXPO_PUBLIC_FB_APP_ID,
+};
+
+/* ---------- helpers ---------- */
+const toE164TH = (rawInput?: string) => {
+  const raw = (rawInput ?? "").trim();
+  if (!raw) return null;
+  if (raw.startsWith("+")) return raw; // already E.164
+  const digits = raw.replace(/\D/g, "");
+  const core = digits.startsWith("0") ? digits.slice(1) : digits;
+  return core.length === 9 ? `+66${core}` : null; // TH mobile = 9 digits after dropping leading 0
+};
 
 export default function PhoneAuthScreen() {
   const router = useRouter();
   const { user, isLoaded } = useUser();
   const recaptchaRef = useRef<FirebaseRecaptchaVerifierModal | null>(null);
 
-  // --- phone state
-  const [localPhone, setLocalPhone] = useState("");
-  const [phoneError, setPhoneError] = useState("");
-  const phoneE164 = useMemo(() => {
-    const raw = localPhone.trim();
-    if (raw.startsWith("+")) return raw;
-    const digits = raw.replace(/\D/g, "");
-    const core = digits.startsWith("0") ? digits.slice(1) : digits;
-    return core.length === 9 ? `+66${core}` : null;
-  }, [localPhone]);
+  // ===== prefill from signup params =====
+  const { phoneNumber } = useLocalSearchParams<{ phoneNumber?: string }>();
 
-  // --- otp state
-  const [mode, setMode] = useState<Mode>("enter");
-  const [verificationId, setVerificationId] = useState<string | null>(null);
+  // phone/otp state
   const [otp, setOtp] = useState("");
+  const phoneE164 = useMemo(() => toE164TH(phoneNumber), [phoneNumber]);
 
-  // --- ui state
+  // ui state
   const [sending, setSending] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const verifyLock = useRef(false);
 
-  // --- resend timer
+  // resend timer
   const [cooldown, setCooldown] = useState(0);
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -63,14 +70,12 @@ export default function PhoneAuthScreen() {
     return () => clearInterval(t);
   }, [cooldown]);
 
+  /* ========================== SEND CODE ========================== */
   const sendCode = async () => {
     if (!phoneE164) {
-      setPhoneError(
-        "Please enter a valid phone number. For Thai mobile, use 9 digits (e.g., 930966006) or type +66…"
-      );
+      Alert.alert("Invalid phone number", "Phone from signup is missing or invalid.");
       return;
     }
-
     const verifier = recaptchaRef.current as unknown as ApplicationVerifier | null;
     if (!verifier) {
       Alert.alert("reCAPTCHA not ready", "Please try again in a moment.");
@@ -81,9 +86,9 @@ export default function PhoneAuthScreen() {
       setSending(true);
       const provider = new PhoneAuthProvider(auth);
       const vid = await provider.verifyPhoneNumber(phoneE164, verifier);
-      setVerificationId(vid);
-      setMode("verify");
-      setCooldown(60);
+      await verifyCode(vid);
+      setCooldown(30);
+      Alert.alert("Code sent", `We sent an SMS to ${phoneE164}. Enter the 6-digit code.`);
     } catch (err: any) {
       console.error("sendCode error:", err);
       let msg = "Failed to send verification code.";
@@ -96,8 +101,8 @@ export default function PhoneAuthScreen() {
     }
   };
 
-  const verifyCode = async () => {
-    // ✅ Validate BEFORE locking to avoid stuck lock on early returns
+  /* ========================== VERIFY CODE ========================== */
+  const verifyCode = async (verificationId : string) => {
     if (!verificationId) {
       Alert.alert("Error", "Missing verification ID. Please send the code again.");
       return;
@@ -117,19 +122,18 @@ export default function PhoneAuthScreen() {
 
     try {
       const credential = PhoneAuthProvider.credential(verificationId, otp);
-      await signInWithCredential(auth, credential);
+      await signInWithCredential(auth, credential); // ✅ phone verified in Firebase
 
-      // Mark on Clerk (client metadata)
+      // ✅ update Clerk metadata (optional)
       const prev = (user.unsafeMetadata ?? {}) as Record<string, unknown>;
       await user.update({
         unsafeMetadata: { ...prev, phoneAdded: true, phone: phoneE164 ?? undefined },
       });
 
-      // Advance to "store" step, then force local refresh
+      // ✅ advance onboarding and refresh, then go to store info
       await setStep(user, "store");
-      await user.reload(); // 🔁 make _layout see the new step immediately
+      await user.reload();
 
-      // Hard fallback redirect (so you aren’t 100% relying on the layout)
       router.replace("/(auth)/storeInfo");
     } catch (err: any) {
       console.error("verifyCode error:", err);
@@ -140,7 +144,7 @@ export default function PhoneAuthScreen() {
       Alert.alert("Failed", msg);
     } finally {
       setVerifying(false);
-      verifyLock.current = false; // ✅ always release the lock
+      verifyLock.current = false;
     }
   };
 
@@ -150,21 +154,13 @@ export default function PhoneAuthScreen() {
     await sendCode();
   };
 
-  const editNumber = () => {
-    setMode("enter");
-    setOtp("");
-    setVerificationId(null);
-    setCooldown(0);
-  };
-
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      {/* Use the SAME Firebase app config that initialized `auth` */}
       <FirebaseRecaptchaVerifierModal
         ref={recaptchaRef}
-        firebaseConfig={getApp().options as any}
+        firebaseConfig={firebaseWebConfig}
         attemptInvisibleVerification
       />
 
@@ -173,81 +169,38 @@ export default function PhoneAuthScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-          {mode === "enter" ? (
-            <>
-              <Text style={styles.title}>Enter your phone number</Text>
+          <Text style={styles.title}>Verify your phone</Text>
+          <Text style={styles.subtitle}>
+            {phoneE164 ? `OTP code will be sent to ${phoneE164}` : "No phone number from signup."}
+          </Text>
 
-              <PhoneInput
-                localPhone={localPhone}
-                onChangeLocal={(t) => {
-                  const clean = t.startsWith("+")
-                    ? `+${t.replace(/[^\d+]/g, "").replace(/^\+{2,}/, "+")}`
-                    : t.replace(/\D/g, "").replace(/^0/, "").slice(0, 9);
-                  setLocalPhone(clean);
-                  if (phoneError) setPhoneError("");
+          <OtpInput
+            value={otp}
+            setValue={(v: string) => setOtp(v.replace(/\D/g, "").slice(0, 6))}
+            style={{ width: "100%", marginTop: 10 }}
+          />
+
+          <ClickButton
+            label={verifying ? "Verifying…" : "Verify"}
+            onPress={sendCode}
+            disabled={verifying || otp.length !== 6}
+            loading={verifying}
+            style={{ marginTop: 12, width: "100%" }}
+          />
+
+          <View style={{ marginTop: 14, width: "100%", gap: 8, alignItems: "center" }}>
+            <TouchableOpacity onPress={resend} disabled={cooldown > 0 || sending }>
+              <Text
+                style={{
+                  textDecorationLine: "underline",
+                  color: cooldown > 0 ? "#9CA3AF" : "#26BD68",
+                  fontFamily: "Poppins_400Regular",
                 }}
-                onSubmit={sendCode}
-                error={phoneError}
-                style={{ marginTop: 8, width: "100%" }}
-              />
-
-              <ClickButton
-                label={sending ? "Sending…" : "Send code"}
-                onPress={sendCode}
-                disabled={sending || !phoneE164}
-                loading={sending}
-                style={{ marginTop: 12, paddingHorizontal: 0, width: "100%" }}
-              />
-            </>
-          ) : (
-            <>
-              <Text style={styles.title}>Verify your phone</Text>
-              <Text style={styles.subtitle}>OTP code sent to {phoneE164}</Text>
-
-              <OtpInput
-                value={otp}
-                setValue={(v: string) => setOtp(v.replace(/\D/g, "").slice(0, 6))}
-                style={{ width: "100%", marginTop: 5 }}
-              />
-
-              <ClickButton
-                label={verifying ? "Verifying…" : "Verify"}
-                onPress={verifyCode}
-                disabled={verifying || otp.length !== 6}
-                loading={verifying}
-                style={{ marginTop: 12, paddingHorizontal: 0, width: "100%" }}
-              />
-
-              <View style={{ marginTop: 12, width: "100%", gap: 8, alignItems: "center" }}>
-                <Text style={{ fontFamily: "Poppins_400Regular" }}>Didn’t receive the code?</Text>
-
-                <TouchableOpacity onPress={resend} disabled={cooldown > 0 || sending}>
-                  <Text
-                    style={{
-                      textDecorationLine: "underline",
-                      color: cooldown > 0 ? "#9CA3AF" : "#26BD68",
-                      marginTop: 8,
-                      fontFamily: "Poppins_400Regular",
-                    }}
-                  >
-                    {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend code"}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity onPress={editNumber} style={{ marginTop: 12 }}>
-                  <Text
-                    style={{
-                      textDecorationLine: "underline",
-                      color: "#26BD68",
-                      fontFamily: "Poppins_400Regular",
-                    }}
-                  >
-                    Edit phone number
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </>
-          )}
+              >
+                {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend code"}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

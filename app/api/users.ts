@@ -1,0 +1,71 @@
+// src/api/users.ts
+const BASE =
+  process.env.EXPO_PUBLIC_API_BASE ??
+  (global as any).__API_BASE__ ??
+  "http://localhost:3000"; 
+
+export type Role = "CUSTOMER" | "MERCHANT" | "ADMIN" | "STAFF";
+export type UserStatus = "ACTIVE" | "SUSPENDED" | "DELETED";
+
+export type CreateUserBody = {
+  email: string;
+  role: Role;             // for merchant flow: "MERCHANT"
+  name?: string;
+  phone?: string | null;  // E.164, e.g. +66xxxxxxxxx
+  dob?: string | null;    // ISO or "YYYY-MM-DD" (optional for merchant)
+  avatarUrl?: string | null;
+  status?: UserStatus;
+};
+
+type ApiOk<T> = { ok?: boolean; message?: string; user?: T; data?: T } & Record<string, any>;
+type ApiErr = { message?: string; error?: string } & Record<string, any>;
+
+type FetchOpts = RequestInit & { token?: string };
+
+async function apiFetch<T>(path: string, init: FetchOpts = {}): Promise<T> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(init.headers as Record<string, string>),
+  };
+  if (init.token) headers.Authorization = `Bearer ${init.token}`;
+
+  const res = await fetch(`${BASE}${path}`, {
+    method: init.method ?? "GET",
+    headers,
+    body: init.body,
+  });
+
+  const text = await res.text();
+  let json: any = {};
+  try {
+    json = text ? JSON.parse(text) : {};
+  } catch {
+    // non-JSON body, keep as empty object
+  }
+
+  if (!res.ok) {
+    const msg = (json as ApiErr)?.message || (json as ApiErr)?.error || `HTTP ${res.status}`;
+    throw new Error(msg);
+  }
+  return json as T;
+}
+
+const PATHS = {
+  user: "/api/merchant/user",
+};
+
+// ---- Public API ---- 
+
+/** Create or update a user. In merchant flow, pass role: "MERCHANT". */
+export async function createMerchant(
+  body: CreateUserBody,
+  opts?: { token?: string }
+) {
+  return apiFetch<ApiOk<any>>(PATHS.user, {
+    method: "POST",
+    body: JSON.stringify(body),
+    token: opts?.token,
+  });
+}
+
+export { apiFetch };

@@ -1,13 +1,13 @@
 import React, { useRef } from "react";
 import {
-    NativeSyntheticEvent,
-    StyleProp,
-    StyleSheet,
-    Text,
-    TextInput,
-    TextInputKeyPressEventData,
-    View,
-    ViewStyle,
+  NativeSyntheticEvent,
+  StyleProp,
+  StyleSheet,
+  Text,
+  TextInput,
+  TextInputKeyPressEventData,
+  View,
+  ViewStyle,
 } from "react-native";
 
 type PhoneInputProps = {
@@ -122,16 +122,15 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   input: {
-    flex: 1,
+    backgroundColor: "rgba(38, 189, 104, 0.2)",
     borderWidth: 0.5,
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    backgroundColor: "rgba(38, 189, 104, 0.12)",
-    borderColor: "rgba(38, 189, 104, 0.08)",
-    color: "#111827",
-    fontSize: 16,
-    letterSpacing: 1,
+    borderColor: "rgba(38, 189, 104, 0.05)",
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 15,
+    color: "#0F172A",
+    letterSpacing: 0,
+    flex: 1,
   },
   errorText: {
     color: "#B91C1C",

@@ -166,6 +166,7 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins_600SemiBold",
     fontSize: 12,
     color: BRAND.green,
+    marginTop : -5
   },
   ruleText: {
     fontSize: 12,
