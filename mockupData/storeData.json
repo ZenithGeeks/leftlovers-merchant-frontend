@@ -1,0 +1,27 @@
+{
+  "id": "store_001",
+  "name": "CPE SHOP - Pracha Uthit",
+  "storeImage": "assets/images/anyarest.png",
+  "listImage": "assets/images/anyafood.png",
+  "cuisine": { "type": "Thai Japanese", "certification": "Halal" },
+  "businessHours": [
+    { "day": "Monday", "hours": "15:00 - 19:00" },
+    { "day": "Tuesday", "hours": "15:00 - 19:00" },
+    { "day": "Wednesday", "hours": "Closed" },
+    { "day": "Thursday", "hours": "15:00 - 19:00" },
+    { "day": "Friday", "hours": "15:00 - 20:00" },
+    { "day": "Saturday", "hours": "15:00 - 20:00" },
+    { "day": "Sunday", "hours": "15:00 - 20:00" }
+  ],
+  "owner": { "phone": "+66 012 345 6789", "email": "cpe.gogo@kmutt.com" },
+  "contact": { "storePhone": "+66 012 345 6789" },
+  "address": {
+    "label": "Main Store",
+    "line1": "126 Pracha Uthit Rd",
+    "line2": "Bang Mod",
+    "city": "Thung Khru",
+    "province": "Bangkok",
+    "postalCode": "10140"
+  },
+  "storeId": "555-ABCD"
+}

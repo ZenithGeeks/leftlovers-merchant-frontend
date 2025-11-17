@@ -11,6 +11,7 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";
+import { LogBox } from "react-native";
 import "react-native-reanimated";
 
 //Authentication
@@ -18,11 +19,16 @@ import { ClerkProvider } from "@clerk/clerk-expo";
 import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import Constants from "expo-constants";
 
-
+if (__DEV__) {
+  LogBox.ignoreLogs([
+    "Open debugger to view warnings.",
+    "SafeAreaView has been deprecated",
+  ]);
+}
 try { SplashScreen.preventAutoHideAsync(); } catch {}
 
 export const unstable_settings = {
-  initialRouteName: "(tabs)", // start on your tab layout
+  initialRouteName: "(tabs)",
 };
 
 const clerkPublishableKey =

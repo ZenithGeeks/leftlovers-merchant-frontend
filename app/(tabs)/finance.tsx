@@ -1,79 +1,145 @@
-import { ThemedView } from '@/components/themed-view';
-import { Colors, Fonts } from '@/constants/theme';
-import React, { useMemo, useState } from 'react';
-import { Dimensions, ScrollView, StyleSheet, Text } from 'react-native';
+// app/(tabs)/finance.tsx
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Dimensions, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// NEW imports
+import Tabs from '@/components/finance/Tabs';
+import { SummaryTab } from '@/components/finance/SummaryTab';
+import { TransactionTab } from '@/components/finance/TransactionTab';
+import { PayoutTab } from '@/components/finance/PayoutTab';
+
+import type { DateKey, Payout, Summary, TabKey, Transaction } from '@/types/finance';
+import { DEV_MERCHANT_ID } from '@/utils/env';
 import {
-  Tabs,
-  SummaryTab,
-  TransactionTab,
-  PayoutTab,
-  financeStyles as s,
-  type TabKey,
-  type DateKey,
-  type Transaction,
-  type Payout,
-} from '@/components/finance';
+  fetchFinancePayouts,
+  fetchFinanceSummary,
+  fetchFinanceTransactions,
+} from '@/services/finance';
+
+const DEFAULT_RANGE: DateKey = 'Today';
+const DEFAULT_TAB: TabKey = 'Summary';
+
+// (You can pass merchantId via context/store; we read a dev fallback here.)
+const MERCHANT_ID = DEV_MERCHANT_ID || 'REPLACE_ME_MERCHANT_ID';
 
 export default function FinanceScreen() {
   const insets = useSafeAreaInsets();
+
   const screenWidth = Dimensions.get('window').width;
+  const horizontalPadding = useMemo(
+    () => Math.max(14, Math.min(screenWidth * 0.05, 24)),
+    [screenWidth]
+  );
 
-  const horizontalPadding = useMemo(() => {
-    const pct = screenWidth * 0.05;
-    return Math.max(14, Math.min(pct, 24));
-  }, [screenWidth]);
+  const [activeTab, setActiveTab] = useState<TabKey>(DEFAULT_TAB);
+  const [selectedDate, setSelectedDate] = useState<DateKey>(DEFAULT_RANGE);
 
-  const [activeTab, setActiveTab] = useState<TabKey>('Summary');
-  const [date, setDate] = useState<DateKey>('Today');
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [payouts, setPayouts] = useState<Payout[]>([]);
+  const [summary, setSummary] = useState<Summary>({
+    netSales: 0,
+    deduction: 0,
+    netEarnings: 0,
+    earnings: 0,
+  });
 
-  // mock data
-  const transaction: Transaction = {
-    date: '20 Sep 2025',
-    title: 'Payment LL-015',
-    id: '0123456789',
-    amountTHB: 1500,
-    time: '5:43PM',
-  };
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
-  const payout: Payout = {
-    balanceTHB: 1500,
-    oweTHB: 0,
-    detailDate: '22 09 2025',
-    processedAt: '23/09/2025 05:58AM',
-    amountTHB: 1500,
-    status: 'Transferred',
-  };
+  const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    // cancel previous fetch if any
+    if (abortRef.current) abortRef.current.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+
+    async function load() {
+      setLoading(true);
+      setErr(null);
+      try {
+        const [tx, po, su] = await Promise.all([
+          fetchFinanceTransactions(MERCHANT_ID, selectedDate, ctrl.signal),
+          fetchFinancePayouts(MERCHANT_ID, selectedDate, ctrl.signal),
+          fetchFinanceSummary(MERCHANT_ID, selectedDate, ctrl.signal),
+        ]);
+        setTransactions(tx);
+        setPayouts(po);
+        setSummary(su);
+      } catch (e: any) {
+        if (e?.name === 'AbortError') return;
+        setErr(e?.message || 'Failed to load finance data');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    load();
+
+    return () => {
+      ctrl.abort();
+    };
+  }, [selectedDate]);
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}>
-      <ThemedView style={[styles.container, { paddingTop: insets.top + 24, paddingHorizontal: horizontalPadding }]}>
-        <Text style={styles.header}>Finance</Text>
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
+    >
+      <View
+        className="flex-1 bg-white"
+        style={{ paddingTop: insets.top + 16, paddingHorizontal: horizontalPadding }}
+      >
+        {/* Header */}
+        <Text className="text-[32px] font-extrabold text-[#0B1220] mb-4">Finance</Text>
 
+        {/* Tabs */}
         <Tabs active={activeTab} onChange={setActiveTab} />
 
-        {activeTab === 'Summary' && (
+        {/* Error */}
+        {err && (
+          <View className="mt-4 p-3 rounded-xl bg-red-50">
+            <Text className="text-red-600">{err}</Text>
+          </View>
+        )}
+
+        {/* Loading */}
+        {loading && (
+          <View className="mt-6 items-center">
+            <ActivityIndicator />
+            <Text className="text-gray-500 mt-2">Loading…</Text>
+          </View>
+        )}
+
+        {/* Content */}
+        {!loading && !err && (
           <>
-      
-            <SummaryTab />
+            {activeTab === 'Summary' && (
+              <SummaryTab
+                selectedDate={selectedDate}
+                onDateChange={setSelectedDate}
+                data={summary}
+              />
+            )}
+
+            {activeTab === 'Transaction' && (
+              <TransactionTab
+                date={selectedDate}
+                onDateChange={setSelectedDate}
+                data={transactions}
+              />
+            )}
+
+            {activeTab === 'Payout' && (
+              <PayoutTab
+                date={selectedDate}
+                onDateChange={setSelectedDate}
+                data={payouts}
+              />
+            )}
           </>
         )}
-
-        {activeTab === 'Transaction' && (
-          <TransactionTab date={date} onDateChange={setDate} data={transaction} />
-        )}
-
-        {activeTab === 'Payout' && (
-          <PayoutTab date={date} onDateChange={setDate} data={payout} />
-        )}
-      </ThemedView>
+      </View>
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.light.background },
-  header: { fontSize: 24, fontFamily: Fonts.bold, marginBottom: 16, color: '#000' },
-});

@@ -1,213 +1,206 @@
-import { useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
-import {
-  Dimensions,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-import { useAuth } from "@clerk/clerk-expo";
-import { signOut as fbSignOut, getAuth } from "firebase/auth";
-
+import Fab from "@/components/common/Fab";
+import AddSheet from "@/components/Menu/AddSheet";
 import ContentSwitcher from "@/components/Menu/Content-Switcher";
 import MenuWrapper from "@/components/Menu/Menu-Wrapper";
 import OptionWrapper from "@/components/Menu/Option-Wrapper";
 import { ThemedView } from "@/components/themed-view";
-import menuData from "@/mockupData/menuData.json";
-import optionData from "@/mockupData/optionGroup.json";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  Text,
+  View,
+  useWindowDimensions,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const SPACING = { sm: 8, md: 12, lg: 16, xl: 20 };
-interface MenuItem {
-  id: string;
-  name: string;
-  basePrice: number;
-  leftoverQty: number;
-  photoUrl: string;
-  categoryId?: string | null;
-  categoryName?: string | null;
-};
+import { fetchMerchantOptionGroups, type OptionGroupAPI } from "@/services/group";
+import { getMenuItems } from "@/services/menu";
+import type { MenuItemAPI } from "@/types/types";
 
-interface Option {
-  id: string;
-  optionGroupId: string;
-  name: string;
-  active: boolean;
-  priceDelta: number;
-  sortOrder: number;
-}
+const MERCHANT_ID = process.env.EXPO_PUBLIC_MERCHANT_ID!;
+type TabKey = "items" | "options";
+type Section = { id: string; title: string; items: MenuItemAPI[] };
 
-interface OptionGroup {
-  id: string;
-  menuItemId: string;
-  name: string;
-  minSelect: number;
-  maxSelect: number;
-  sortOrder: number;
-  options: Option[];
-}
-
-const toListItem = (m: MenuItemJson): ListItem => ({
-  id: m.id,
-  name: m.name,
-  price: m.basePrice,
-  imageUrl: m.photoUrl,
-  inStock: (m.leftoverQty ?? 0) > 0,
-});
-
-const groupByCategory = (items: MenuItemJson[]): Section[] => {
-  const map = new Map<string, Section>();
-  const UNCATEGORIZED = "Uncategorized";
-
-  items.forEach((m) => {
-    const title = m.categoryName?.trim() || "Food" || UNCATEGORIZED;
-
-    if (!map.has(title)) {
-      map.set(title, { id: title, title, items: [] });
-    }
-    map.get(title)!.items.push(toListItem(m));
-  });
-
-  return Array.from(map.values()).sort((a, b) =>
-    a.title.localeCompare(b.title)
-  );
-};
+const groupByCategory = (items: MenuItemAPI[]): Section[] => [
+  { id: "List", title: "List", items },
+];
 
 export default function MenuScreen() {
-  const insets = useSafeAreaInsets();
-  const [tab, setTab] = useState<"items" | "options">("items");
   const router = useRouter();
-  const { signOut } = useAuth(); // Clerk hook
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
 
-  const onLogout = async () => {
-    try {
-      await signOut?.(); // Clerk logout if available
-    } catch {}
-    try {
-      const auth = getAuth();
-      if (auth?.currentUser) await fbSignOut(auth); // Firebase fallback
-    } catch {}
+  const [addOpen, setAddOpen] = useState(false);
+  const [tab, setTab] = useState<TabKey>("items");
 
-    router.replace("/(auth)/signin"); // adjust if your sign-in route differs
-  };
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [menu, setMenu] = useState<MenuItemAPI[]>([]);
+  const [groups, setGroups] = useState<OptionGroupAPI[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
-  const screenWidth = Dimensions.get("window").width;
   const horizontalPadding = useMemo(() => {
-    const pct = screenWidth * 0.05;
-    return Math.max(14, Math.min(pct, 24));
-  }, [screenWidth]);
+    const px = Math.max(16, Math.min(width * 0.05, 28));
+    return px;
+  }, [width]);
 
-  const sections = useMemo(
-    () => groupByCategory((menuData.menuItems as MenuItem[]) || []),
-    []
+  const fetchAll = useCallback(async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      const [menuRes, groupRes] = await Promise.all([
+        getMenuItems(MERCHANT_ID),
+        fetchMerchantOptionGroups(MERCHANT_ID),
+      ]);
+      setMenu(menuRes);
+      setGroups(groupRes);
+    } catch (e: any) {
+      setError(e?.message ?? "Failed to load data");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    setError(null);
+    try {
+      const [menuRes, groupRes] = await Promise.all([
+        getMenuItems(MERCHANT_ID),
+        fetchMerchantOptionGroups(MERCHANT_ID),
+      ]);
+      setMenu(menuRes);
+      setGroups(groupRes);
+    } catch (e: any) {
+      setError(e?.message ?? "Failed to refresh");
+    } finally {
+      setRefreshing(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchAll();
+    }, [fetchAll])
   );
-  const optionGroups = optionData.optionGroups as OptionGroup[];
+
+  const sections = useMemo(() => groupByCategory(menu), [menu]);
+
+  const handleAddItem = () => router.push("/add-item");
+  const handleAddOption = () => router.push("/add-option");
 
   return (
-    <ScrollView
-      style={{ marginBottom: insets.bottom + SPACING.xl, flex: 1, height: "100%" }}
-    >
-      <FlatList
-        data={sections}
-        keyExtractor={(s) => s.id}
-        contentContainerStyle={{
-          paddingBottom: insets.bottom + SPACING.xl,
-        }}
-        ListHeaderComponent={
-          <ThemedView
-            style={[
-              styles.screen,
-              {
-                paddingTop: insets.top + SPACING.lg,
-                paddingHorizontal: horizontalPadding,
-              },
-            ]}
-          >
-            {/* Header */}
-            <View style={styles.header}>
-              <View style={styles.headerTop}>
-                <Text style={styles.title}>Menu</Text>
-                <TouchableOpacity
-                  onPress={onLogout}
-                  style={styles.logoutBtn}
-                  accessibilityRole="button"
-                  accessibilityLabel="Log out"
-                >
-                  <Text style={styles.logoutText}>Log out</Text>
-                </TouchableOpacity>
-              </View>
+    <ThemedView className="flex-1 bg-[#F7F8FA]">
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: insets.bottom + 96 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
+        <ThemedView
+          className="w-full"
+          style={{
+            paddingTop: insets.top + 16,
+            paddingHorizontal: horizontalPadding,
+          }}
+        >
+          <View className="mb-6 gap-3">
+            <Text className="text-[36px] font-extrabold text-[#0B1220]">Menu</Text>
+            <ContentSwitcher
+              tabs={[
+                { key: "items", label: "Items" },
+                { key: "options", label: "Options" },
+              ]}
+              value={tab}
+              onChange={(k) => setTab(k as TabKey)}
+            />
+          </View>
+        </ThemedView>
 
-              <ContentSwitcher
-                tabs={[
-                  { key: "items", label: "Items" },
-                  { key: "options", label: "Options" },
-                ]}
-                value={tab}
-                onChange={(k) => setTab(k as any)}
-              />
-            </View>
-          </ThemedView>
-        }
-        renderItem={({ item }) => (
-          <ThemedView
-            style={[styles.wrapperRow, { paddingHorizontal: horizontalPadding }]}
+        {loading ? (
+          <View className="items-center justify-center py-12">
+            <ActivityIndicator />
+            <Text className="mt-2 text-gray-600">Loading…</Text>
+          </View>
+        ) : error ? (
+          <View
+            className="mx-4 rounded-2xl border border-red-200 bg-red-50 p-4"
+            style={{ marginHorizontal: horizontalPadding }}
           >
+            <Text className="font-semibold text-red-700">Error</Text>
+            <Text className="mt-1 text-red-700">{error}</Text>
+            <Pressable onPress={fetchAll} className="mt-3">
+              <Text className="font-semibold text-[#26BD68]">Tap to retry</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <ThemedView className="w-full" style={{ paddingHorizontal: horizontalPadding }}>
             {tab === "items" ? (
-              <MenuWrapper
-                title={item.title}
-                items={item.items}
-                defaultExpanded={true}
-                onToggleItem={(id, val) =>
-                  console.log(`[${item.title}] toggle ${id}: ${val}`)
-                }
-              />
+              sections[0]?.items.length ? (
+                sections.map((section) => (
+                  <View key={section.id} className="mb-10">
+                    <MenuWrapper
+                      title={section.title}
+                      items={section.items.map((m) => ({
+                        id: m.id,
+                        name: m.name,
+                        price: m.basePrice,
+                        imageUrl: m.photoUrl || "",
+                        leftoverQty: m.leftoverQty ?? 0,
+                        inStock: (m.leftoverQty ?? 0) > 0,
+                      }))}
+                      defaultExpanded
+                    />
+                  </View>
+                ))
+              ) : (
+                <View className="rounded-2xl border border-gray-200 bg-white p-6">
+                  <Text className="text-gray-600">
+                    No items yet. Use the + button to add your first item.
+                  </Text>
+                </View>
+              )
+            ) : groups.length ? (
+              <View className="mb-10 gap-4">
+                {groups.map((group) => (
+                  <OptionWrapper
+                    key={group.id}
+                    merchantId={MERCHANT_ID}
+                    groupId={group.id}
+                    title={group.name}
+                    options={group.options.map((o) => ({
+                      id: o.id,
+                      optionGroupId: o.optionGroupId,
+                      name: o.name,
+                      active: o.active,
+                      priceDelta: o.priceDelta,
+                      sortOrder: o.sortOrder,
+                    }))}
+                    defaultExpanded
+                    maxSelect={group.maxSelect}
+                    onAfterChange={onRefresh}
+                  />
+                ))}
+              </View>
             ) : (
-              <MenuWrapper
-                title={`${item.title} Options`}
-                items={[]}
-                defaultExpanded={true}
-              />
+              <View className="rounded-2xl border border-gray-200 bg-white p-6">
+                <Text className="text-gray-600">No option groups. Use the + button to add.</Text>
+              </View>
             )}
           </ThemedView>
         )}
-        ItemSeparatorComponent={() => <View style={{ height: SPACING.lg }} />}
-        showsVerticalScrollIndicator={false}
+      </ScrollView>
+
+      <Fab onPress={() => setAddOpen(true)} testID="fab" />
+      <AddSheet
+        visible={addOpen}
+        onClose={() => setAddOpen(false)}
+        onAddItem={handleAddItem}
+        onAddOption={handleAddOption}
       />
-    </ScrollView>
+    </ThemedView>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  header: {
-    marginBottom: SPACING.xl,
-    gap: SPACING.md,
-  },
-  headerTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#11181C",
-  },
-  logoutBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: "rgba(17, 24, 28, 0.06)",
-  },
-  logoutText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#11181C",
-  },
-  wrapperRow: {
-    width: "100%",
-  },
-});

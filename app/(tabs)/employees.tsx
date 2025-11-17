@@ -1,112 +1,157 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
+import React, { useMemo, useState } from 'react';
+import { Dimensions, ScrollView, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedView } from '@/components/themed-view';
-import { Collapsible } from '@/components/ui/collapsible';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
 
-export default function TabTwoScreen() {
+import {
+  AddEmployeeModal,
+  AvatarInitial,
+  DetailModal,
+  EmployeeRow,
+  EmployeesHeader,
+  RoleBadge,
+  type Employee,
+  type Role,
+} from '@/components/employees';
+
+import { useEmployees } from '@/hooks/useEmployees';
+
+export default function EmployeesScreen() {
+  const insets = useSafeAreaInsets();
+
+  const screenWidth = Dimensions.get('window').width;
+  const horizontalPadding = useMemo(() => {
+    const pct = screenWidth * 0.05; 
+    return Math.max(16, Math.min(pct, 28));
+  }, [screenWidth]);
+
+  const { employees, owner, addEmployee, removeEmployee } = useEmployees();
+
+  const [selected, setSelected] = useState<Employee | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+
+  const [newRole, setNewRole] = useState<Role>('Manager');
+  const [newFirst, setNewFirst] = useState('');
+  const [newUser, setNewUser] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [newPhone, setNewPhone] = useState('');
+
+  const openDetail = (emp: Employee) => {
+    setSelected(emp);
+    setDetailOpen(true);
+  };
+  const closeDetail = () => setDetailOpen(false);
+  const openAdd = () => {
+    setNewRole('Manager');
+    setNewFirst('');
+    setNewUser('');
+    setNewEmail('');
+    setNewPhone('');
+    setAddOpen(true);
+  };
+
+  const handleAdd = async () => {
+  const parts = newFirst.trim().split(/\s+/);
+  const first = parts[0] || 'New';
+  const last = parts.slice(1).join(' ') || 'Employee';
+
+  await addEmployee({
+    firstName: first,
+    lastName: last,
+    username: newUser,          
+    email: newEmail || undefined,
+    phone: newPhone || undefined,
+    role: newRole,
+  });
+
+  setAddOpen(false);
+};
+
+
+  const handleDisableAccess = (id: string) => {
+    removeEmployee(id);
+    closeDetail();
+  };
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
+    <View className="flex-1 bg-white">
+      <ScrollView
+        className="flex-1 bg-white"
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingBottom: insets.bottom + 96, 
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        <ThemedView
+          className="w-full"
           style={{
-            fontFamily: Fonts.medium,
-          }}>
-          Explore
-        </ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
-        />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.medium }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+            paddingTop: insets.top + 16,
+            paddingHorizontal: horizontalPadding,
+          }}
+        >
+          <View className="mb-6 gap-3">
+            <Text className="text-[36px] font-extrabold text-[#0B1220]">
+              Employees
+            </Text>
+          </View>
+        </ThemedView>
+
+        <ThemedView
+          className="flex-1 w-full"
+          style={{ paddingHorizontal: horizontalPadding }}
+        >
+          {owner && (
+            <View className="flex-row items-center gap-4 mb-6">
+              <AvatarInitial name={owner.firstName} />
+              <View className="flex-1">
+                <Text className="text-base font-bold text-[#11181C] mb-1">
+                  {owner.firstName} {owner.lastName}
+                </Text>
+                <RoleBadge role="Owner" />
+              </View>
+            </View>
+          )}
+
+          <EmployeesHeader onAdd={openAdd} />
+
+          <View className="mt-2 gap-5 mb-10">
+            {employees
+              .filter((e) => e.role !== 'Owner')
+              .map((emp) => (
+                <EmployeeRow key={emp.id} item={emp} onPress={openDetail} />
+              ))}
+          </View>
+        </ThemedView>
+      </ScrollView>
+
+      <DetailModal
+        visible={detailOpen}
+        onClose={closeDetail}
+        employee={selected}
+        onDisable={handleDisableAccess}
+        bottomPadding={insets.bottom}
+      />
+
+      <AddEmployeeModal
+        visible={addOpen}
+        onClose={() => setAddOpen(false)}
+        topPadding={insets.top}
+        bottomPadding={insets.bottom}
+        horizontalPadding={horizontalPadding}
+        role={newRole}
+        setRole={setNewRole}
+        fullName={newFirst}
+        setFullName={setNewFirst}
+        username={newUser}
+        setUsername={setNewUser}
+        email={newEmail}
+        setEmail={setNewEmail}
+        phone={newPhone}
+        setPhone={setNewPhone}
+        onSubmit={handleAdd}
+      />
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
-  },
-  titleContainer: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-});

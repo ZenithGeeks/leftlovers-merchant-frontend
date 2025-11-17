@@ -1,142 +1,191 @@
 import { Fonts } from "@/constants/theme";
+import { DeleteMenuItem } from "@/services/menu";
 import { Image } from "expo-image";
-import React, { useState } from "react";
-import { StyleSheet, Switch, Text, View } from "react-native";
+import { useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  Switch,
+  Text,
+  View,
+} from "react-native";
+import { PencilSquareIcon, TrashIcon } from "react-native-heroicons/outline";
 
 export type MenuItem = {
   id: string;
   name: string;
   price: number;
+  leftoverQty: number;
   imageUrl: string;
   inStock: boolean;
 };
 
 type Props = {
-  title?: string;
   items: MenuItem[];
   onToggle?: (id: string, value: boolean) => void;
+  onDelete?: (id: string) => void;
+  merchantId?: string;
 };
-
-export default function MenuList({ title = "Food", items, onToggle }: Props) {
-  const [localItems, setLocalItems] = useState(items);
-
+const EXPO_PUBLIC_MERCHANT_ID = process.env.EXPO_PUBLIC_MERCHANT_ID;
+export default function MenuList({
+  items,
+  onToggle,
+  onDelete,
+  merchantId = EXPO_PUBLIC_MERCHANT_ID,
+}: Props) {
+  const [localItems, setLocalItems] = useState<MenuItem[]>(items);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const router = useRouter();
+  useEffect(() => setLocalItems(items), [items]);
   const toggleItem = (id: string, value: boolean) => {
-    const updated = localItems.map((item) =>
-      item.id === id ? { ...item, inStock: value } : item
+    setLocalItems((prev) =>
+      prev.map((it) => (it.id === id ? { ...it, inStock: value } : it))
     );
-    setLocalItems(updated);
     onToggle?.(id, value);
   };
 
+  const handleDelete = (menuId: string) => {
+    Alert.alert(
+      "Delete item",
+      "This action cannot be undone. Do you want to continue?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            setDeletingId(menuId);
+            const prev = localItems;
+            setLocalItems((p) => p.filter((i) => i.id !== menuId));
+            try {
+              await DeleteMenuItem(merchantId!, menuId);
+              onDelete?.(menuId);
+            } catch (err: any) {
+              setLocalItems(prev);
+              Alert.alert(
+                "Error",
+                err?.message ?? "Failed to delete menu item."
+              );
+            } finally {
+              setDeletingId(null);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  if (!localItems.length) {
+    return (
+      <View className="rounded-2xl p-4 bg-white shadow">
+        <Text className="text-gray-500">No items</Text>
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.container}>
-      {/* Item List */}
-      {localItems.map((item, idx) => (
-        <View key={item.id} style={[styles.item, idx < localItems.length - 1 && styles.divider]}>
-          {/* Image */}
-          <Image
-            source={{ uri: item.imageUrl }}
-            style={styles.image}
-            contentFit="cover"
-          />
+    <View className="flex flex-col rounded-2xl px-4 bg-white">
+      {localItems.map((item, idx) => {
+        const isLast = idx === localItems.length - 1;
+        const isDeleting = deletingId === item.id;
 
-          {/* Info */}
-          <View style={styles.info}>
-            <Text style={styles.name}>{item.name}</Text>
-            <Text style={styles.price}>{item.price} THB</Text>
+        return (
+          <View
+            key={item.id}
+            className={`flex flex-row items-center py-4 gap-3 ${
+              !isLast ? "border-b border-gray-100" : ""
+            }`}
+          >
+            <Image
+              source={{ uri: item.imageUrl }}
+              className="bg-neutral-100"
+              style={{ width: 100, height: 100, borderRadius: 14 }}
+              contentFit="cover"
+              transition={120}
+            />
 
-            <View
-              style={[
-                styles.stockBadge,
-                {
-                  backgroundColor: item.inStock ? "#22C55E33" : "#E5E7EB",
-                },
-              ]}
-            >
+            <View className="flex-1 flex-col">
               <Text
-                style={[
-                  styles.stockText,
-                  { color: item.inStock ? "#16A34A" : "#6B7280" },
-                ]}
+                className="text-base text-[#11181C]"
+                style={{ fontFamily: Fonts.bold }}
+                numberOfLines={2}
               >
-                {item.inStock ? "In-Stock" : "Out of Stock"}
+                {item.name}
               </Text>
+              <Text
+                className="mt-0.5 text-sm text-gray-600"
+                style={{ fontFamily: Fonts.regular }}
+              >
+                {item.price.toLocaleString("th-TH")} THB
+              </Text>
+
+              <View
+                className={`self-start mt-1 px-2.5 py-1 rounded-full ${
+                  item.inStock ? "bg-green-100" : "bg-gray-200"
+                }`}
+              >
+                <Text
+                  className={`text-xs ${
+                    item.inStock ? "text-green-700" : "text-gray-500"
+                  }`}
+                  style={{ fontFamily: Fonts.medium }}
+                >
+                  {item.inStock ? "In-Stock:" : "Out of Stock:"}{" "}
+                  {item.leftoverQty}
+                </Text>
+              </View>
+            </View>
+
+            <View className="items-center justify-between py-2 h-[100px]">
+              <Switch
+                accessibilityRole="switch"
+                accessibilityLabel={`${item.name}-switch`}
+                accessibilityState={{
+                  checked: item.inStock,
+                  disabled: isDeleting,
+                }}
+                value={item.inStock}
+                disabled={isDeleting}
+                onValueChange={(val) => {
+                  if (val && item.leftoverQty === 0) {
+                    Alert.alert("Cannot enable", "No stock left.");
+                  } else {
+                    toggleItem(item.id, val);
+                  }
+                }}
+                trackColor={{ false: "#D1D5DB", true: "#86EFAC" }}
+                thumbColor={item.inStock ? "#16A34A" : "#F4F4F5"}
+              />
+
+              <View className="flex-row items-center justify-end">
+                <Pressable
+                  disabled={isDeleting}
+                  onPress={() => router.push(`/edit-item/${item.id}`)}
+                  className="p-2"
+                  accessibilityLabel={`edit-${item.name}`}
+                >
+                  <PencilSquareIcon size={18} color="#696969" />
+                </Pressable>
+
+                <Pressable
+                  disabled={isDeleting}
+                  onPress={() => handleDelete(item.id)}
+                  className="p-2"
+                  accessibilityLabel={`delete-${item.name}`}
+                >
+                  {isDeleting ? (
+                    <ActivityIndicator />
+                  ) : (
+                    <TrashIcon size={18} color="#EF4444" />
+                  )}
+                </Pressable>
+              </View>
             </View>
           </View>
-
-          {/* Toggle */}
-          <Switch
-            value={item.inStock}
-            onValueChange={(val) => toggleItem(item.id, val)}
-            trackColor={{ false: "#D1D5DB", true: "#86EFAC" }}
-            thumbColor={item.inStock ? "#16A34A" : "#F4F4F5"}
-          />
-        </View>
-      ))}
+        );
+      })}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  header: {
-    marginBottom: 12,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  headerText: {
-    fontFamily: Fonts.bold,
-    fontSize: 18,
-    color: "#11181C",
-  },
-  item: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 10,
-    gap: 12,
-  },
-  divider: {
-    borderBottomWidth: 1,
-    borderColor: "#F3F4F6",
-  },
-  image: {
-    width: 70,
-    height: 70,
-    borderRadius: 12,
-    backgroundColor: "#F3F4F6",
-  },
-  info: {
-    flex: 1,
-  },
-  name: {
-    fontFamily: Fonts.bold,
-    fontSize: 16,
-    color: "#11181C",
-  },
-  price: {
-    fontFamily: Fonts.regular,
-    fontSize: 14,
-    color: "#4B5563",
-    marginTop: 2,
-  },
-  stockBadge: {
-    alignSelf: "flex-start",
-    marginTop: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-  },
-  stockText: {
-    fontFamily: Fonts.medium,
-    fontSize: 12,
-  },
-});
