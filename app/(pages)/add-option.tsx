@@ -11,7 +11,7 @@ import { createMerchantOptionGroup } from "@/services/group";
 export default function AddOptionScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const merchantId = process.env.EXPO_PUBLIC_EXPO_PUBLIC_MERCHANT_ID!;
+  const merchantId = process.env.EXPO_PUBLIC_MERCHANT_ID!;
 
   const [submitting, setSubmitting] = useState(false);
 

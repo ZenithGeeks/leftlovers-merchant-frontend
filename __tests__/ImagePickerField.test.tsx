@@ -7,7 +7,9 @@ const localTestImagePath =
   "file:///Applications/Project/leftlovers-merchant-frontend/mockupData/GEISHA.jpeg";
 
 jest.mock("expo-image-picker", () => ({
-  requestMediaLibraryPermissionsAsync: jest.fn(async () => ({ status: "granted" })),
+  requestMediaLibraryPermissionsAsync: jest.fn(async () => ({
+    status: "granted",
+  })),
   launchImageLibraryAsync: jest.fn(async () => ({
     canceled: false,
     assets: [{ uri: localTestImagePath }],
@@ -18,12 +20,18 @@ describe("ImagePickerField", () => {
   it("renders upload state and picks image", async () => {
     const onChange = jest.fn();
     const { getByText } = render(<ImagePickerField onChange={onChange} />);
+    const uploadButton = getByText("Upload PNG/JPEG");
+    expect(uploadButton).toBeTruthy();
 
-    expect(getByText("Upload PNG/JPEG")).toBeTruthy();
+    fireEvent.press(uploadButton);
 
-    fireEvent.press(getByText("Upload PNG/JPEG"));
     await waitFor(() => {
-      expect(onChange).toHaveBeenCalledWith(localTestImagePath);
+      // ให้ตรงกับที่คุณเทสต์ในเคส Replace (object { uri, name, type })
+      expect(onChange).toHaveBeenCalledWith({
+        uri: localTestImagePath,
+        name: null,
+        type: null,
+      });
     });
   });
 
@@ -34,14 +42,14 @@ describe("ImagePickerField", () => {
     const { getByText, queryByText } = render(
       <ImagePickerField value={existingPath} onChange={onChange} />
     );
-
-    // Confirm preview mode
     expect(queryByText("Upload PNG/JPEG")).toBeNull();
-
-    // Replace → triggers mock picker
     fireEvent.press(getByText("Replace"));
     await waitFor(() => {
-      expect(onChange).toHaveBeenCalledWith(localTestImagePath);
+      expect(onChange).toHaveBeenCalledWith({
+        uri: localTestImagePath,
+        name: null,
+        type: null,
+      });
     });
 
     // Remove clears the image
@@ -50,7 +58,10 @@ describe("ImagePickerField", () => {
   });
 
   it("requests permission before picking", async () => {
-    const spyPerm = jest.spyOn(ImagePicker, "requestMediaLibraryPermissionsAsync");
+    const spyPerm = jest.spyOn(
+      ImagePicker,
+      "requestMediaLibraryPermissionsAsync"
+    );
     const { getByText } = render(<ImagePickerField onChange={() => {}} />);
 
     fireEvent.press(getByText("Upload PNG/JPEG"));

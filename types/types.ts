@@ -51,17 +51,19 @@ export type CreateMenuItemForm = {
 
 
 export type UpdateMenuItemForm = {
-  id: string;
-  name: string;
-  description: string | null;
-  basePrice: number;
-  originalPrice: number | null;
-  leftoverQty: number;
-  expiresAt: Date | null;
-  photoUri: string | null;
-  expirePhotoUri: string | null;
-  groupTemplates: GroupTemplate[];
-};
+  expirePhotoUri?: string | null
+  photoUri?: string | null
+  id: string
+  name: string
+  description: string | null
+  basePrice: number
+  originalPrice: number | null
+  leftoverQty: number
+  expiresAt: Date | null;  
+  photoUrl?: string | null
+  expireLabelUrl?: string | null
+  groupTemplateIds?: string[]
+}
 
 export type WarningTag = string;
 
