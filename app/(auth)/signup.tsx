@@ -150,23 +150,25 @@ export default function SignUpPage() {
       const name = fullName.trim();
       const emailLower = email.trim().toLowerCase();
 
-      // Create merchant (DOB explicitly null per your requirement)
-      try {
-        await createMerchant({
-          name,
-          email: emailLower,
-          dob: null,                // ✅ force null
-          phone: localPhone || undefined, // ✅ null if invalid/empty
-          role: "MERCHANT",
-        });
-        console.log("Backend merchant user created (email/password)");
-      } catch (e: any) {
-        console.warn("Create merchant user failed:", e);
-        Alert.alert(
-          "Account note",
-          e?.message ?? "We couldn't finish account setup, but you can continue."
-        );
-      }
+      ////////////////////////joy fix//////////////////////
+          // Create merchant user row in backend
+    try {
+      await createMerchant({
+        name,
+        email: emailLower,
+        phone: localPhone || undefined,
+        avatarUrl: null,
+        role: "MERCHANT",
+      });
+      console.log("Backend merchant user created (email/password)");
+    } catch (e: any) {
+      console.warn("Create merchant user failed:", e);
+      Alert.alert(
+        "Account note",
+        e?.message ?? "We couldn't finish account setup, but you can continue."
+      );
+    }
+/////////////////////////joy fix end//////////////////////
 
       router.replace({ pathname: "/(auth)/storeInfo", params: { userId: user?.id } });
     } catch (err: any) {
