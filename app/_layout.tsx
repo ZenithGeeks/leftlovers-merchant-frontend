@@ -1,16 +1,34 @@
-// app/_layout.tsx
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import {
+  Poppins_400Regular,
+  Poppins_500Medium,
+  Poppins_600SemiBold,
+  Poppins_700Bold,
+  useFonts,
+} from "@expo-google-fonts/poppins";
 import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";
+import { LogBox } from "react-native";
 import "react-native-reanimated";
-import "./globals.css";
 
+//Authentication
+import { ClerkProvider } from "@clerk/clerk-expo";
+import { tokenCache } from "@clerk/clerk-expo/token-cache";
+import Constants from "expo-constants";
+
+if (__DEV__) {
+  LogBox.ignoreLogs([
+    "Open debugger to view warnings.",
+    "SafeAreaView has been deprecated",
+  ]);
+}
 try { SplashScreen.preventAutoHideAsync(); } catch {}
 
 export const unstable_settings = {
-  initialRouteName: "(tabs)", // start on your tab layout
+  initialRouteName: "(tabs)",
 };
 
 const clerkPublishableKey =
@@ -27,20 +45,25 @@ export default function RootLayout() {
     if (fontsLoaded) SplashScreen.hideAsync();
   }, [fontsLoaded]);
 
+  if (!clerkPublishableKey) {
+    console.error("Missing EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY");
+    // Render nothing or a fallback UI to avoid crashing during development
+    return null;
+  }
+
   if (!fontsLoaded) return null;
 
-  const publishableKey = getClerkKey();
-  if (!publishableKey) throw new Error("Missing EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY");
-
   return (
-    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      {/* Hide headers globally */}
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="(pages)" />
-      </Stack>
-
-      <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
-    </ThemeProvider>
+    <ClerkProvider publishableKey={clerkPublishableKey} tokenCache={tokenCache}>
+      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="(pages)" />
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="(home)" />
+        </Stack>
+        <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
+      </ThemeProvider>
+    </ClerkProvider>
   );
 }
