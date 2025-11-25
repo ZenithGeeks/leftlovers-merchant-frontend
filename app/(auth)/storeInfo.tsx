@@ -32,7 +32,8 @@ export default function StoreInfo() {
   const [district, setDistrict] = React.useState(DEV ? "Khlong Toei" : "");
   const [subdistrict, setSubdistrict] = React.useState(DEV ? "Khlong Toei" : "");
   const [postalCode, setPostalCode] = React.useState(DEV ? "10110" : "");
-  const [foodType, setFoodType] = React.useState<FoodType>(FOOD_TYPES[0]);
+  // NOTE: switch to null because categories come from API
+  const [foodType, setFoodType] = React.useState<FoodType | null>(DEV ? FOOD_TYPES[0] : null);
   const [lat, setLat] = React.useState<string>(DEV ? "13.736717" : "");
   const [lng, setLng] = React.useState<string>(DEV ? "100.523186" : "");
 
@@ -64,7 +65,7 @@ export default function StoreInfo() {
   const isValidLng = lng !== "" && !isNaN(Number(lng)) && Math.abs(Number(lng)) <= 180;
   const hasUploads = !!commercialReg && !!ownerIdDoc && storeImages.length > 0;
 
-const canSave =
+  const canSave =
     isBrandNameValid &&
     address.trim().length > 3 &&
     !!city.trim() &&
@@ -73,7 +74,8 @@ const canSave =
     isValidPostal &&
     isValidLat &&
     isValidLng &&
-    hasUploads;
+    hasUploads &&
+    !!foodType?.id; // require category selected
 
   const [saving, setSaving] = React.useState(false);
   const submittingRef = React.useRef(false);
@@ -84,19 +86,22 @@ const canSave =
     submittingRef.current = true;
     setSaving(true);
 
-  const latNum = Number(lat);
-  const lngNum = Number(lng);
-  if (isNaN(latNum) || isNaN(lngNum)) {
-    Alert.alert("Invalid coordinates", "Latitude or Longitude is not valid.");
-    return;
-  }
+    const latNum = Number(lat);
+    const lngNum = Number(lng);
+    if (isNaN(latNum) || isNaN(lngNum)) {
+      // reset flags before returning
+      setSaving(false);
+      submittingRef.current = false;
+      Alert.alert("Invalid coordinates", "Latitude or Longitude is not valid.");
+      return;
+    }
 
     try {
       // Build payload
       const payload = {
         userId: ownerUserId,
         displayName: brandName.trim(),
-        categoryId: foodType.id,
+        categoryId: foodType?.id ?? null,
         address: {
           line1: address,
           line2: district,
@@ -114,6 +119,7 @@ const canSave =
       };
 
       // Call your backend
+      // NOTE: If your backend expects /merchant/setup (absolute path), ensure base URL
       const res = await fetch("/merchant/setup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -210,6 +216,11 @@ const canSave =
           onChange={setFoodType}
           required
           errorText={!foodType ? "Please select a food type." : undefined}
+          fetchUrl="/api/merchant/categories"
+          // If your API returns { categories: [...] } or different keys, use mapResponse:
+          // mapResponse={(raw) => raw.categories.map((c:any) => ({ id: c.id, label: c.name }))}
+          // If your API needs auth, pass authToken prop (you can fetch token from your auth flow)
+          // authToken={someToken}
         />
 
         {/* Uploads (single with preview) */}
