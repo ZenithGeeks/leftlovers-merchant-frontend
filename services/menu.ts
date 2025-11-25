@@ -1,5 +1,5 @@
 import { httpDelete, httpGet, postJSON, putJSON } from "@/lib/api";
-import { uploadImageFile } from "@/services/upload";
+import { uploadFile } from "@/services/upload";
 import { MenuItemAPI, UpdateMenuItemForm } from "@/types/types";
 export interface Option {
   id: string;
@@ -33,7 +33,7 @@ export async function createMenuItem(
   const maybeLocalPhoto = data.photoUrl as any;
   const maybeLocalPhoto_Expired = data.expireLabelUrl as any;
   if (maybeLocalPhoto && typeof maybeLocalPhoto === "object") {
-    const uploaded = await uploadImageFile(
+    const uploaded = await uploadFile(
       {
         uri: maybeLocalPhoto.uri,
         name: maybeLocalPhoto.name ?? "photo.jpg",
@@ -46,7 +46,7 @@ export async function createMenuItem(
   }
 
    if (maybeLocalPhoto_Expired && typeof maybeLocalPhoto_Expired === "object") {
-    const uploaded = await uploadImageFile(
+    const uploaded = await uploadFile(
       {
         uri: maybeLocalPhoto_Expired.uri,
         name: maybeLocalPhoto_Expired.name ?? "photo.jpg",
