@@ -42,8 +42,24 @@ export default function AddItemScreen() {
   const [price, setPrice] = useState("");
   const [originalPrice, setOriginalPrice] = useState("");
   const [expireAt, setExpireAt] = useState<Date | null>(null);
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
-  const [expireLabelUrl, setExpireLabelUrl] = useState<string | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<
+    | string
+    | {
+        uri: string;
+        name?: string | null;
+        type?: string | null;
+      }
+    | null
+  >(null);
+  const [expireLabelUrl, setExpireLabelUrl] = useState<
+    | string
+    | {
+        uri: string;
+        name?: string | null;
+        type?: string | null;
+      }
+    | null
+  >(null);
   const [submitting, setSubmitting] = useState(false);
   const [optionsLoading, setOptionsLoading] = useState(true);
   const [optionGroups, setOptionGroups] = useState<OptionGroupAPI[]>([]);
@@ -74,6 +90,7 @@ export default function AddItemScreen() {
       mounted = false;
     };
   }, []);
+
   const groupTemplatesAll: GroupTemplate[] = useMemo(
     () =>
       (optionGroups ?? []).map((g) => ({
@@ -119,8 +136,8 @@ export default function AddItemScreen() {
         leftoverQty: qty,
         expiresAt: expireAt ? expireAt.toISOString() : "",
         status: "DRAFT" as const,
-        photoUrl: photoUrl ?? "",
-        expireLabelUrl: expireLabelUrl ?? "",
+        photoUrl: photoUrl ?? undefined,
+        expireLabelUrl: expireLabelUrl ?? undefined,
         groupTemplates:
           selectedGroups.length > 0
             ? selectedGroups.map((g) => ({
@@ -196,12 +213,15 @@ export default function AddItemScreen() {
           Menu Image
         </Text>
         <ImagePickerField value={photoUrl} onChange={setPhotoUrl} />
+
         <Text className="mb-2 mt-6 text-xl font-bold text-[#11181C]">
           Expiry Label (optional)
         </Text>
         <ImagePickerField value={expireLabelUrl} onChange={setExpireLabelUrl} />
+
         <View className="h-5" />
         <DatePickerField value={expireAt} onChange={setExpireAt} />
+
         <FieldLabel label="Description" className="mt-5 pb-2" />
         <TextInput
           placeholder="Enter a description"
@@ -212,8 +232,10 @@ export default function AddItemScreen() {
           accessibilityLabel="input-description"
           className="w-full min-h-[120px] rounded-xl border border-gray-300 px-4 py-3 text-[16px]"
         />
+
         <FieldLabel label="Quantity" required className="mt-5 pb-2" />
         <NumberStepper value={qty} onChange={setQty} testID="quantity" />
+
         <FieldLabel label="Price (base)" required className="mt-5 pb-2" />
         <TextInput
           placeholder="THB"
@@ -226,6 +248,7 @@ export default function AddItemScreen() {
           accessibilityLabel="input-base-price"
           className="w-full rounded-xl border border-gray-300 px-4 py-3 text-[16px]"
         />
+
         <FieldLabel label="Original Price (optional)" className="mt-5 pb-2" />
         <TextInput
           placeholder="THB"
@@ -238,6 +261,7 @@ export default function AddItemScreen() {
           accessibilityLabel="input-original-price"
           className="w-full rounded-xl border border-gray-300 px-4 py-3 text-[16px]"
         />
+
         <FieldLabel label="Option Groups" className="mt-5 pb-2" />
         <Pressable
           onPress={() => setGroupMultiOpen(true)}
@@ -272,6 +296,7 @@ export default function AddItemScreen() {
             setGroupMultiOpen(false);
           }}
         />
+
         <Pressable
           onPress={onSubmit}
           accessibilityLabel="submit"

@@ -1,6 +1,6 @@
 import { httpDelete, httpGet, postJSON, putJSON } from "@/lib/api";
+import { uploadImageFile } from "@/services/upload";
 import { MenuItemAPI, UpdateMenuItemForm } from "@/types/types";
-
 export interface Option {
   id: string;
   optionGroupId: string;
@@ -25,10 +25,44 @@ export async function getMenuItems(merchantId: string) {
   return httpGet<MenuItemAPI[]>(`/api/merchant/${merchantId}/menu`);
 }
 
-// ➕ POST create new menu item
-export async function createMenuItem(merchantId: string, data: Omit<MenuItemAPI, "id" | "createdAt">) {
-  return postJSON<MenuItemAPI>(`/api/merchant/${merchantId}/menu`, data);
-}
+export async function createMenuItem(
+  merchantId: string,
+  data: Omit<MenuItemAPI, "id" | "createdAt">
+) {
+  let finalData = { ...data };
+  const maybeLocalPhoto = data.photoUrl as any;
+  const maybeLocalPhoto_Expired = data.expireLabelUrl as any;
+  if (maybeLocalPhoto && typeof maybeLocalPhoto === "object") {
+    const uploaded = await uploadImageFile(
+      {
+        uri: maybeLocalPhoto.uri,
+        name: maybeLocalPhoto.name ?? "photo.jpg",
+        type: maybeLocalPhoto.type ?? "image/jpeg",
+      },
+      "menu-photos"
+    );
+
+    finalData.photoUrl = uploaded.url;
+  }
+
+   if (maybeLocalPhoto_Expired && typeof maybeLocalPhoto_Expired === "object") {
+    const uploaded = await uploadImageFile(
+      {
+        uri: maybeLocalPhoto_Expired.uri,
+        name: maybeLocalPhoto_Expired.name ?? "photo.jpg",
+        type: maybeLocalPhoto_Expired.type ?? "image/jpeg",
+      },
+      "expired-photos"
+    );
+
+    finalData.expireLabelUrl = uploaded.url;
+  }
+
+  return postJSON<MenuItemAPI>(
+    `/api/merchant/${merchantId}/menu`,
+    finalData
+  );
+} 
 
 export async function DeleteMenuItem(merchantId: string, menuId: string) {
   const path = `/api/merchant/${merchantId}/menu/${menuId}`;
@@ -53,10 +87,10 @@ export async function updateMenuItem(payload: UpdateMenuItemForm, merchantId:str
     basePrice: payload.basePrice,
     originalPrice: payload.originalPrice,
     leftoverQty: payload.leftoverQty,
-    expiresAt: payload.expiresAt ? payload.expiresAt.toISOString() : null,
-    photoUrl: payload.photoUri ?? "",
+    expiresAt: payload.expiresAt ? payload.expiresAt.toString() : null,
+    photoUrl: payload.photoUrl ?? "",
     expirePhotoUrl: payload.expirePhotoUri ?? "",
-    groupTemplates: payload.groupTemplates ?? []
+    groupTemplates: payload.groupTemplateIds ?? []
   }
   return putJSON<MenuItemAPI>(`/api/merchant/${merchantId}/menu/${payload.id}`, body)
 }

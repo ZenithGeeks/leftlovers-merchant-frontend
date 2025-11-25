@@ -2,10 +2,19 @@ import * as ImagePicker from "expo-image-picker";
 import React, { useCallback, useState } from "react";
 import { Alert, Image, Pressable, Text, View } from "react-native";
 
+export type ImageValue =
+  | string
+  | {
+      uri: string;
+      name?: string | null;
+      type?: string | null;
+    }
+  | null;
+
 type Props = {
   label?: string;
-  value?: string | null;          // uri
-  onChange: (uri: string | null) => void;
+  value?: ImageValue;
+  onChange: (val: ImageValue) => void;
 };
 
 export default function ImagePickerField({
@@ -18,7 +27,10 @@ export default function ImagePickerField({
   const ensurePermission = useCallback(async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("Permission needed", "Please allow Photos permission to pick an image.");
+      Alert.alert(
+        "Permission needed",
+        "Please allow Photos permission to pick an image."
+      );
       return false;
     }
     return true;
@@ -33,7 +45,14 @@ export default function ImagePickerField({
         quality: 0.9,
       });
       if (!result.canceled) {
-        onChange(result.assets[0]?.uri ?? null);
+        const asset = result.assets[0];
+
+        // 🔹 Pass full file object so createMenuItem can upload to MinIO
+        onChange({
+          uri: asset.uri,
+          name: asset.fileName ?? null,
+          type: asset.mimeType ?? null,
+        });
       }
     } catch (e) {
       console.warn("pick error", e);
@@ -44,14 +63,20 @@ export default function ImagePickerField({
 
   const clear = () => onChange(null);
 
+  // Decide what to show in <Image />
+  const displayUri =
+    typeof value === "string" ? value : value?.uri ?? null;
+
   return (
     <View className="w-full">
-      <Text className="mb-2 text-[16px] font-semibold text-[#11181C]">{label} <Text className="text-red-500">*</Text></Text>
+      <Text className="mb-2 text-[16px] font-semibold text-[#11181C]">
+        {label} <Text className="text-red-500">*</Text>
+      </Text>
 
-      {value ? (
+      {displayUri ? (
         <View className="rounded-2xl border border-dashed border-gray-400 p-3">
           <Image
-            source={{ uri: value }}
+            source={{ uri: displayUri }}
             className="h-40 w-full rounded-xl bg-gray-100"
             resizeMode="cover"
           />
@@ -76,7 +101,9 @@ export default function ImagePickerField({
           onPress={pick}
           className="h-36 items-center justify-center rounded-2xl border border-dashed border-gray-400 bg-white active:opacity-90"
         >
-          <Text className="text-[16px] text-[#11181C]">{busy ? "Opening…" : "Upload PNG/JPEG"}</Text>
+          <Text className="text-[16px] text-[#11181C]">
+            {busy ? "Opening…" : "Upload PNG/JPEG"}
+          </Text>
         </Pressable>
       )}
     </View>
