@@ -4,7 +4,7 @@ import NumberStepper from "@/components/add-item/NumberStepper";
 
 function Harness({ initial = 1 }) {
   const [value, setValue] = useState(initial);
-  return <NumberStepper value={value} onChange={setValue} />;
+  return <NumberStepper value={value} onChange={setValue} testID={""} />;
 }
 
 describe("NumberStepper", () => {

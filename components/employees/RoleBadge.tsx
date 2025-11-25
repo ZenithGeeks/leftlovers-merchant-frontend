@@ -1,12 +1,12 @@
 import React from 'react';
 import { Text, View } from 'react-native';
-import type { Role } from './types';
+import type { Role } from '@/types/employee.ts';
 
 const map: Record<Role, { bg: string; text: string }> = {
-  Owner:   { bg: 'bg-emerald-50', text: 'text-emerald-600' },
-  Manager: { bg: 'bg-blue-50',    text: 'text-blue-600' },
-  Cashier: { bg: 'bg-purple-50',  text: 'text-purple-600' },
-  Stock:   { bg: 'bg-amber-50',   text: 'text-amber-600' },
+  Owner:   { bg: 'bg-[#26BD68]', text: 'text-white' },
+  Manager: { bg: 'bg-[#26BD68]',    text: 'text-white' },
+  Cashier: { bg: 'bg-[#26BD68]',  text: 'text-white' },
+  Stock:   { bg: 'bg-[#26BD68]',   text: 'text-white' },
 };
 
 const defaultStyle = { bg: 'bg-gray-100', text: 'text-gray-800' };

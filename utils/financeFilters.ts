@@ -1,8 +1,8 @@
 import dayjs, { Dayjs } from 'dayjs';
 import isoWeek from 'dayjs/plugin/isoWeek';
-dayjs.extend(isoWeek);
 
-import type { DateKey } from '@/components/finance/types';
+import type { DateKey } from '@/types/finance';
+dayjs.extend(isoWeek);
 
 export function filterByDateRange<T>(
   data: T[],
@@ -38,7 +38,7 @@ export function computeSummaryFromTransactions(
   transactions: { amountTHB: number }[],
   opts?: { feeRate?: number }
 ) {
-  const feeRate = opts?.feeRate ?? 0.08;
+  const feeRate = opts?.feeRate ?? 0.15;
 
   if (!transactions || transactions.length === 0) {
     return {
@@ -56,4 +56,3 @@ export function computeSummaryFromTransactions(
 
   return { netSales, deduction, netEarnings, earnings };
 }
-

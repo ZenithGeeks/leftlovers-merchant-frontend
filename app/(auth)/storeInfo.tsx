@@ -13,7 +13,6 @@ import LocationPicker from "@/components/Authen/LocationPicker";
 import FoodTypePicker, { FOOD_TYPES, FoodType } from "@/components/Authen/menuType";
 import UploadFile from "@/components/Authen/UploadFile";
 import UploadImagesGrid from "@/components/Authen/UploadImages";
-import { createMerchantInfo } from "../api/merchant";
 
 import { setStep } from "@/src/lib/onboarding";
 

@@ -1,7 +1,17 @@
-import React from 'react';
-import { Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+// components/employee/AddEmployeeModal.tsx
+import React, { useMemo } from 'react';
+import {
+  Modal,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  Platform,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import type { Role } from './types';
+import FieldLabel from '@/components/add-item/FieldLabel';
+import type { Role } from '@/types/employee';
 
 export default function AddEmployeeModal({
   visible,
@@ -44,31 +54,62 @@ export default function AddEmployeeModal({
     { key: 'Stock', desc: 'Access to features for inventory like menu' },
   ];
 
+  // simple enable state (require: full name + username + (email or phone))
+  const canSubmit = useMemo(() => {
+    const hasName = fullName.trim().length > 0;
+    const hasUsername = username.trim().length > 0;
+    const hasContact = email.trim().length > 0 || phone.trim().length > 0;
+    return hasName && hasUsername && hasContact;
+  }, [fullName, username, email, phone]);
+
   return (
-    <Modal visible={visible} animationType="slide" transparent={false} presentationStyle="fullScreen" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent={false}
+      presentationStyle="fullScreen"
+      onRequestClose={onClose}
+    >
       <View className="flex-1 bg-white" style={{ paddingTop: topPadding + 24 }}>
         {/* Top bar */}
         <View className="px-6 flex-row items-center justify-between">
-          <Text className="text-2xl font-bold text-[#11181C]">Employees</Text>
-          <TouchableOpacity onPress={onClose} hitSlop={8}>
+          <Text className="text-2xl font-bold text-[#11181C]">Add Employee</Text>
+          <TouchableOpacity onPress={onClose} hitSlop={8} accessibilityLabel="close-modal">
             <Ionicons name="close" size={22} color="#11181C" />
           </TouchableOpacity>
         </View>
 
         <ScrollView
           className="flex-1"
-          contentContainerStyle={{ paddingHorizontal: horizontalPadding, paddingBottom: bottomPadding + 24 }}
+          contentContainerStyle={{
+            paddingHorizontal: horizontalPadding,
+            paddingBottom: bottomPadding + 24,
+          }}
+          keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          {/* Role */}
           <Text className="text-lg font-bold text-[#11181C] mt-4">Choose their role</Text>
-          <Text className="text-sm text-[#6B7280] mt-1">Their role will determine their level of access</Text>
+          <Text className="text-sm text-[#6B7280] mt-1">
+            Their role will determine their level of access
+          </Text>
 
           <View className="mt-3 space-y-4">
-            {opts.map(opt => {
+            {opts.map((opt) => {
               const active = role === opt.key;
               return (
-                <TouchableOpacity key={opt.key} className="flex-row gap-3 items-start" onPress={() => setRole(opt.key)}>
-                  <View className={`w-5 h-5 rounded-full border-2 items-center justify-center mt-0.5 ${active ? 'border-green-600' : 'border-gray-400'}`}>
+                <TouchableOpacity
+                  key={opt.key}
+                  className="flex-row gap-3 items-start"
+                  onPress={() => setRole(opt.key)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`select-role-${opt.key}`}
+                >
+                  <View
+                    className={`w-6 h-6 rounded-full border-2 items-center justify-center mt-0.5 ${
+                      active ? 'border-green-600' : 'border-gray-400'
+                    }`}
+                  >
                     {active && <View className="w-3 h-3 rounded-full bg-green-600" />}
                   </View>
                   <View className="flex-1">
@@ -82,45 +123,69 @@ export default function AddEmployeeModal({
             })}
           </View>
 
+          {/* Details */}
           <Text className="text-lg font-bold text-[#11181C] mt-6">Their Details</Text>
 
-          <View className="mt-3 space-y-3">
+          <View className="mt-3">
+            <FieldLabel label="Full name" required className="pb-2" />
             <TextInput
-              placeholder="Full name"
+              placeholder="Enter full name"
               value={fullName}
               onChangeText={setFullName}
               placeholderTextColor="#9AA0A6"
-              className="h-14 rounded-xl border border-gray-300 px-3 text-sm"
+              accessibilityLabel="input-full-name"
+              className="w-full rounded-xl border border-gray-300 px-4 py-3 text-[16px]"
             />
+
+            <FieldLabel label="Username" required className="mt-5 pb-2" />
             <TextInput
-              placeholder="Username"
+              placeholder="Choose a username"
               value={username}
               onChangeText={setUsername}
               placeholderTextColor="#9AA0A6"
               autoCapitalize="none"
-              className="h-14 rounded-xl border border-gray-300 px-3 text-sm"
+              accessibilityLabel="input-username"
+              className="w-full rounded-xl border border-gray-300 px-4 py-3 text-[16px]"
             />
+
+            <FieldLabel label="Email" className="mt-5 pb-2" />
             <TextInput
-              placeholder="Email"
+              placeholder="name@example.com"
               value={email}
               onChangeText={setEmail}
               placeholderTextColor="#9AA0A6"
               autoCapitalize="none"
               keyboardType="email-address"
-              className="h-14 rounded-xl border border-gray-300 px-3 text-sm"
+              accessibilityLabel="input-email"
+              className="w-full rounded-xl border border-gray-300 px-4 py-3 text-[16px]"
             />
+
+            <FieldLabel label="Mobile number" className="mt-5 pb-2" />
             <TextInput
-              placeholder="Mobile number"
+              placeholder="08x-xxx-xxxx"
               value={phone}
               onChangeText={setPhone}
               placeholderTextColor="#9AA0A6"
-              keyboardType="phone-pad"
-              className="h-14 rounded-xl border border-gray-300 px-3 text-sm"
+              keyboardType={Platform.select({ ios: 'number-pad', android: 'phone-pad' })}
+              accessibilityLabel="input-phone"
+              className="w-full rounded-xl border border-gray-300 px-4 py-3 text-[16px]"
             />
+            <Text className="text-[12px] text-gray-500 mt-2">
+              * Please provide valid Email and Mobile number.
+            </Text>
           </View>
 
-          <TouchableOpacity className="mt-7 bg-green-600 rounded-full h-14 items-center justify-center py-3.5" onPress={onSubmit}>
-            <Text className="text-white font-bold text-base">Add Employee</Text>
+          <TouchableOpacity
+            className={`mt-7 rounded-2xl h-14 items-center justify-center py-3.5 ${
+              canSubmit ? 'bg-[#26BD68]' : 'bg-gray-300'
+            }`}
+            disabled={!canSubmit}
+            onPress={onSubmit}
+            accessibilityLabel="submit-add-employee"
+          >
+            <Text className="text-white font-semibold text-base">
+              {canSubmit ? 'Add Employee' : 'Fill required fields'}
+            </Text>
           </TouchableOpacity>
         </ScrollView>
       </View>

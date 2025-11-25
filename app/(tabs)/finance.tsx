@@ -1,78 +1,143 @@
-import React, { useMemo, useState } from 'react';
-import { Dimensions, ScrollView, Text, View } from 'react-native';
+// app/(tabs)/finance.tsx
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Dimensions, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import mockData from '@/mockupData/finance.json';
-import  Tabs  from '@/components/finance/Tabs';
+
+import Tabs from '@/components/finance/Tabs';
 import { SummaryTab } from '@/components/finance/SummaryTab';
 import { TransactionTab } from '@/components/finance/TransactionTab';
 import { PayoutTab } from '@/components/finance/PayoutTab';
-import type { TabKey, DateKey, Payout } from '@/components/finance/types';
-import { filterByDateRange, computeSummaryFromTransactions } from '@/utils/financeFilters';
+
+import type { DateKey, Payout, Summary, TabKey, Transaction } from '@/types/finance';
+import { DEV_MERCHANT_ID } from '@/utils/env';
+import {
+  fetchFinancePayouts,
+  fetchFinanceSummary,
+  fetchFinanceTransactions,
+} from '@/services/finance';
+
+const DEFAULT_RANGE: DateKey = 'Today';
+const DEFAULT_TAB: TabKey = 'Summary';
+
+// (You can pass merchantId via context/store; we read a dev fallback here.)
+const MERCHANT_ID = DEV_MERCHANT_ID || 'REPLACE_ME_MERCHANT_ID';
 
 export default function FinanceScreen() {
   const insets = useSafeAreaInsets();
+
   const screenWidth = Dimensions.get('window').width;
-  const horizontalPadding = useMemo(() => Math.max(14, Math.min(screenWidth * 0.05, 24)), [screenWidth]);
-
-  const [activeTab, setActiveTab] = useState<TabKey>('Summary');
-  const [date, setDate] = useState<DateKey>('Today');
-
-  const { transactions, payouts, summary } = mockData;
-
-  // Coerce payout.status to the union type once (typed safety)
-  const typedPayouts: Payout[] = useMemo(
-    () =>
-      payouts.map((p) => ({
-        ...p,
-        status: (p.status === 'Transferred' || p.status === 'Pending' || p.status === 'Failed')
-          ? p.status
-          : 'Pending',
-      })),
-    [payouts]
+  const horizontalPadding = useMemo(
+    () => Math.max(14, Math.min(screenWidth * 0.05, 24)),
+    [screenWidth]
   );
 
-  // Filtered data (fast & memoized)
-    // For transactions
-  const filteredTransactions = useMemo(
-    () => filterByDateRange(transactions, date, (t) => t.date),
-    [transactions, date]
-  );
+  const [activeTab, setActiveTab] = useState<TabKey>(DEFAULT_TAB);
+  const [selectedDate, setSelectedDate] = useState<DateKey>(DEFAULT_RANGE);
 
-  
-  // For payouts (note: using detailDate)
-  const filteredPayouts = useMemo(
-    () => filterByDateRange(typedPayouts, date, (p) => p.detailDate),
-    [typedPayouts, date]
-  );
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [payouts, setPayouts] = useState<Payout[]>([]);
+  const [summary, setSummary] = useState<Summary>({
+    netSales: 0,
+    deduction: 0,
+    netEarnings: 0,
+    earnings: 0,
+  });
 
-  // Dynamic summary from filtered transactions (or fallback to mock summary)
-  const dynamicSummary = useMemo(
-    () => computeSummaryFromTransactions(filteredTransactions, { feeRate: 0.08 }),
-    [filteredTransactions]
-  );
-  
-  //console.log('Mock data', mockData);
-  //console.log('Filtered transactions', filteredTransactions.length);
-  //console.log('Filtered payouts', filteredPayouts.length);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    // cancel previous fetch if any
+    if (abortRef.current) abortRef.current.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+
+    async function load() {
+      setLoading(true);
+      setErr(null);
+      try {
+        const [tx, po, su] = await Promise.all([
+          fetchFinanceTransactions(MERCHANT_ID, selectedDate, ctrl.signal),
+          fetchFinancePayouts(MERCHANT_ID, selectedDate, ctrl.signal),
+          fetchFinanceSummary(MERCHANT_ID, selectedDate, ctrl.signal),
+        ]);
+        setTransactions(tx);
+        setPayouts(po);
+        setSummary(su);
+      } catch (e: any) {
+        if (e?.name === 'AbortError') return;
+        setErr(e?.message || 'Failed to load finance data');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    load();
+
+    return () => {
+      ctrl.abort();
+    };
+  }, [selectedDate]);
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}>
-      <View className="flex-1 bg-white" style={{ paddingTop: insets.top + 24, paddingHorizontal: horizontalPadding }}>
-        <Text className="text-2xl font-bold text-black mb-4">Finance</Text>
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
+    >
+      <View
+        className="flex-1 bg-white"
+        style={{ paddingTop: insets.top + 16, paddingHorizontal: horizontalPadding }}
+      >
+        {/* Header */}
+        <Text className="text-[32px] font-extrabold text-[#0B1220] mb-4">Finance</Text>
 
+        {/* Tabs */}
         <Tabs active={activeTab} onChange={setActiveTab} />
 
-        {activeTab === 'Summary' && (
-          <SummaryTab selectedDate={date} onDateChange={setDate} data={dynamicSummary || summary} />
+        {/* Error */}
+        {err && (
+          <View className="mt-4 p-3 rounded-xl bg-red-50">
+            <Text className="text-red-600">{err}</Text>
+          </View>
         )}
 
-
-        {activeTab === 'Transaction' && (
-          <TransactionTab date={date} onDateChange={setDate} data={filteredTransactions} />
+        {/* Loading */}
+        {loading && (
+          <View className="mt-6 items-center">
+            <ActivityIndicator />
+            <Text className="text-gray-500 mt-2">Loading…</Text>
+          </View>
         )}
 
-        {activeTab === 'Payout' && (
-          <PayoutTab date={date} onDateChange={setDate} data={filteredPayouts} />
+        {/* Content */}
+        {!loading && !err && (
+          <>
+            {activeTab === 'Summary' && (
+              <SummaryTab
+                selectedDate={selectedDate}
+                onDateChange={setSelectedDate}
+                data={summary}
+              />
+            )}
+
+            {activeTab === 'Transaction' && (
+              <TransactionTab
+                date={selectedDate}
+                onDateChange={setSelectedDate}
+                data={transactions}
+              />
+            )}
+
+            {activeTab === 'Payout' && (
+              <PayoutTab
+                date={selectedDate}
+                onDateChange={setSelectedDate}
+                data={payouts}
+              />
+            )}
+          </>
         )}
       </View>
     </ScrollView>

@@ -31,6 +31,7 @@ export default function SelectionRow({
         placeholder="Enter selection name (e.g., 100%, Oat Milk)"
         value={value.name}
         accessibilityLabel={`selection-${index}-name`}
+        testID={`selection-${index}-name`}
         className="mb-3 w-full rounded-xl border border-gray-300 px-4 py-3 text-[16px] text-gray-900"
         onChangeText={(t) => onChange({ name: t })}
       />
@@ -41,6 +42,7 @@ export default function SelectionRow({
           value={value.priceDelta ?? ""}
           keyboardType="decimal-pad"
           accessibilityLabel={`selection-${index}-price`}
+          testID={`selection-${index}-price`}
           className="flex-1 rounded-xl border border-gray-300 px-4 py-3 text-[16px] text-gray-900"
           onChangeText={(t) => onChange({ priceDelta: t })}
         />

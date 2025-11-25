@@ -6,6 +6,8 @@ import {
 } from "react-native";
 import ToggleButton from "@/components/Order/ToggleButton";
 import { OrderListItem } from "@/constants/order.type";
+import CardItem from "./CardItem";
+import { Ionicons } from "@expo/vector-icons";
 
 interface OrderListRowProps {
   item: OrderListItem;
@@ -45,7 +47,17 @@ export default function OrderListRow({ item }: OrderListRowProps) {
             <View style={styles.orderDetails}>
                <Text style={styles.detailTitle}>{item.userName}</Text>
                <Text style={styles.detailBody}>Pickup time at {item.pickupTime.toLocaleString()}</Text>
-               <Text style={styles.detailBody}>Put the tel here</Text>
+               <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <Ionicons name="call-outline" size={12} color="#6B7280" />
+                  <Text style={styles.detailBody}>{item.telephone}</Text>
+               </View>
+               {/* Item Card */}
+               {item.orderItems.map((card: any, index: number) => (
+                  <CardItem
+                     key={index}
+                     orderItem={card}
+                  />
+               ))}
             </View>
          )}
       </>
