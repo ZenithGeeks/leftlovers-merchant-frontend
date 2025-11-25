@@ -26,7 +26,7 @@ export default function SignUpPage() {
   const router = useRouter();
   const { isLoaded: signUpLoaded, signUp, setActive } = useSignUp();
   const { isLoaded: authLoaded, isSignedIn, signOut } = useAuth();
-  useUser();
+  const { user } = useUser();
 
   const [email, setEmail] = useState("");
   const [fullName] = useState("");
@@ -67,15 +67,6 @@ export default function SignUpPage() {
 
   const isValidEmail = (v: string) =>
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim().toLowerCase());
-
-  // Convert Thai local numbers (e.g., 0812345678) to E.164 (+66…)
-  const toE164TH = (input: string): string | null => {
-    if (!input) return null;
-    let d = input.replace(/\D/g, "");
-    if (d.startsWith("0")) d = d.slice(1);
-    if (d.length < 8 || d.length > 10) return null; // sanity check
-    return `+66${d}`;
-  };
 
   /* ======================== EMAIL/PASSWORD SIGN UP ======================== */
   const handleSignUp = async () => {
@@ -158,7 +149,6 @@ export default function SignUpPage() {
       // Prepare backend payload
       const name = fullName.trim();
       const emailLower = email.trim().toLowerCase();
-      const phoneE164 = toE164TH(localPhone);
 
       // Create merchant (DOB explicitly null per your requirement)
       try {
@@ -166,10 +156,10 @@ export default function SignUpPage() {
           name,
           email: emailLower,
           dob: null,                // ✅ force null
-          phone: phoneE164 ?? null, // ✅ null if invalid/empty
+          phone: localPhone || undefined, // ✅ null if invalid/empty
           role: "MERCHANT",
         });
-        console.log("✅ Backend merchant user created (email/password)");
+        console.log("Backend merchant user created (email/password)");
       } catch (e: any) {
         console.warn("Create merchant user failed:", e);
         Alert.alert(
@@ -178,18 +168,7 @@ export default function SignUpPage() {
         );
       }
 
-      // Navigate to phone OTP screen with params (correct folder + deferred)
-      const params: Record<string, string | undefined> = {
-        phoneNumber: phoneE164 ?? undefined,
-        ...(createdSessionId ? { sessionId: String(createdSessionId) } : {}),
-      };
-
-      // Defer to avoid "navigate before Root Layout mounts" race
-      setTimeout(() => {
-        router.replace({ pathname: "/(auth)/phone", params }); // ✅ correct route
-      }, 0);
-      // Or: InteractionManager.runAfterInteractions(() => router.replace({ pathname: "/(authen)/phone", params }));
-
+      router.replace({ pathname: "/(auth)/storeInfo", params: { userId: user?.id } });
     } catch (err: any) {
       console.error("Verification error:", err);
       Alert.alert(

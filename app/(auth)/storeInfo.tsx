@@ -1,7 +1,7 @@
 // app/(auth)/storeInfo.tsx
 import { useUser } from "@clerk/clerk-expo";
 import * as DocumentPicker from "expo-document-picker";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
 import { Alert, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -13,6 +13,7 @@ import LocationPicker from "@/components/Authen/LocationPicker";
 import FoodTypePicker, { FOOD_TYPES, FoodType } from "@/components/Authen/menuType";
 import UploadFile from "@/components/Authen/UploadFile";
 import UploadImagesGrid from "@/components/Authen/UploadImages";
+import { createMerchantInfo } from "../api/merchant";
 
 import { setStep } from "@/src/lib/onboarding";
 
@@ -21,9 +22,11 @@ const DEV = __DEV__;
 
 export default function StoreInfo() {
   const router = useRouter();
+  const params = useLocalSearchParams() as { userId?: string };
   const { user, isLoaded } = useUser();
+  const ownerUserId = params.userId ?? user?.id ?? null;
 
-  // ----- Form state
+  // Form state
   const [brandName, setBrandName] = React.useState(DEV ? "WakeUp" : "");
   const [address, setAddress] = React.useState(DEV ? "123 Soi Sukhumvit 10" : "");
   const [city, setCity] = React.useState(DEV ? "Bangkok" : "");
@@ -31,24 +34,38 @@ export default function StoreInfo() {
   const [subdistrict, setSubdistrict] = React.useState(DEV ? "Khlong Toei" : "");
   const [postalCode, setPostalCode] = React.useState(DEV ? "10110" : "");
   const [foodType, setFoodType] = React.useState<FoodType>(FOOD_TYPES[0]);
+  const [lat, setLat] = React.useState<string>(DEV ? "13.736717" : "");
+  const [lng, setLng] = React.useState<string>(DEV ? "100.523186" : "");
 
   // Files
   const [commercialReg, setCommercialReg] = React.useState<Doc | null>(null);
   const [ownerIdDoc, setOwnerIdDoc] = React.useState<Doc | null>(null);
   const [storeImages, setStoreImages] = React.useState<Doc[]>([]);
 
-  // Location
-  const [lat, setLat] = React.useState<string>(DEV ? "13.736717" : "");
-  const [lng, setLng] = React.useState<string>(DEV ? "100.523186" : "");
+  const pickOne = async (types: DocumentPicker.DocumentPickerOptions["type"]) => {
+    const res = await DocumentPicker.getDocumentAsync({ type: types, multiple: false });
+    if (res.canceled) return null;
+    return res.assets[0];
+  };
 
-  // ----- Validation
+  const pickManyImages = async () => {
+    const res = await DocumentPicker.getDocumentAsync({ type: ["image/*"], multiple: true });
+    if (res.canceled) return;
+    setStoreImages((prev) => [...prev, ...res.assets].slice(0, 5));
+  };
+
+  const clearCommercialReg = () => setCommercialReg(null);
+  const clearOwnerIdDoc = () => setOwnerIdDoc(null);
+  const removeStoreImage = (idx: number) =>
+    setStoreImages((prev) => prev.filter((_, i) => i !== idx));
+
   const isBrandNameValid = brandName.trim().length >= 2 && brandName.trim().length <= 250;
   const isValidPostal = /^\d{5}$/.test(postalCode);
   const isValidLat = lat !== "" && !isNaN(Number(lat)) && Math.abs(Number(lat)) <= 90;
   const isValidLng = lng !== "" && !isNaN(Number(lng)) && Math.abs(Number(lng)) <= 180;
   const hasUploads = !!commercialReg && !!ownerIdDoc && storeImages.length > 0;
 
-  const canSave =
+const canSave =
     isBrandNameValid &&
     address.trim().length > 3 &&
     !!city.trim() &&
@@ -59,90 +76,63 @@ export default function StoreInfo() {
     isValidLng &&
     hasUploads;
 
-  // ----- Pickers
-  const pickOne = async (types: DocumentPicker.DocumentPickerOptions["type"]) => {
-    const res = await DocumentPicker.getDocumentAsync({
-      type: types,
-      multiple: false,
-      copyToCacheDirectory: true,
-    });
-    if (res.canceled) return null;
-    return res.assets[0];
-  };
-
-  const pickManyImages = async () => {
-    const res = await DocumentPicker.getDocumentAsync({
-      type: ["image/*"],
-      multiple: true,
-      copyToCacheDirectory: true,
-    });
-    if (res.canceled) return;
-    setStoreImages((prev) => [...prev, ...res.assets].slice(0, 5));
-  };
-
-  // ----- Remove actions
-  const clearCommercialReg = () => setCommercialReg(null);
-  const clearOwnerIdDoc = () => setOwnerIdDoc(null);
-  const removeStoreImage = (idx: number) =>
-    setStoreImages((prev) => prev.filter((_, i) => i !== idx));
-
-  // ----- Submit (client-only) with lock
   const [saving, setSaving] = React.useState(false);
   const submittingRef = React.useRef(false);
 
   const onSave = async () => {
-    if (!canSave || !isLoaded || !user) return;
+    if (!canSave || !isLoaded || !ownerUserId) return;
     if (submittingRef.current) return;
     submittingRef.current = true;
+    setSaving(true);
+
+  const latNum = Number(lat);
+  const lngNum = Number(lng);
+  if (isNaN(latNum) || isNaN(lngNum)) {
+    Alert.alert("Invalid coordinates", "Latitude or Longitude is not valid.");
+    return;
+  }
 
     try {
-      setSaving(true);
-
-      // Debug payload only (no API)
-      console.log("STORE INFO (client-only) ->", {
-        brandName: brandName.trim(),
-        foodType,
+      // Build payload
+      const payload = {
+        userId: ownerUserId,
+        displayName: brandName.trim(),
+        categoryId: foodType.id,
         address: {
-          line1: address.trim(),
-          city: city.trim(),
-          district: district.trim(),
-          subdistrict: subdistrict.trim(),
-          postalCode,
-          location: { lat: Number(lat), lng: Number(lng) },
+          line1: address,
+          line2: district,
+          city: subdistrict,
+          province: city, // reuse city if no separate province
+          postalCode: postalCode,
+          lat: latNum,
+          lng: lngNum,
         },
-        files: {
-          commercialRegistration: commercialReg && {
-            name: commercialReg.name,
-            uri: commercialReg.uri,
-            mimeType: commercialReg.mimeType,
-          },
-          ownerId: ownerIdDoc && {
-            name: ownerIdDoc.name,
-            uri: ownerIdDoc.uri,
-            mimeType: ownerIdDoc.mimeType,
-          },
-          storeImages: storeImages.map((f) => ({
-            name: f.name,
-            uri: f.uri,
-            mimeType: f.mimeType,
-          })),
-        },
+        files: [
+          commercialReg && { kind: "COMMERCIAL_REG", url: commercialReg.uri, label: commercialReg.name },
+          ownerIdDoc && { kind: "OWNER_ID", url: ownerIdDoc.uri, label: ownerIdDoc.name },
+          ...storeImages.map((img) => ({ kind: "STORE_IMAGE", url: img.uri, label: img.name })),
+        ].filter(Boolean),
+      };
+
+      // Call your backend
+      const res = await fetch("/merchant/setup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
 
-      // Mark locally on Clerk (client-writable) for UI/guards
-      const currentUnsafe = (user.unsafeMetadata ?? {}) as Record<string, unknown>;
-      await user.update({
-        unsafeMetadata: { ...currentUnsafe, storeInfoSubmitted: true },
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.message || "Failed to save store info");
+
+      // Update Clerk metadata & onboarding step
+      await user?.update({
+        unsafeMetadata: { ...(user?.unsafeMetadata ?? {}), storeInfoSubmitted: true },
       });
-
-      // ✅ Advance step (client-side) and refresh user snapshot
-      await setStep(user, "notifyPage");
-      await user.reload();
-
-      // ✅ Show the waiting screen (then user taps ✓ to sign out → /signin)
+      await setStep(user!, "notifyPage");
+      await user?.reload();
       router.replace("/(auth)/notifyPage");
     } catch (err: any) {
-      console.error("storeInfo save error:", err);
       Alert.alert("Save failed", err?.message ?? "Something went wrong.");
     } finally {
       setSaving(false);

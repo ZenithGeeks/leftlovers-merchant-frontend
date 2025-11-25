@@ -1,7 +1,6 @@
-// src/lib/onboarding.ts
 import { UserResource } from "@clerk/types";
 
-export type OnboardingStep = "email" | "phone" | "store" | "notifyPage";
+export type OnboardingStep = "email" | "store" | "notifyPage";
 
 /** Read user's current onboarding step (defaults to "email") */
 export function getStep(user?: UserResource | null): OnboardingStep {
@@ -13,13 +12,11 @@ export function getStep(user?: UserResource | null): OnboardingStep {
 export function pathForStep(step: OnboardingStep): string {
   switch (step) {
     case "email":
-      return "/(auth)/phone";       
-    case "phone":
-      return "/(auth)/storeInfo";    
+      return "/(auth)/storeInfo";
     case "store":
-      return "/(auth)/storeInfo";    
+      return "/(auth)/notifyPage";
     case "notifyPage":
-      return "/(auth)/notifyPage";       
+      return "/(auth)/signin";
   }
 }
 

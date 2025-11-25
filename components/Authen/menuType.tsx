@@ -7,17 +7,17 @@ import { Modal, Pressable, Text, View } from 'react-native'
  *  Food Type Options & Types
  *  ------------------------------ */
 export const FOOD_TYPES = [
-  'Thai cuisine',
-  'Japanese',
-  'Chinese',
-  'Korean',
-  'Vietnamese',
-  'Cafe',
-  'Bakery',
-  'Vegetarian',
-  'Vegan',
-  'Halal',
-  'Seafood',
+  { id: "thai", label: "Thai cuisine" },
+  { id: "japanese", label: "Japanese" },
+  { id: "chinese", label: "Chinese" },
+  { id: "korean", label: "Korean" },
+  { id: "vietnamese", label: "Vietnamese" },
+  { id: "cafe", label: "Cafe" },
+  { id: "bakery", label: "Bakery" },
+  { id: "vegetarian", label: "Vegetarian" },
+  { id: "vegan", label: "Vegan" },
+  { id: "halal", label: "Halal" },
+  { id: "seafood", label: "Seafood" },
 ] as const
 
 export type FoodType = typeof FOOD_TYPES[number]
@@ -27,16 +27,16 @@ export type FoodType = typeof FOOD_TYPES[number]
  *  ------------------------------ */
 type FoodTypePickerProps = {
   /** Current selected value */
-  value: FoodType | ''
+  value: FoodType | null;
   /** Callback when changed */
-  onChange: (val: FoodType) => void
+  onChange: (val: FoodType) => void;
   /** UI */
-  label?: React.ReactNode
-  placeholder?: string
-  required?: boolean
-  disabled?: boolean
+  label?: React.ReactNode;
+  placeholder?: string;
+  required?: boolean;
+  disabled?: boolean;
   /** Optional error message shown beneath */
-  errorText?: string
+  errorText?: string;
 }
 
 const BRAND = { green: '#26BD68' }
@@ -86,7 +86,7 @@ export default function FoodTypePicker({
         }}
       >
         <Text className={`font-poppins ${value ? 'text-slate-900' : 'text-gray-400'}`}>
-          {value || placeholder}
+            {value ? value.label : placeholder}
         </Text>
         <Text className="text-gray-500">▾</Text>
       </Pressable>
@@ -114,11 +114,14 @@ export default function FoodTypePicker({
             </View>
 
             <Picker
-              selectedValue={value}
-              onValueChange={(val) => onChange(val as FoodType)}
+              selectedValue={value?.id ?? ""}
+              onValueChange={(id) => {
+                const selected = FOOD_TYPES.find((f) => f.id === id);
+                if (selected) onChange(selected);
+              }}
             >
               {FOOD_TYPES.map((opt) => (
-                <Picker.Item key={opt} label={opt} value={opt} />
+                <Picker.Item key={opt.id} label={opt.label} value={opt.id} />
               ))}
             </Picker>
           </View>

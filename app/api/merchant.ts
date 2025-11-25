@@ -14,9 +14,9 @@ export type CreateMerchantBody = {
 };
 
 const PATHS = {
-  createMerchantInfo: "/api/merchant",
-  getMerchant: (id: string) => `/api/merchant/${id}`,
-  updateMerchant: (id: string) => `/api/merchant/${id}`,
+  createMerchantInfo: "/api/merchant/setup",
+  getMerchant: (id: string) => `/api/merchant/user/${id}`,
+  updateMerchant: (id: string) => `/api/merchant/user/${id}`,
 };
 
 export async function createMerchantInfo(body: CreateMerchantBody, opts?: { token?: string }) {

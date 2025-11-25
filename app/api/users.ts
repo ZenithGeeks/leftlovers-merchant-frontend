@@ -23,24 +23,36 @@ type ApiErr = { message?: string; error?: string } & Record<string, any>;
 type FetchOpts = RequestInit & { token?: string };
 
 async function apiFetch<T>(path: string, init: FetchOpts = {}): Promise<T> {
+  // Merge headers but be careful about FormData
+  const providedHeaders = (init.headers as Record<string,string> | undefined) ?? {};
+  const isFormData = init.body instanceof FormData;
+
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    ...(init.headers as Record<string, string>),
+    ...(!isFormData ? { "Content-Type": "application/json" } : {}),
+    ...providedHeaders,
   };
+
   if (init.token) headers.Authorization = `Bearer ${init.token}`;
 
-  const res = await fetch(`${BASE}${path}`, {
-    method: init.method ?? "GET",
+  const method = (init.method ?? "GET").toUpperCase();
+
+  // Only attach body for non-GET/HEAD
+  const fetchInit: RequestInit = {
+    method,
     headers,
-    body: init.body,
-  });
+  };
+  if (init.body !== undefined && method !== "GET" && method !== "HEAD") {
+    fetchInit.body = init.body;
+  }
+
+  const res = await fetch(`${BASE}${path}`, fetchInit);
 
   const text = await res.text();
   let json: any = {};
   try {
     json = text ? JSON.parse(text) : {};
   } catch {
-    // non-JSON body, keep as empty object
+    // non-JSON body, keep json as empty object
   }
 
   if (!res.ok) {
@@ -49,6 +61,7 @@ async function apiFetch<T>(path: string, init: FetchOpts = {}): Promise<T> {
   }
   return json as T;
 }
+
 
 const PATHS = {
   user: "/api/merchant/user",
