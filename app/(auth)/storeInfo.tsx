@@ -1,7 +1,7 @@
 // app/(auth)/storeInfo.tsx
 import { useUser } from "@clerk/clerk-expo";
 import * as DocumentPicker from "expo-document-picker";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import React from "react";
 import { Alert, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -9,7 +9,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 // Local components
 import { ClickButton } from "@/components/Authen/ClickButton";
 import { InputBox } from "@/components/Authen/InputBox";
-import LocationPicker from "@/components/Authen/LocationPicker";
+import LocationPicker from "@/components/Authen/LocationPicker.native";
 import FoodTypePicker, { FOOD_TYPES, FoodType } from "@/components/Authen/menuType";
 import UploadFile from "@/components/Authen/UploadFile";
 import UploadImagesGrid from "@/components/Authen/UploadImages";
@@ -21,44 +21,27 @@ const DEV = __DEV__;
 
 export default function StoreInfo() {
   const router = useRouter();
-  const params = useLocalSearchParams() as { userId?: string };
   const { user, isLoaded } = useUser();
-  const ownerUserId = params.userId ?? user?.id ?? null;
 
-  // Form state
+  // ----- Form state
   const [brandName, setBrandName] = React.useState(DEV ? "WakeUp" : "");
   const [address, setAddress] = React.useState(DEV ? "123 Soi Sukhumvit 10" : "");
   const [city, setCity] = React.useState(DEV ? "Bangkok" : "");
   const [district, setDistrict] = React.useState(DEV ? "Khlong Toei" : "");
   const [subdistrict, setSubdistrict] = React.useState(DEV ? "Khlong Toei" : "");
   const [postalCode, setPostalCode] = React.useState(DEV ? "10110" : "");
-  // NOTE: switch to null because categories come from API
-  const [foodType, setFoodType] = React.useState<FoodType | null>(DEV ? FOOD_TYPES[0] : null);
-  const [lat, setLat] = React.useState<string>(DEV ? "13.736717" : "");
-  const [lng, setLng] = React.useState<string>(DEV ? "100.523186" : "");
+  const [foodType, setFoodType] = React.useState<FoodType>(FOOD_TYPES[0]);
 
   // Files
   const [commercialReg, setCommercialReg] = React.useState<Doc | null>(null);
   const [ownerIdDoc, setOwnerIdDoc] = React.useState<Doc | null>(null);
   const [storeImages, setStoreImages] = React.useState<Doc[]>([]);
 
-  const pickOne = async (types: DocumentPicker.DocumentPickerOptions["type"]) => {
-    const res = await DocumentPicker.getDocumentAsync({ type: types, multiple: false });
-    if (res.canceled) return null;
-    return res.assets[0];
-  };
+  // Location
+  const [lat, setLat] = React.useState<string>(DEV ? "13.736717" : "");
+  const [lng, setLng] = React.useState<string>(DEV ? "100.523186" : "");
 
-  const pickManyImages = async () => {
-    const res = await DocumentPicker.getDocumentAsync({ type: ["image/*"], multiple: true });
-    if (res.canceled) return;
-    setStoreImages((prev) => [...prev, ...res.assets].slice(0, 5));
-  };
-
-  const clearCommercialReg = () => setCommercialReg(null);
-  const clearOwnerIdDoc = () => setOwnerIdDoc(null);
-  const removeStoreImage = (idx: number) =>
-    setStoreImages((prev) => prev.filter((_, i) => i !== idx));
-
+  // ----- Validation
   const isBrandNameValid = brandName.trim().length >= 2 && brandName.trim().length <= 250;
   const isValidPostal = /^\d{5}$/.test(postalCode);
   const isValidLat = lat !== "" && !isNaN(Number(lat)) && Math.abs(Number(lat)) <= 90;
@@ -74,70 +57,92 @@ export default function StoreInfo() {
     isValidPostal &&
     isValidLat &&
     isValidLng &&
-    hasUploads &&
-    !!foodType?.id; // require category selected
+    hasUploads;
 
+  // ----- Pickers
+  const pickOne = async (types: DocumentPicker.DocumentPickerOptions["type"]) => {
+    const res = await DocumentPicker.getDocumentAsync({
+      type: types,
+      multiple: false,
+      copyToCacheDirectory: true,
+    });
+    if (res.canceled) return null;
+    return res.assets[0];
+  };
+
+  const pickManyImages = async () => {
+    const res = await DocumentPicker.getDocumentAsync({
+      type: ["image/*"],
+      multiple: true,
+      copyToCacheDirectory: true,
+    });
+    if (res.canceled) return;
+    setStoreImages((prev) => [...prev, ...res.assets].slice(0, 5));
+  };
+
+  // ----- Remove actions
+  const clearCommercialReg = () => setCommercialReg(null);
+  const clearOwnerIdDoc = () => setOwnerIdDoc(null);
+  const removeStoreImage = (idx: number) =>
+    setStoreImages((prev) => prev.filter((_, i) => i !== idx));
+
+  // ----- Submit (client-only) with lock
   const [saving, setSaving] = React.useState(false);
   const submittingRef = React.useRef(false);
 
   const onSave = async () => {
-    if (!canSave || !isLoaded || !ownerUserId) return;
+    if (!canSave || !isLoaded || !user) return;
     if (submittingRef.current) return;
     submittingRef.current = true;
-    setSaving(true);
-
-    const latNum = Number(lat);
-    const lngNum = Number(lng);
-    if (isNaN(latNum) || isNaN(lngNum)) {
-      // reset flags before returning
-      setSaving(false);
-      submittingRef.current = false;
-      Alert.alert("Invalid coordinates", "Latitude or Longitude is not valid.");
-      return;
-    }
 
     try {
-      // Build payload
-      const payload = {
-        userId: ownerUserId,
-        displayName: brandName.trim(),
-        categoryId: foodType?.id ?? null,
+      setSaving(true);
+
+      // Debug payload only (no API)
+      console.log("STORE INFO (client-only) ->", {
+        brandName: brandName.trim(),
+        foodType,
         address: {
-          line1: address,
-          line2: district,
-          city: subdistrict,
-          province: city, // reuse city if no separate province
-          postalCode: postalCode,
-          lat: latNum,
-          lng: lngNum,
+          line1: address.trim(),
+          city: city.trim(),
+          district: district.trim(),
+          subdistrict: subdistrict.trim(),
+          postalCode,
+          location: { lat: Number(lat), lng: Number(lng) },
         },
-        files: [
-          commercialReg && { kind: "COMMERCIAL_REG", url: commercialReg.uri, label: commercialReg.name },
-          ownerIdDoc && { kind: "OWNER_ID", url: ownerIdDoc.uri, label: ownerIdDoc.name },
-          ...storeImages.map((img) => ({ kind: "STORE_IMAGE", url: img.uri, label: img.name })),
-        ].filter(Boolean),
-      };
-
-      // Call your backend
-      // NOTE: If your backend expects /merchant/setup (absolute path), ensure base URL
-      const res = await fetch("/merchant/setup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        files: {
+          commercialRegistration: commercialReg && {
+            name: commercialReg.name,
+            uri: commercialReg.uri,
+            mimeType: commercialReg.mimeType,
+          },
+          ownerId: ownerIdDoc && {
+            name: ownerIdDoc.name,
+            uri: ownerIdDoc.uri,
+            mimeType: ownerIdDoc.mimeType,
+          },
+          storeImages: storeImages.map((f) => ({
+            name: f.name,
+            uri: f.uri,
+            mimeType: f.mimeType,
+          })),
+        },
       });
 
-      const data = await res.json();
-
-      if (!res.ok) throw new Error(data.message || "Failed to save store info");
-
-      // Update Clerk metadata & onboarding step
-      await user?.update({
-        unsafeMetadata: { ...(user?.unsafeMetadata ?? {}), storeInfoSubmitted: true },
+      // Mark locally on Clerk (client-writable) for UI/guards
+      const currentUnsafe = (user.unsafeMetadata ?? {}) as Record<string, unknown>;
+      await user.update({
+        unsafeMetadata: { ...currentUnsafe, storeInfoSubmitted: true },
       });
-      await setStep(user!, "notifyPage");
-      await user?.reload();
+
+      // ✅ Advance step (client-side) and refresh user snapshot
+      await setStep(user, "notifyPage");
+      await user.reload();
+
+      // ✅ Show the waiting screen (then user taps ✓ to sign out → /signin)
       router.replace("/(auth)/notifyPage");
     } catch (err: any) {
+      console.error("storeInfo save error:", err);
       Alert.alert("Save failed", err?.message ?? "Something went wrong.");
     } finally {
       setSaving(false);
@@ -216,11 +221,6 @@ export default function StoreInfo() {
           onChange={setFoodType}
           required
           errorText={!foodType ? "Please select a food type." : undefined}
-          fetchUrl="/api/merchant/categories"
-          // If your API returns { categories: [...] } or different keys, use mapResponse:
-          // mapResponse={(raw) => raw.categories.map((c:any) => ({ id: c.id, label: c.name }))}
-          // If your API needs auth, pass authToken prop (you can fetch token from your auth flow)
-          // authToken={someToken}
         />
 
         {/* Uploads (single with preview) */}
