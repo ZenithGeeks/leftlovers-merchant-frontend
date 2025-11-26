@@ -5,70 +5,122 @@ import InformationCard from "@/components/Home/InformationCard";
 import ShopStatusDropdown from "@/components/Home/Status-Dropdown";
 import { ThemedView } from "@/components/themed-view";
 import { Colors, Fonts } from "@/constants/theme";
-import data from "@/mockupData/menuData.json";
-import merchantData from "@/mockupData/merchant.json";
-import UserData from "@/mockupData/user.json";
+
+import { getMenuItems } from "@/services/menu"; // adjust if different
+import { fetchMerchant } from "@/services/merchant";
+
 import { useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
-import { Dimensions, Pressable, ScrollView, Text, View } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, Dimensions, Pressable, ScrollView, Text, View } from "react-native";
 import { MapPinIcon } from "react-native-heroicons/outline";
 import { ChartBarIcon, HandRaisedIcon } from "react-native-heroicons/solid";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-type ShopStatus = "closed" | "pause" | "busy" | "open";
+import type { MenuItemAPI, MerchantAPI, ShopStatus } from "@/types/types";
 
-const merchant = {
-  id: merchantData.id,
-  name: merchantData.displayName ?? "",
-  status: (merchantData.status as ShopStatus) ?? "closed",
-  address: merchantData.address ?? "",
-};
+// ========================================================
+//   ENV
+// ========================================================
+const MERCHANT_ID = process.env.EXPO_PUBLIC_MERCHANT_ID;
 
-const user = {
-  id: UserData.id,
-  name: UserData.name ?? "",
-  role: UserData.role ?? "",
-};
-
-const mockMenu = data.menuItems.slice(0, 3).map((item) => ({
-  id: item.id,
-  imageUrl: item.photoUrl,
-  title: item.name,
-  price: item.basePrice,
-  orders: Math.floor(Math.random() * 100) + 1,
-  leftOverQty: item.leftoverQty,
-}));
-
+// ========================================================
+//   Home Screen
+// ========================================================
 export default function HomeScreen() {
   const [status, setStatus] = useState<ShopStatus>("open");
+  const [merchant, setMerchant] = useState<MerchantAPI | null>(null);
+  const [menuItems, setMenuItems] = useState<MenuItemAPI[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const screenWidth = Dimensions.get("window").width;
-  const horizontalPadding = useMemo(() => Math.max(14, Math.min(screenWidth * 0.05, 24)), [screenWidth]);
+
+  const horizontalPadding = useMemo(
+    () => Math.max(14, Math.min(screenWidth * 0.05, 24)),
+    [screenWidth]
+  );
+
+  // ======================================================
+  //                 LOAD DATA ON MOUNT
+  // ======================================================
+  useEffect(() => {
+    let mounted = true;
+
+    async function load() {
+      try {
+        if (!MERCHANT_ID) {
+          console.error("❌ Missing EXPO_PUBLIC_MERCHANT_ID");
+          return;
+        }
+
+        const [merchantRes, menuRes] = await Promise.all([
+          fetchMerchant(MERCHANT_ID),
+          getMenuItems(MERCHANT_ID)
+        ]);
+        
+        if (!mounted) return;
+        setMerchant(merchantRes);
+        setMenuItems(menuRes);
+      } catch (err) {
+        console.error("Error loading home dashboard:", err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  if (loading || !merchant) {
+    return (
+      <ThemedView className="flex-1 justify-center items-center">
+        <ActivityIndicator size="large" color={Colors.light.tint} />
+        <Text style={{ fontFamily: Fonts.medium, marginTop: 8 }}>Loading dashboard...</Text>
+      </ThemedView>
+    );
+  }
+
+  // ======================================================
+  //     UI MAPPED MENU ITEMS (Top 3 Popular)
+  // ======================================================
+  const uiMenu = menuItems.slice(0, 3).map((item) => ({
+    id: item.id,
+    imageUrl: item.photoUrl ?? undefined,
+    title: item.name,
+    price: item.basePrice,
+    orders: Math.floor(Math.random() * 200) + 20, // Temporary metric
+    leftoverQty: item.leftoverQty
+  }));
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
+
       <ThemedView
         className="flex-1"
         style={{ paddingTop: insets.top + 16, paddingHorizontal: horizontalPadding }}
       >
+        {/* ---------------------------------------------------
+            HEADER
+        --------------------------------------------------- */}
+            <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+    >
         <View className="mb-6">
           <View className="flex-row items-center gap-2 pb-2">
             <MapPinIcon size={22} color={Colors.light.icon} />
             <Text className="text-base text-[#11181C]" style={{ fontFamily: Fonts.medium }}>
-              {merchant.name}
+              {merchant.displayName}
             </Text>
           </View>
 
           <View className="flex-row items-center gap-2 mb-3">
             <Text className="text-lg text-[#11181C]" style={{ fontFamily: Fonts.bold }}>
-              Hello, {user.name.split(" ")[0]}
+              Hello! {merchant.owner.name}
             </Text>
-            <View className="rounded-full px-2 py-1" style={{ backgroundColor: Colors.light.tint }}>
-              <Text className="text-xs" style={{ fontFamily: Fonts.bold, color: Colors.light.background }}>
-                {user.role.replace("_", " ")}
-              </Text>
-            </View>
           </View>
 
           <View className="flex-row items-center justify-between py-2">
@@ -88,6 +140,9 @@ export default function HomeScreen() {
           </View>
         </View>
 
+        {/* ---------------------------------------------------
+            DASHBOARD INFO
+        --------------------------------------------------- */}
         <View className="flex-row gap-3 bg-white rounded-2xl border border-gray-200 p-3 mb-6">
           <InformationCard icon={HandRaisedIcon} count={0} label="Preparing" backgroundColor="#fff" />
           <InformationCard
@@ -100,25 +155,32 @@ export default function HomeScreen() {
           />
         </View>
 
+        {/* ---------------------------------------------------
+            POPULAR DISHES
+        --------------------------------------------------- */}
         <View className="mb-10">
           <PopularMenuSection title="Popular Dishes">
-            {mockMenu.map((item) => (
+            {uiMenu.map((item) => (
               <PopularMenuItem
                 key={item.id}
-                imageUrl={item.imageUrl}
+                imageUrl={item.imageUrl!}
                 title={item.title}
                 price={item.price}
                 orders={item.orders}
-                leftoverQty={item.leftOverQty}
+                leftoverQty={item.leftoverQty}
               />
             ))}
           </PopularMenuSection>
         </View>
 
+        {/* ---------------------------------------------------
+            FEEDBACK
+        --------------------------------------------------- */}
         <View className="mb-10">
           <FeedbackWrapper />
         </View>
+            </ScrollView>
       </ThemedView>
-    </ScrollView>
+
   );
 }

@@ -75,3 +75,43 @@ export type WarningCardDTO = {
   createdAt: string;          // warning.issuedAt
   expiresAt?: string | null;  // warning.expiresAt
 };
+
+export type MerchantStatus = "PENDING" | "APPROVED" | "SUSPENDED";
+
+// If you later know the exact JSON shape, you can replace this
+export type MerchantOpenHours = unknown;
+
+export interface MerchantOwner {
+  id: string;
+  role: "ADMIN" | "MERCHANT" | "CUSTOMER" | "STAFF"; // inferred from your enums
+  name: string;
+  email: string;
+  phone: string;
+  avatarUrl: string | null;
+  status: "ACTIVE" | "SUSPENDED" | "DELETED";        // from UserStatus enum
+  createdAt: string;
+  dob: string | null;
+}
+
+export interface MerchantAPI {
+  id: string;
+  ownerUserId: string;
+  displayName: string;
+  branchName: string | null;
+  description: string | null;
+  categoryId: string;
+  addressId: string;
+
+  openHours: unknown | null;
+
+  status: MerchantStatus;
+  createdAt: string;
+
+  listImageUrl: string | null;
+
+  // backend sends "StoreImageUrl" with capital S → do NOT change
+  StoreImageUrl: string | null;
+
+  // relation
+  owner: MerchantOwner;
+}
