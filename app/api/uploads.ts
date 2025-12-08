@@ -15,7 +15,7 @@ export async function uploadFile(formData: FormData, opts?: { token?: string }) 
   const BASE =
     process.env.EXPO_PUBLIC_API_BASE ??
     (global as any).__API_BASE__ ??
-    "http://localhost:3000";
+    "https://backend-leftlovers-production.up.railway.app";
 
   const headers: Record<string, string> = {};
   if (opts?.token) headers.Authorization = `Bearer ${opts.token}`;

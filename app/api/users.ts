@@ -2,7 +2,7 @@
 const BASE =
   process.env.EXPO_PUBLIC_API_BASE ??
   (global as any).__API_BASE__ ??
-  "http://localhost:3000"; 
+  "https://backend-leftlovers-production.up.railway.app"; 
 
 export type Role = "CUSTOMER" | "MERCHANT" | "ADMIN" | "STAFF";
 export type UserStatus = "ACTIVE" | "SUSPENDED" | "DELETED";

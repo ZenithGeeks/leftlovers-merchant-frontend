@@ -14,11 +14,10 @@ import React, { useEffect } from "react";
 import { LogBox } from "react-native";
 import "react-native-reanimated";
 
-//Authentication
 import { ClerkProvider } from "@clerk/clerk-expo";
 import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import Constants from "expo-constants";
-
+import './globals.css';
 if (__DEV__) {
   LogBox.ignoreLogs([
     "Open debugger to view warnings.",
@@ -60,7 +59,6 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="(pages)" />
           <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(home)" />
         </Stack>
         <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
       </ThemeProvider>

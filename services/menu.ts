@@ -83,14 +83,14 @@ export async function fetchMenuItem(merchantId:string, id: string): Promise<Menu
 export async function updateMenuItem(payload: UpdateMenuItemForm, merchantId:string): Promise<MenuItemAPI> {
   const body = {
     name: payload.name,
-    description: payload.description,
+    description: payload.description ?? null,
     basePrice: payload.basePrice,
     originalPrice: payload.originalPrice,
     leftoverQty: payload.leftoverQty,
     expiresAt: payload.expiresAt ? payload.expiresAt.toString() : null,
     photoUrl: payload.photoUrl ?? "",
-    expirePhotoUrl: payload.expirePhotoUri ?? "",
-    groupTemplates: payload.groupTemplateIds ?? []
+    expirePhotoUrl: payload.expireLabelUrl ?? "",
+    groupTemplateIds: payload.groupTemplateIds ?? []
   }
   return putJSON<MenuItemAPI>(`/api/merchant/${merchantId}/menu/${payload.id}`, body)
 }

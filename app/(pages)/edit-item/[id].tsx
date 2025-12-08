@@ -9,17 +9,17 @@ import FieldLabel from "@/components/add-item/FieldLabel";
 import NumberStepper from "@/components/add-item/NumberStepper";
 import DatePickerField from "@/components/common/DatePickerField";
 import SelectMultiModal, { MultiOption } from "@/components/common/SelectMultiModal";
-import ImagePickerField from "@/components/ImagePickerField";
+import ImagePickerField, { type ImageValue } from "@/components/ImagePickerField";
 
 import type { OptionGroupAPI } from "@/services/group";
 import { fetchMerchantOptionGroups } from "@/services/group";
 import { fetchMenuItem, updateMenuItem } from "@/services/menu";
-import type { GroupTemplate, UpdateMenuItemForm } from "@/types/types";
+import type { GroupTemplate, MenuItemAPI, UpdateMenuItemForm } from "@/types/types";
 
 const EXPO_PUBLIC_MERCHANT_ID = process.env.EXPO_PUBLIC_MERCHANT_ID || "";
 
 export default function EditItemScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useLocalSearchParams<{ id?: string }>(); // ✅ allow undefined
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
@@ -31,41 +31,51 @@ export default function EditItemScreen() {
   const [qty, setQty] = useState(0);
   const [basePrice, setBasePrice] = useState("");
   const [originalPrice, setOriginalPrice] = useState("");
-
   const [photoUri, setPhotoUri] = useState<string | null>(null);
-  const [expirePhotoUri, setExpirePhotoUri] = useState<string | null>(null);
+  const [expireLabelUrl, setExpireLabelUrl] = useState<string | null>(null);
+  const [status, setStatus] = useState<"DRAFT" | "LIVE" | "SOLD_OUT" | "EXPIRED">("DRAFT");
+
+  const toUri = (val: ImageValue): string | null => {
+    if (!val) return null;
+    if (typeof val === "string") return val;
+    return val.uri ?? null;
+  };
   const [expireAt, setExpireAt] = useState<Date | null>(null);
 
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
   const [groupMultiOpen, setGroupMultiOpen] = useState(false);
-  const [options, setOptions] = useState<OptionGroupAPI[] | undefined>();
+  const [options, setOptions] = useState<OptionGroupAPI[]>([]);
 
-  const basePriceNum = useMemo(
-    () => parseFloat(basePrice.replace(/[^0-9.]/g, "")),
-    [basePrice],
+  const basePriceNum = useMemo(() => {
+    const n = parseFloat(basePrice.replace(/[^0-9.]/g, ""));
+    return Number.isFinite(n) ? n : NaN;
+  }, [basePrice]);
+
+  const origPriceNum = useMemo(() => {
+    const n = parseFloat(originalPrice.replace(/[^0-9.]/g, ""));
+    return Number.isFinite(n) ? n : NaN;
+  }, [originalPrice]);
+
+  const groupTemplatesAll: GroupTemplate[] = useMemo(
+    () =>
+      options.map((g) => ({
+        id: String(g.id ?? ""),
+        name: String(g.name ?? ""),
+        minSelect: Number.isFinite(g.minSelect) ? g.minSelect : 0,
+        maxSelect: Number.isFinite(g.maxSelect) ? g.maxSelect : 1,
+        options: (g.options ?? []).map((o) => ({
+          name: String(o.name ?? ""),
+          priceDelta: Number(o.priceDelta ?? 0),
+          active: Boolean(o.active),
+          sortOrder: Number.isFinite(o.sortOrder) ? o.sortOrder : 0,
+        })),
+      })),
+    [options],
   );
-  const origPriceNum = useMemo(
-    () => parseFloat(originalPrice.replace(/[^0-9.]/g, "")),
-    [originalPrice],
+   const groupOptionsAll: MultiOption<string>[] = useMemo(
+    () => groupTemplatesAll.map((g) => ({ label: g.name, value: g.id })),
+    [groupTemplatesAll],
   );
-
-  const groupTemplatesAll: GroupTemplate[] = (options ?? []).map((g: OptionGroupAPI) => ({
-    id: String(g.id ?? ""),
-    name: String(g.name ?? ""),
-    minSelect: Number.isFinite(g?.minSelect) ? g.minSelect : 0,
-    maxSelect: Number.isFinite(g?.maxSelect) ? g.maxSelect : 1,
-    options: (g.options ?? []).map((o) => ({
-      name: String(o.name ?? ""),
-      priceDelta: Number(o.priceDelta ?? 0),
-      active: !!o.active,
-      sortOrder: Number.isFinite(o?.sortOrder) ? o.sortOrder : 0,
-    })),
-  }));
-
-  const groupOptionsAll: MultiOption<string>[] = groupTemplatesAll.map((g) => ({
-    label: g.name,
-    value: g.id,
-  }));
 
   const selectedGroups = useMemo(
     () => groupTemplatesAll.filter((g) => selectedGroupIds.includes(g.id)),
@@ -87,9 +97,13 @@ export default function EditItemScreen() {
 
     (async () => {
       try {
-        if (!id) return;
+        if (!id || !EXPO_PUBLIC_MERCHANT_ID) return;
 
-        const item = await fetchMenuItem(EXPO_PUBLIC_MERCHANT_ID, String(id));
+        const item = (await fetchMenuItem(
+          EXPO_PUBLIC_MERCHANT_ID,
+          id,
+        )) as MenuItemAPI;
+
         const groups = await fetchMerchantOptionGroups(EXPO_PUBLIC_MERCHANT_ID);
 
         if (!mounted) return;
@@ -97,21 +111,19 @@ export default function EditItemScreen() {
         setName(item.name ?? "");
         setDesc(item.description ?? "");
         setQty(item.leftoverQty ?? 0);
-        setBasePrice(String(item.basePrice ?? ""));
+        setBasePrice(item.basePrice != null ? String(item.basePrice) : "");
         setOriginalPrice(
           item.originalPrice != null ? String(item.originalPrice) : "",
         );
         setPhotoUri(item.photoUrl ?? null);
-        setExpirePhotoUri(item.expireLabelUrl ?? null);
+        setExpireLabelUrl(item.expireLabelUrl ?? null);
         setExpireAt(item.expiresAt ? new Date(item.expiresAt) : null);
+        setStatus((item as any).status ?? "DRAFT");
+        setOptions(groups ?? []);
 
-        if (groups) {
-          setOptions(groups);
-        }
-
-        const fromItemGroups =
-          (item as any)?.optionGroups?.map((g: { id: string }) => g.id) ?? [];
+        const fromItemGroups = item.optionGroups?.map((g) => g.id) ?? [];
         setSelectedGroupIds(fromItemGroups);
+
       } finally {
         if (mounted) setLoading(false);
       }
@@ -124,44 +136,48 @@ export default function EditItemScreen() {
 
   const onBack = useCallback(() => router.back(), [router]);
 
-  const onSubmit = useCallback(async () => {
-    if (!canSubmit || !id) return;
+   const onSubmit = useCallback(async () => {
+  if (!canSubmit || !id || !EXPO_PUBLIC_MERCHANT_ID) return;
 
-    setSubmitting(true);
-    try {
-      const payload: UpdateMenuItemForm = {
-        id: String(id),
-        name: name.trim(),
-        description: desc.trim() ? desc : null,
-        basePrice: basePriceNum,
-        originalPrice: Number.isFinite(origPriceNum) ? origPriceNum : null,
-        leftoverQty: qty,
-        expiresAt: expireAt,
-        photoUri,
-        expirePhotoUri,
-        groupTemplateIds: selectedGroupIds,
-      };
+  setSubmitting(true);
+  try {
+    const apiBody = {
+      name: name.trim(),
+      basePrice: basePriceNum,
+      description: desc.trim(),
+      originalPrice: Number.isFinite(origPriceNum) ? origPriceNum : null,
+      leftoverQty: qty,
+      status,
+      expiresAt: expireAt ? expireAt.toISOString() : null,
+      groupTemplateIds: selectedGroupIds,
+      ...(photoUri ? { photoUrl: photoUri } : {}),
+      ...(expireLabelUrl ? { expireLabelUrl: expireLabelUrl } : {}),
+    };
+    await updateMenuItem(
+      { id, ...apiBody } as unknown as UpdateMenuItemForm,
+      EXPO_PUBLIC_MERCHANT_ID,
+    );
 
-      await updateMenuItem(payload, EXPO_PUBLIC_MERCHANT_ID);
-      router.back();
-    } catch (e) {
-      console.error("Update menu item failed:", e);
-      setSubmitting(false);
-    }
-  }, [
-    canSubmit,
-    id,
-    name,
-    desc,
-    basePriceNum,
-    origPriceNum,
-    qty,
-    expireAt,
-    photoUri,
-    expirePhotoUri,
-    selectedGroupIds,
-    router,
-  ]);
+    router.back();
+  } catch (e) {
+    console.error("Update menu item failed:", e);
+    setSubmitting(false);
+  }
+}, [
+  canSubmit,
+  id,
+  name,
+  desc,
+  status,
+  basePriceNum,
+  origPriceNum,
+  qty,
+  expireAt,
+  photoUri,
+  expireLabelUrl,
+  selectedGroupIds,
+  router,
+]);
 
   if (loading) {
     return (
@@ -200,12 +216,18 @@ export default function EditItemScreen() {
         <Text className="mb-2 mt-6 text-xl font-bold text-[#11181C]">
           Menu Image
         </Text>
-        <ImagePickerField value={photoUri} onChange={setPhotoUri} />
+       <ImagePickerField
+        value={photoUri}
+        onChange={(val) => setPhotoUri(toUri(val))}
+      />
 
         <Text className="mb-2 mt-6 text-xl font-bold text-[#11181C]">
           Expiry Date Label
         </Text>
-        <ImagePickerField value={expirePhotoUri} onChange={setExpirePhotoUri} />
+        <ImagePickerField
+          value={expireLabelUrl}
+          onChange={(val) => setExpireLabelUrl(toUri(val))}
+        />
 
         <View className="h-5" />
         <DatePickerField value={expireAt} onChange={setExpireAt} />

@@ -64,7 +64,7 @@ export default function Index() {
       </View>
 
       <View style={{ flexDirection: "row", gap: 12, justifyContent: "center", padding: 10 }}>
-        <Link href="/(auth)/signin" asChild>
+        <Link href="/(tabs)/home" asChild>
           <TouchableOpacity
             style={{
               paddingVertical: 10,
