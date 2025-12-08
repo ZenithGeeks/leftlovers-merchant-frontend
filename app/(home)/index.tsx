@@ -9,14 +9,12 @@ import {
   StatusBar,
   Text,
   TouchableOpacity,
-  useWindowDimensions,
   View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 export default function Page() {
   const { user } = useUser()
-  const { width } = useWindowDimensions()
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
