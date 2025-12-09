@@ -10,8 +10,8 @@ export default function EditOwnerContact() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const [phone, setPhone] = useState("+66 012 345 6789");
-  const [email, setEmail] = useState("cpe.gogo@kmutt.com");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [saving, setSaving] = useState(false);
 
   const canSave = useMemo(
