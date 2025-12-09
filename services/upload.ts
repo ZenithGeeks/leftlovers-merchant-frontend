@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000";
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "https://backend-leftlovers-production.up.railway.app";
 
 export type UploadableFile = {
   uri: string;      // from ImagePicker

@@ -1,51 +1,40 @@
-// app/(auth)/_layout.tsx
+import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { getStep, pathForStep } from "@/src/lib/onboarding";
-import { useAuth, useUser } from "@clerk/clerk-expo";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as React from "react";
 
-// Public screens inside (auth)
 const PUBLIC_AUTH_ROUTES = new Set(["signin", "signup", "forgotPassword"]);
+
+function getAuthSubRoute(segments: string[]): string | undefined {
+  if (segments.length < 2) return undefined;
+  return segments[1];
+}
 
 export default function AuthLayout() {
   const router = useRouter();
-  const segments = useSegments(); // e.g. ["(auth)", "signin"]
-  const sub = (segments[1] as string | undefined) ?? undefined;
+  const segments = useSegments();
 
-  const { isLoaded: authLoaded, isSignedIn } = useAuth();
-  const { isLoaded: userLoaded, user } = useUser();
+  const sub = React.useMemo(
+    () => getAuthSubRoute(segments as string[]),
+    [segments],
+  );
+
+  const { isLoaded: authLoaded, isSignedIn, user } = useFirebaseAuth();
 
   React.useEffect(() => {
-    if (!authLoaded || !userLoaded) return;
-
-    // Not signed in → keep within public auth screens
+    if (!authLoaded) return;
     if (!isSignedIn) {
       if (!sub || !PUBLIC_AUTH_ROUTES.has(sub)) {
         router.replace("/(auth)/signin");
       }
       return;
     }
-
-    // Signed in → route by onboarding step
     const step = getStep(user);
     const nextPath = pathForStep(step);
-    const currentPath = `/${segments.join("/")}`;
-
-    // console.log("STEP:", step, "CURRENT:", currentPath, "NEXT:", nextPath);
-
-    if (nextPath && currentPath !== nextPath) {
+    if (nextPath) {
       router.replace(nextPath as any);
     }
-  }, [
-    authLoaded,
-    userLoaded,
-    isSignedIn,
-    user, 
-    user?.unsafeMetadata?.step, // 🔑 react when step changes
-    sub,
-    router,
-    segments,
-  ]);
+  }, [authLoaded, isSignedIn, user, sub, router]);
 
   return (
     <Stack

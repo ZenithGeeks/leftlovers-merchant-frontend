@@ -1,27 +1,53 @@
 // app/(auth)/storeInfo.tsx
-import { useUser } from "@clerk/clerk-expo";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as DocumentPicker from "expo-document-picker";
 import { useRouter } from "expo-router";
 import React from "react";
 import { Alert, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { auth } from "@/lib/firebase";
+import type { User as FirebaseUser } from "firebase/auth";
+
 // Local components
 import { ClickButton } from "@/components/Authen/ClickButton";
 import { InputBox } from "@/components/Authen/InputBox";
 import LocationPicker from "@/components/Authen/LocationPicker.native";
-import FoodTypePicker, { FOOD_TYPES, FoodType } from "@/components/Authen/menuType";
+import FoodTypePicker, {
+  FOOD_TYPES,
+  type FoodType,
+} from "@/components/Authen/menuType";
 import UploadFile from "@/components/Authen/UploadFile";
 import UploadImagesGrid from "@/components/Authen/UploadImages";
 
-import { setStep } from "@/src/lib/onboarding";
+import { setStep, type OnboardingStep } from "@/src/lib/onboarding";
 
 type Doc = DocumentPicker.DocumentPickerAsset;
 const DEV = __DEV__;
 
+// ------------------------------------
+// Local persistence (no backend yet)
+// ------------------------------------
+
+// Store step per Firebase UID
+const stepKey = (uid: string) => `onboarding:step:${uid}`;
+const storeInfoKey = (uid: string) => `onboarding:storeInfoSubmitted:${uid}`;
+
+async function saveOnboardingStep(uid: string, step: OnboardingStep) {
+  await AsyncStorage.setItem(stepKey(uid), step);
+}
+
+async function markStoreInfoSubmitted(uid: string) {
+  await AsyncStorage.setItem(storeInfoKey(uid), "true");
+}
+
+// ------------------------------------
+
 export default function StoreInfo() {
   const router = useRouter();
-  const { user, isLoaded } = useUser();
+
+  // Firebase user
+  const user = auth.currentUser as FirebaseUser | null;
 
   // ----- Form state
   const [brandName, setBrandName] = React.useState(DEV ? "WakeUp" : "");
@@ -42,10 +68,13 @@ export default function StoreInfo() {
   const [lng, setLng] = React.useState<string>(DEV ? "100.523186" : "");
 
   // ----- Validation
-  const isBrandNameValid = brandName.trim().length >= 2 && brandName.trim().length <= 250;
+  const isBrandNameValid =
+    brandName.trim().length >= 2 && brandName.trim().length <= 250;
   const isValidPostal = /^\d{5}$/.test(postalCode);
-  const isValidLat = lat !== "" && !isNaN(Number(lat)) && Math.abs(Number(lat)) <= 90;
-  const isValidLng = lng !== "" && !isNaN(Number(lng)) && Math.abs(Number(lng)) <= 180;
+  const isValidLat =
+    lat !== "" && !isNaN(Number(lat)) && Math.abs(Number(lat)) <= 90;
+  const isValidLng =
+    lng !== "" && !isNaN(Number(lng)) && Math.abs(Number(lng)) <= 180;
   const hasUploads = !!commercialReg && !!ownerIdDoc && storeImages.length > 0;
 
   const canSave =
@@ -60,7 +89,9 @@ export default function StoreInfo() {
     hasUploads;
 
   // ----- Pickers
-  const pickOne = async (types: DocumentPicker.DocumentPickerOptions["type"]) => {
+  const pickOne = async (
+    types: DocumentPicker.DocumentPickerOptions["type"],
+  ) => {
     const res = await DocumentPicker.getDocumentAsync({
       type: types,
       multiple: false,
@@ -91,7 +122,14 @@ export default function StoreInfo() {
   const submittingRef = React.useRef(false);
 
   const onSave = async () => {
-    if (!canSave || !isLoaded || !user) return;
+    if (!canSave) return;
+
+    if (!user) {
+      Alert.alert("Not signed in", "Please sign in again.");
+      router.replace("/(auth)/signin");
+      return;
+    }
+
     if (submittingRef.current) return;
     submittingRef.current = true;
 
@@ -128,18 +166,8 @@ export default function StoreInfo() {
           })),
         },
       });
-
-      // Mark locally on Clerk (client-writable) for UI/guards
-      const currentUnsafe = (user.unsafeMetadata ?? {}) as Record<string, unknown>;
-      await user.update({
-        unsafeMetadata: { ...currentUnsafe, storeInfoSubmitted: true },
-      });
-
-      // ✅ Advance step (client-side) and refresh user snapshot
-      await setStep(user, "notifyPage");
-      await user.reload();
-
-      // ✅ Show the waiting screen (then user taps ✓ to sign out → /signin)
+      await markStoreInfoSubmitted(user.uid);
+      await setStep(user, "notifyPage", saveOnboardingStep);
       router.replace("/(auth)/notifyPage");
     } catch (err: any) {
       console.error("storeInfo save error:", err);
@@ -160,7 +188,12 @@ export default function StoreInfo() {
           Tell us about your store
         </Text>
         <Text
-          style={{ color: "#6B7280", marginTop: 4, marginBottom: 16, textAlign: "center" }}
+          style={{
+            color: "#6B7280",
+            marginTop: 4,
+            marginBottom: 16,
+            textAlign: "center",
+          }}
         >
           Fill your store details to display to customers
         </Text>
@@ -171,7 +204,9 @@ export default function StoreInfo() {
           value={brandName}
           onChangeText={setBrandName}
           placeholder="e.g. WakeUp"
-          errorText={!isBrandNameValid ? "Brand name must be 2–250 characters." : undefined}
+          errorText={
+            !isBrandNameValid ? "Brand name must be 2–250 characters." : undefined
+          }
         />
 
         {/* Location */}
@@ -193,7 +228,12 @@ export default function StoreInfo() {
           onChangeText={setAddress}
           placeholder="e.g. 123 Soi Sukhumvit 10"
         />
-        <InputBox label="City *" value={city} onChangeText={setCity} placeholder="e.g. Bangkok" />
+        <InputBox
+          label="City *"
+          value={city}
+          onChangeText={setCity}
+          placeholder="e.g. Bangkok"
+        />
         <InputBox
           label="District *"
           value={district}

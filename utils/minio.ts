@@ -10,7 +10,7 @@ export async function uploadToMinIO(fileURI: string, folder: string) {
     )
 
     try {
-        const response = await fetch(`http://localhost:3000/api/minio/upload?folder=${folder}`, {
+        const response = await fetch(`https://backend-leftlovers-production.up.railway.app/api/minio/upload?folder=${folder}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'multipart/form-data'

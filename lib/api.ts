@@ -1,4 +1,4 @@
-export const API_HOST = process.env.EXPO_PUBLIC_API_HOST ?? "http://localhost:3000";
+export const API_HOST = process.env.EXPO_PUBLIC_API_HOST ?? "https://backend-leftlovers-production.up.railway.app";
 const DEFAULT_TIMEOUT_MS = 12000;
 type Json = Record<string, any>;
 

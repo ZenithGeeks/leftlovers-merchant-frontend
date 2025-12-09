@@ -5,6 +5,7 @@ import InformationCard from "@/components/Home/InformationCard";
 import ShopStatusDropdown from "@/components/Home/Status-Dropdown";
 import { ThemedView } from "@/components/themed-view";
 import { Colors, Fonts } from "@/constants/theme";
+import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import data from "@/mockupData/menuData.json";
 import merchantData from "@/mockupData/merchant.json";
 import UserData from "@/mockupData/user.json";
@@ -45,7 +46,14 @@ export default function HomeScreen() {
   const router = useRouter();
   const screenWidth = Dimensions.get("window").width;
   const horizontalPadding = useMemo(() => Math.max(14, Math.min(screenWidth * 0.05, 24)), [screenWidth]);
+  const { isLoaded: authLoaded, isSignedIn, user } = useFirebaseAuth();
 
+  if(!authLoaded)
+  {
+    if(isSignedIn && user){
+      console.log(user.uid);
+    }
+  }
   return (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
       <ThemedView
@@ -62,11 +70,11 @@ export default function HomeScreen() {
 
           <View className="flex-row items-center gap-2 mb-3">
             <Text className="text-lg text-[#11181C]" style={{ fontFamily: Fonts.bold }}>
-              Hello, {user.name.split(" ")[0]}
-            </Text>
+              Hello, {user?.displayName}
+            </Text> 
             <View className="rounded-full px-2 py-1" style={{ backgroundColor: Colors.light.tint }}>
               <Text className="text-xs" style={{ fontFamily: Fonts.bold, color: Colors.light.background }}>
-                {user.role.replace("_", " ")}
+                {user?.email}
               </Text>
             </View>
           </View>

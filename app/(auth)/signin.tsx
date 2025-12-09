@@ -1,69 +1,104 @@
-// app/(authen)/signin.tsx
-import { useSignIn } from "@clerk/clerk-expo";
 import { Link, Stack, useRouter } from "expo-router";
-import React, { useCallback, useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { FirebaseError } from "firebase/app";
+import { sendPasswordResetEmail, signInWithEmailAndPassword } from "firebase/auth";
+import React, { useCallback, useMemo, useState } from "react";
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ClickButton } from "@/components/Authen/ClickButton";
 import { InputBox } from "@/components/Authen/InputBox";
+import { auth } from "@/lib/firebase";
 
 const BRAND = { green: "#26BD68", text: "#0B0F10" };
 
+const isValidEmail = (v: string) =>
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim().toLowerCase());
+
 export default function SignInPage() {
   const router = useRouter();
-  const { signIn, setActive, isLoaded } = useSignIn();
 
-  // --- Local state ---
-  const [identifier, setIdentifier] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [loadingEmail, setLoadingEmail] = useState(false);
-  const inputsDisabled = loadingEmail || !isLoaded;
+  const [loading, setLoading] = useState(false);
+
+  const inputsDisabled = loading;
+
+  const canSubmit = useMemo(() => {
+    const normEmail = email.trim().toLowerCase();
+    return isValidEmail(normEmail) && password.length > 0 && !loading;
+  }, [email, password, loading]);
 
   const handleEmailPasswordSignIn = useCallback(async () => {
-  if (!isLoaded || loadingEmail) return;
-  setLoadingEmail(true);
+    if (loading) return;
 
-  try {
-    const attempt = await signIn.create({
-      identifier,
-      password,
-    });
-
-    if (attempt.status === "complete") {
-      await setActive({ session: attempt.createdSessionId });
-      router.replace("/(landing)/Check_can_login");
-    } else {
-      console.error("Unexpected sign-in step:", JSON.stringify(attempt, null, 2));
-    }
-  } catch (err: any) {
-    console.error("Sign-in error:", JSON.stringify(err, null, 2));
-
-    // 🔹 Clerk errors come in a predictable shape (errors[0].code)
-    const code = err?.errors?.[0]?.code;
-    let message = "Something went wrong. Please try again.";
-
-    switch (code) {
-      case "form_identifier_not_found":
-        message = "This account does not exist.";
-        break;
-      case "form_password_incorrect":
-        message = "Incorrect email or password.";
-        break;
-      case "form_identifier_exists_but_not_allowed":
-        message = "This account cannot sign in with password.";
-        break;
-      default:
-        // fallback: try longMessage from Clerk if available
-        message = err?.errors?.[0]?.longMessage || message;
+    const normEmail = email.trim().toLowerCase();
+    if (!isValidEmail(normEmail) || !password) {
+      Alert.alert("Missing info", "Please enter a valid email and password.");
+      return;
     }
 
-    Alert.alert("Sign-in failed", message);
-  } finally {
-    setLoadingEmail(false);
-  }
-}, [identifier, password, isLoaded, loadingEmail, setActive, signIn, router]);
+    setLoading(true);
+    try {
+      await signInWithEmailAndPassword(auth, normEmail, password);
+      router.replace("/(tabs)/home");
+    } catch (err: unknown) {
+      let message = "Something went wrong. Please try again.";
+
+      if (err instanceof FirebaseError) {
+        switch (err.code) {
+          case "auth/user-not-found":
+            message = "This account does not exist.";
+            break;
+          case "auth/wrong-password":
+          case "auth/invalid-credential":
+            message = "Incorrect email or password.";
+            break;
+          case "auth/too-many-requests":
+            message = "Too many attempts. Please try again later.";
+            break;
+          case "auth/invalid-email":
+            message = "This email address is invalid.";
+            break;
+          default:
+            message = err.message || message;
+        }
+      }
+
+      Alert.alert("Sign-in failed", message);
+    } finally {
+      setLoading(false);
+    }
+  }, [email, password, loading, router]);
+
+  const handleForgotPassword = useCallback(async () => {
+    const normEmail = email.trim().toLowerCase();
+
+    if (!isValidEmail(normEmail)) {
+      Alert.alert("Invalid email", "Please enter your email first.");
+      return;
+    }
+
+    try {
+      await sendPasswordResetEmail(auth, normEmail);
+      Alert.alert("Email sent", "Check your inbox for a reset link.");
+    } catch (err: unknown) {
+      let message = "Unable to send reset email.";
+      if (err instanceof FirebaseError) {
+        message = err.message || message;
+      }
+      Alert.alert("Reset failed", message);
+    }
+  }, [email]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
@@ -78,30 +113,32 @@ export default function SignInPage() {
           keyboardShouldPersistTaps="always"
         >
           <View style={{ alignItems: "center", marginTop: 8, marginBottom: 6 }}>
-            <Text style={{ fontSize: 24, fontFamily: "Poppins_700Bold" }}>Sign In</Text>
+            <Text style={{ fontSize: 24, fontFamily: "Poppins_700Bold" }}>
+              Sign in
+            </Text>
             <Text
               style={{
-                marginTop: 15,
+                marginTop: 10,
                 fontSize: 12,
                 fontFamily: "Poppins_400Regular",
                 textAlign: "center",
+                color: "#6B7280",
               }}
             >
-              Hi, welcome back — you’ve been missed
+              Welcome back! Please sign in to continue.
             </Text>
           </View>
 
           <InputBox
             label="Email"
             placeholder="Enter your email"
-            value={identifier}
-            onChangeText={setIdentifier}
+            value={email}
+            onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
             editable={!inputsDisabled}
           />
 
-          {/* Password field with Show/Hide overlay */}
           <View style={{ position: "relative" }}>
             <InputBox
               label="Password"
@@ -131,30 +168,41 @@ export default function SignInPage() {
             )}
           </View>
 
-          <View style={{ width: "100%", alignItems: "flex-end", marginTop: 20, marginBottom: 15 }}>
-            <Link href="/(auth)/forgotPassword" asChild>
-              <TouchableOpacity disabled={inputsDisabled}>
-                <Text style={{ fontSize: 12, fontFamily: "Poppins_600SemiBold", textDecorationLine: "underline", color: BRAND.green }}>
-                  Forgot password?
-                </Text>
-              </TouchableOpacity>
-            </Link>
-          </View>
+          <TouchableOpacity
+            onPress={handleForgotPassword}
+            disabled={inputsDisabled}
+            style={{ marginTop: 12, alignSelf: "flex-end" }}
+          >
+            <Text
+              style={{
+                fontFamily: "Poppins_500Medium",
+                fontSize: 12,
+                color: BRAND.green,
+                textDecorationLine: "underline",
+              }}
+            >
+              Forgot password?
+            </Text>
+          </TouchableOpacity>
 
           <ClickButton
+            label={loading ? "Signing in..." : "Sign In"}
             onPress={handleEmailPasswordSignIn}
-            loading={loadingEmail}
-            label="Sign In"
-            style={{ marginTop: 8 }}
-            disabled={inputsDisabled}
+            disabled={!canSubmit}
+            style={{ marginTop: 22 }}
           />
 
-          <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 20 }}>
+          <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 18 }}>
             <Text style={{ color: BRAND.text, fontSize: 12, fontFamily: "Poppins_400Regular" }}>
               Don’t have an account?{" "}
               <Link
                 href="/(auth)/signup"
-                style={{ fontFamily: "Poppins_700Bold", fontSize: 12, textDecorationLine: "underline", color: BRAND.green }}
+                style={{
+                  fontFamily: "Poppins_700Bold",
+                  fontSize: 12,
+                  textDecorationLine: "underline",
+                  color: BRAND.green,
+                }}
               >
                 Sign Up
               </Link>

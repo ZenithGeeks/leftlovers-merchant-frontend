@@ -1,27 +1,61 @@
 export type ShopStatus = "closed" | "pause" | "busy" | "open";
 export type Option = { label: string; value: string };
+export type MenuStatus = "DRAFT" | "LIVE" | "SOLD_OUT" | "EXPIRED";
 
-export interface MenuItemAPI {
+export type MenuItemAPI = {
+  groupTemplateIds: any;
   id: string;
   merchantId: string;
   name: string;
-  description?: string | null;
+  description: string;
   basePrice: number;
-  originalPrice?: number | null;
+  originalPrice: number;
   leftoverQty: number;
-  expiresAt?: string | null;
-  status: "DRAFT" | "LIVE" | "SOLD_OUT" | "EXPIRED";
+  expiresAt: string;
+  status: MenuStatus;
+  photoUrl: string;
+  expireLabelUrl: string;
   createdAt: string;
-  photoUrl?: string | null;
-  expireLabelUrl?: string | null;
-}
 
-// Reusable templates (selectable in the Add Item screen)
+  optionGroups: OptionGroupAPI[];
+};
+
+export type UpdateMenuItemForm = {
+  id: string;
+  name: string;
+  description: string | null;
+  basePrice: number;
+  originalPrice: number | null;
+  leftoverQty: number;
+  expiresAt: Date | null;
+  photoUrl: string | null;
+  expireLabelUrl: string | null;
+  groupTemplateIds: string[];
+};
+
 export type OptionTemplateInput = {
   name: string;
   priceDelta: number;   // number; server will serialize to Decimal
   sortOrder?: number;
   active?: boolean;
+};
+
+
+export type OptionGroupOptionAPI = {
+  id: string;
+  optionGroupId?: string;
+  name: string;
+  priceDelta: number;
+  active: boolean;
+};
+
+export type OptionGroupAPI = {
+  id: string;
+  name: string;
+  merchantId: string;
+  minSelect: number;
+  maxSelect: number;
+  options: OptionGroupOptionAPI[];
 };
 
 export type GroupTemplate = {
@@ -44,26 +78,26 @@ export type CreateMenuItemForm = {
   expiresAt: Date | null;
   status: "DRAFT" | "LIVE" | "SOLD_OUT" | "EXPIRED";
   photoUri: string | null;         // local file uri
-  expirePhotoUri: string | null;   // local file uri (expiry label)
+  expireLabelUrl: string | null;   // local file uri (expiry label)
   groupTemplates: GroupTemplate[];
 };
 
+export type MenuItemStatus = "DRAFT" | "LIVE" | "SOLD_OUT" | "EXPIRED";
 
+export type GroupTemplateOptionBody = {
+  name: string;
+  priceDelta: number;
+  active: boolean;
+  sortOrder?: number;
+};
 
-export type UpdateMenuItemForm = {
-  expirePhotoUri?: string | null
-  photoUri?: string | null
-  id: string
-  name: string
-  description: string | null
-  basePrice: number
-  originalPrice: number | null
-  leftoverQty: number
-  expiresAt: Date | null;  
-  photoUrl?: string | null
-  expireLabelUrl?: string | null
-  groupTemplateIds?: string[]
-}
+export type GroupTemplateBody = {
+  name: string;
+  merchantId: string;
+  minSelect: number;
+  maxSelect: number;
+  options: GroupTemplateOptionBody[];
+};
 
 export type WarningTag = string;
 
