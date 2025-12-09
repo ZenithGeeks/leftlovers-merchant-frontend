@@ -1,5 +1,4 @@
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
-import { getStep, pathForStep } from "@/src/lib/onboarding";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as React from "react";
 
@@ -23,16 +22,14 @@ export default function AuthLayout() {
 
   React.useEffect(() => {
     if (!authLoaded) return;
+    if(isSignedIn){
+      router.replace('/(tabs)/home')
+    }
     if (!isSignedIn) {
       if (!sub || !PUBLIC_AUTH_ROUTES.has(sub)) {
         router.replace("/(auth)/signin");
       }
       return;
-    }
-    const step = getStep(user);
-    const nextPath = pathForStep(step);
-    if (nextPath) {
-      router.replace(nextPath as any);
     }
   }, [authLoaded, isSignedIn, user, sub, router]);
 
