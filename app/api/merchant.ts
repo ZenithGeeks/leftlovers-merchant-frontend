@@ -7,10 +7,28 @@ export type CreateMerchantBody = {
   branchName?: string | null;
   description?: string | null;
   categoryId: string;
-  addressId: string;
+
+  // user sends full address object
+  address: {
+    label: string | null;
+    line1: string;
+    line2: string;
+    city: string;
+    province: string;
+    postalCode: string;
+    lat: number;
+    lng: number;
+  };
+
   openHours?: any;
   listImageUrl?: string | null;
-  StoreImageUrl?: string | null;
+  storeImageUrl?: string | null;
+
+  files: {
+    kind: string;
+    url: string;
+    label: string;
+  }[];
 };
 
 const PATHS = {
