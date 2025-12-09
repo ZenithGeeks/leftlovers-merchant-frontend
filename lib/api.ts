@@ -84,3 +84,18 @@ export async function putJSON<T = unknown>(
   }
   return (await res.json()) as T
 }
+
+export async function httpPut<T>(url: string, body?: any): Promise<T> {
+  const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}${url}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data?.message ?? "Request failed");
+  }
+
+  return res.json();
+}

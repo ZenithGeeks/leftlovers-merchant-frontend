@@ -1,5 +1,6 @@
+import { JSX } from "react";
+
 export type ShopStatus = "closed" | "pause" | "busy" | "open";
-export type Option = { label: string; value: string };
 export type MenuStatus = "DRAFT" | "LIVE" | "SOLD_OUT" | "EXPIRED";
 
 export type MenuItemAPI = {
@@ -109,3 +110,120 @@ export type WarningCardDTO = {
   createdAt: string;          // warning.issuedAt
   expiresAt?: string | null;  // warning.expiresAt
 };
+
+// Order
+export type PaymentStatus = "UNPAID" | "PAID" | "REFUNDED";
+
+export type OrderPreference = "CONTACT" | "REMOVE" | "CANCELLED";
+
+export type UserStatus = "ACTIVE" | "SUSPENDED" | "DELETED";
+
+export type Role = "ADMIN" | "MERCHANT" | "CUSTOMER" | "STAFF";
+
+// ---------- API User (embedded in order.customer) ----------
+export interface OrderCustomer {
+  id: string;
+  role: Role;
+  name: string;
+  email: string;
+  phone?: string | null;
+  avatarUrl?: string | null;
+  status: UserStatus;
+  createdAt: string; // ISO
+  dob?: string | null; // ISO
+}
+
+export interface Option {
+  id: string;
+  optionGroupId: string;
+  name: string;
+  priceDelta: string; // Decimal string
+  active: boolean;
+}
+// ---------- API Order Item Option ----------
+export interface OrderItemOption {
+  id: string;
+  orderItemId: string;
+  optionId: string;
+  priceDelta: string; // Decimal string
+  option?: Option | null;
+}
+
+// ---------- API Order Item ----------
+export type OrderItem = {
+  id: string;
+  orderId: string;
+  menuItemId: string;
+  quantity: number;
+  options: OrderItemOption[];
+  menu?: OrderMenuItem;
+};
+
+export type OrderMenuItem = {
+  id: string;
+  merchantId: string;
+  name: string;
+  description?: string | null;
+  basePrice: string; // API returns string
+  originalPrice?: string | null;
+  leftoverQty: number;
+  expiresAt: string; // ISO
+  status: MenuItemStatus;
+  createdAt: string; // ISO
+  photoUrl?: string | null;
+  expireLabelUrl: string; // your sample shows ""
+};
+
+// ---------- API Order ----------
+export type OrderStatus =
+  | "PENDING"
+  | "CONFIRMED"
+  | "READY"
+  | "PICKED_UP"
+  | "CANCELLED";
+
+// ---------- API User 
+export interface Order {
+  map(arg0: (orderItem: any, index: any) => JSX.Element): import("react").ReactNode;
+  id: string;
+  customerId: string;
+  merchantId: string;
+  status: OrderStatus;
+  subtotal: string;
+  discountTotal: string;
+  totalAmount: string;
+  paymentStatus: PaymentStatus;
+  pickupCode?: string | null;
+  pickupDeadline?: string | null;
+  cutlery: boolean;
+  createdAt: string;
+  preference: OrderPreference;
+  note?: string | null;
+  items?: OrderItem[] | null;
+  customer?: OrderCustomer | null;
+}
+
+// ---------- List Response ----------
+export type ApiOrderListResponse = Order[];
+
+// ---------- Optional UI-friendly parsed types ----------
+export interface ParsedOrderMoney {
+  subtotal: number;
+  discountTotal: number;
+  totalAmount: number;
+}
+
+export function parseOrderMoney(order: Order): ParsedOrderMoney {
+  return {
+    subtotal: Number(order.subtotal ?? 0),
+    discountTotal: Number(order.discountTotal ?? 0),
+    totalAmount: Number(order.totalAmount ?? 0),
+  };
+}
+
+export function parseOrderDates(order: Order) {
+  return {
+    createdAt: new Date(order.createdAt),
+    pickupDeadline: order.pickupDeadline ? new Date(order.pickupDeadline) : null,
+  };
+}
