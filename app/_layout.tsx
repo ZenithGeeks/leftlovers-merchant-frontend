@@ -1,4 +1,5 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { AuthProvider } from "@/providers/AuthProvider";
 import {
   Poppins_400Regular,
   Poppins_500Medium,
@@ -7,16 +8,13 @@ import {
   useFonts,
 } from "@expo-google-fonts/poppins";
 import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";
+import Constants from "expo-constants";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";
 import { LogBox } from "react-native";
 import "react-native-reanimated";
-
-import { ClerkProvider } from "@clerk/clerk-expo";
-import { tokenCache } from "@clerk/clerk-expo/token-cache";
-import Constants from "expo-constants";
 import './globals.css';
 if (__DEV__) {
   LogBox.ignoreLogs([
@@ -53,7 +51,8 @@ export default function RootLayout() {
   if (!fontsLoaded) return null;
 
   return (
-    <ClerkProvider publishableKey={clerkPublishableKey} tokenCache={tokenCache}>
+    
+    <AuthProvider>
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(tabs)" />
@@ -62,6 +61,6 @@ export default function RootLayout() {
         </Stack>
         <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
       </ThemeProvider>
-    </ClerkProvider>
+    </AuthProvider>
   );
 }

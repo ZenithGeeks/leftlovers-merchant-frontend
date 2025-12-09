@@ -1,5 +1,3 @@
-// app/index.tsx
-import { useAuth } from "@clerk/clerk-expo";
 import { Image } from "expo-image";
 import { Link, Stack } from "expo-router";
 import React from "react";
@@ -7,9 +5,6 @@ import { Platform, StatusBar, Text, TouchableOpacity, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Index() {
-  const { isLoaded } = useAuth();
-
-  if (!isLoaded) return null;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
@@ -64,7 +59,7 @@ export default function Index() {
       </View>
 
       <View style={{ flexDirection: "row", gap: 12, justifyContent: "center", padding: 10 }}>
-        <Link href="/(tabs)/home" asChild>
+        <Link href="/(auth)/signin" asChild>
           <TouchableOpacity
             style={{
               paddingVertical: 10,

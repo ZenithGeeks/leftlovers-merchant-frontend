@@ -1,4 +1,3 @@
-// src/api/address.ts
 import { apiFetch } from "./users";
 
 const PATHS = {
@@ -15,7 +14,7 @@ export type CreateAddressBody = {
   // add other fields as your backend expects
 };
 
-export async function createAddress(body: CreateAddressBody, opts?: { token?: string }) {
+export default async function createAddress(body: CreateAddressBody, opts?: { token?: string }) {
   return apiFetch<{ address?: { id: string } }>(PATHS.createAddress, {
     method: "POST",
     body: JSON.stringify(body),

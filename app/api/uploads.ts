@@ -1,5 +1,3 @@
-// src/api/uploads.ts
-
 const PATHS = {
   upload: "/api/uploads",
 };
@@ -10,8 +8,7 @@ export type UploadResult = {
   name?: string;
 };
 
-export async function uploadFile(formData: FormData, opts?: { token?: string }) {
-  // Important: apiFetch assumes JSON; uploading requires raw fetch to keep headers & body intact.
+export default async function uploadFile(formData: FormData, opts?: { token?: string }) {
   const BASE =
     process.env.EXPO_PUBLIC_API_BASE ??
     (global as any).__API_BASE__ ??
@@ -31,7 +28,6 @@ export async function uploadFile(formData: FormData, opts?: { token?: string }) 
   try {
     json = text ? JSON.parse(text) : {};
   } catch {
-    // ignore
   }
   if (!res.ok) {
     const msg = json?.message || `HTTP ${res.status}`;
