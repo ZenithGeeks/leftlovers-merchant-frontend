@@ -8,7 +8,6 @@ import { Colors, Fonts } from "@/constants/theme";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import data from "@/mockupData/menuData.json";
 import merchantData from "@/mockupData/merchant.json";
-import UserData from "@/mockupData/user.json";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import { Dimensions, Pressable, ScrollView, Text, View } from "react-native";
@@ -25,11 +24,6 @@ const merchant = {
   address: merchantData.address ?? "",
 };
 
-const user = {
-  id: UserData.id,
-  name: UserData.name ?? "",
-  role: UserData.role ?? "",
-};
 
 const mockMenu = data.menuItems.slice(0, 3).map((item) => ({
   id: item.id,
