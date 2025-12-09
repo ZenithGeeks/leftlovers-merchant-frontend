@@ -125,63 +125,36 @@ export default function SignUpPage() {
 
   /* =========================== VERIFY EMAIL CODE ========================== */
   const handleVerifyCode = async () => {
-    if (!signUpLoaded) {
-      Alert.alert("Please wait", "Auth not ready yet");
-      return;
-    }
-    if (!verificationCode) {
-      Alert.alert("Missing code", "Enter your email verification code");
-      return;
-    }
+    if (!signUpLoaded || !verificationCode) return Alert.alert("Enter verification code");
 
     setLoading(true);
     try {
       const res = await signUp.attemptEmailAddressVerification({ code: verificationCode });
       await signUp.reload();
 
-      // If Clerk created a session, activate it
-      const createdSessionId =
-        res?.createdSessionId ?? (signUp as any)?.createdSessionId ?? null;
-      if (createdSessionId && setActive) {
-        await setActive({ session: createdSessionId });
-      }
+      // Activate Clerk session
+      if (res?.createdSessionId && setActive) await setActive({ session: res.createdSessionId });
+      await user?.reload();
+      if (!user?.id) throw new Error("User ID not found");
 
-      // Prepare backend payload
-      const name = fullName.trim();
-      const emailLower = email.trim().toLowerCase();
-
-      ////////////////////////joy fix//////////////////////
-          // Create merchant user row in backend
-    try {
-      await createMerchant({
-        name,
-        email: emailLower,
+      // ✅ Create merchant immediately
+      const merchant = await createMerchant({
+        name: fullName.trim(),
+        email: email.trim().toLowerCase(),
         phone: localPhone || undefined,
         avatarUrl: null,
         role: "MERCHANT",
       });
-      console.log("Backend merchant user created (email/password)");
-    } catch (e: any) {
-      console.warn("Create merchant user failed:", e);
-      Alert.alert(
-        "Account note",
-        e?.message ?? "We couldn't finish account setup, but you can continue."
-      );
-    }
-/////////////////////////joy fix end//////////////////////
-
-      router.replace({ pathname: "/(auth)/storeInfo", params: { userId: user?.id } });
+      console.log("Merchant created:", merchant);
+      // Navigate to store info
+      router.replace({ pathname: "/(auth)/storeInfo", params: { userId: user.id } });
     } catch (err: any) {
-      console.error("Verification error:", err);
-      Alert.alert(
-        "Verification failed",
-        err?.errors?.[0]?.message ?? err?.message ?? "Try again."
-      );
+      Alert.alert("Verification failed", err?.message ?? "Try again");
     } finally {
       setLoading(false);
     }
   };
-
+  
   /* ================================= Renders ================================ */
   if (pendingVerification) {
     return (

@@ -1,7 +1,9 @@
 // src/api/merchant.ts
 import { apiFetch } from "./users"; // re-use the exported apiFetch
+
 // types
 export type CreateMerchantBody = {
+  id: string;
   ownerUserId: string;
   displayName: string;
   branchName?: string | null;

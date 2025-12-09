@@ -108,142 +108,71 @@ React.useEffect(() => {
   const submittingRef = React.useRef(false);
 
   const onSave = async () => {
-  console.log("===== onSave() START =====");
+    if (!canSave || !isLoaded || !ownerUserId) return;
+    if (submittingRef.current) return;
 
-  console.log("canSave:", canSave);
-  console.log("isLoaded:", isLoaded);
-  console.log("ownerUserId:", ownerUserId);
+    submittingRef.current = true;
+    setSaving(true);
 
-  if (!canSave || !isLoaded || !ownerUserId) {
-    console.log("Validation failed: cannot save");
-    return;
-  }
+    try {
+      if (!commercialReg || !ownerIdDoc) throw new Error("Missing required documents");
 
-  if (submittingRef.current) {
-    console.log("Already submitting...");
-    return;
-  }
+      // Upload files
+      const commercialUpload = await uploadFile(commercialReg, "merchant-docs");
+      const ownerIdUpload = await uploadFile(ownerIdDoc, "merchant-docs");
+      const storeUploads = await Promise.all(
+        storeImages.map((img) => uploadFile(img, "store-images"))
+      );
 
-  submittingRef.current = true;
-  setSaving(true);
+      const payload = {
+        id: "", // will be set by backend
+        ownerUserId,
+        displayName: brandName.trim(),
+        categoryId: foodType?.id ?? "",
+        address: {
+          label: null,
+          line1: address,
+          line2: district,
+          city: subdistrict,
+          province: city,
+          postalCode,
+          lat: Number(lat),
+          lng: Number(lng),
+        },
+        branchName: "",
+        description: "",
+        openHours: "",
+        listImageUrl: storeUploads[0]?.url ?? "",
+        storeImageUrl: storeUploads[0]?.url ?? "",
+        files: [
+          { kind: "COMMERCIAL_REG", url: commercialUpload.url, label: commercialReg.name },
+          { kind: "OWNER_ID", url: ownerIdUpload.url, label: ownerIdDoc.name },
+          ...storeUploads.map((u, i) => ({
+            kind: "STORE_IMAGE",
+            url: u.url,
+            label: storeImages[i]?.name ?? "Store image",
+          })),
+        ],
+      };
 
-  const latNum = Number(lat);
-  const lngNum = Number(lng);
+      const res = await createMerchantInfo(payload);
 
-  console.log("lat:", lat, "=>", latNum);
-  console.log("lng:", lng, "=>", lngNum);
+      if (!res || !res.merchant) throw new Error("Failed to save merchant info");
 
-  if (isNaN(latNum) || isNaN(lngNum)) {
-    console.log("❌ Invalid lat/lng");
-    Alert.alert("Invalid coordinates", "Latitude or Longitude is not valid.");
-    setSaving(false);
-    submittingRef.current = false;
-    return;
-  }
+      // Update Clerk metadata & onboarding
+      await user?.update({ unsafeMetadata: { ...(user.unsafeMetadata ?? {}), storeInfoSubmitted: true } });
+      await setStep(user!, "notifyPage");
+      await user?.reload();
 
-  try {
-    console.log("===== FILE INPUTS BEFORE UPLOAD =====");
-    console.log("commercialReg:", commercialReg);
-    console.log("ownerIdDoc:", ownerIdDoc);
-    console.log("storeImages:", storeImages);
-
-    if (!commercialReg || !ownerIdDoc) {
-      throw new Error("Missing required documents");
+      router.replace("./(auth)/notifyPage");
+    } catch (err: any) {
+      console.log("ERROR:", err);
+      Alert.alert("Save failed", err?.message ?? "Something went wrong.");
+    } finally {
+      setSaving(false);
+      submittingRef.current = false;
     }
-
-    console.log("Uploading COMMERCIAL_REG...");
-    const commercialUpload = await uploadFile(commercialReg, "merchant-docs");
-    console.log("commercialUpload result:", commercialUpload);
-
-    console.log("Uploading OWNER_ID...");
-    const ownerIdUpload = await uploadFile(ownerIdDoc, "merchant-docs");
-    console.log("ownerIdUpload result:", ownerIdUpload);
-
-    console.log("Uploading STORE_IMAGES...");
-    const storeUploads = await Promise.all(
-      storeImages.map((img, idx) => {
-        console.log(`Uploading store image #${idx}`, img);
-        return uploadFile(img, "store-images");
-      })
-    );
-    console.log("storeUploads result:", storeUploads);
-
-    // Build payload
-    const payload = {
-      ownerUserId: ownerUserId,
-      displayName: brandName.trim(),
-      categoryId: foodType?.id ?? "",
-      addressId: "",
-      address: {
-        label: null,
-        line1: address,
-        line2: district,
-        city: subdistrict,
-        province: city,
-        postalCode,
-        lat: latNum,
-        lng: lngNum,
-      },
-      branchName: null,
-      description: null,
-      openHours: null,
-      listImageUrl: storeUploads[0]?.url ?? null,
-      storeImageUrl: storeUploads[0]?.url ?? null,
-      files: [
-        {
-          kind: "COMMERCIAL_REG",
-          url: commercialUpload.url,
-          label: commercialReg.name,
-        },
-        {
-          kind: "OWNER_ID",
-          url: ownerIdUpload.url,
-          label: ownerIdDoc.name,
-        },
-        ...storeUploads.map((u, i) => ({
-          kind: "STORE_IMAGE",
-          url: u.url,
-          label: storeImages[i]?.name ?? "Store image",
-        })),
-      ],
-    };
-
-    console.log("===== FINAL PAYLOAD SENT TO BACKEND =====");
-    console.log(JSON.stringify(payload, null, 2));
-
-    // API call
-    console.log("Sending createMerchantInfo...");
-    const res = await createMerchantInfo(payload);
-    console.log("createMerchantInfo RESPONSE:", res);
-
-    // Clerk update
-    console.log("Updating Clerk metadata...");
-    await user?.update({
-      unsafeMetadata: {
-        ...(user?.unsafeMetadata ?? {}),
-        storeInfoSubmitted: true,
-      },
-    });
-
-    console.log("Updating onboarding step...");
-    await setStep(user!, "notifyPage");
-    await user?.reload();
-
-    console.log("Redirecting to notifyPage...");
-    router.replace("./(auth)/notifyPage");
-
-    console.log("===== onSave() DONE SUCCESSFULLY =====");
-  } catch (err: any) {
-    console.log("ERROR IN onSave():", err);
-    Alert.alert("Save failed", err?.message ?? "Something went wrong.");
-  } finally {
-    setSaving(false);
-    submittingRef.current = false;
-  }
-};
-
-
-
+  };
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
       <ScrollView
