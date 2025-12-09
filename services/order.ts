@@ -11,6 +11,5 @@ export async function updateMerchantOrderStatus(
   orderId: string,
   status: OrderStatus
 ): Promise<Order> {
-    console.log(merchantId,orderId,status)
   return httpPut<Order>(`/api/merchant/${merchantId}/order/${orderId}`, { status });
 }
