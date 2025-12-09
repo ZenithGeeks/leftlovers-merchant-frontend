@@ -1,11 +1,19 @@
-// app/edit-store.tsx  (full file for convenience)
+// app/edit-store.tsx
 import React from "react";
-import { Image, Pressable, ScrollView, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Image,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 
-import storeData from "@/mockupData/storeData.json";
 import { Fonts } from "@/constants/theme";
+import { fetchStoreSettings, type StoreSettings } from "@/services/store";
+import { DEV_MERCHANT_ID } from "@/utils/env";
 
 import {
   ChevronRightIcon,
@@ -17,6 +25,8 @@ import {
   BuildingStorefrontIcon,
   PhotoIcon,
 } from "react-native-heroicons/outline";
+
+const MERCHANT_ID = DEV_MERCHANT_ID || "REPLACE_ME_MERCHANT_ID";
 
 function Divider() {
   return <View className="h-[1px] w-full bg-gray-200 my-5" />;
@@ -57,15 +67,75 @@ export default function EditStoreScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
+  const [store, setStore] = React.useState<StoreSettings | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [err, setErr] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      setLoading(true);
+      setErr(null);
+      try {
+        const data = await fetchStoreSettings(MERCHANT_ID);
+        if (!cancelled) {
+          setStore(data);
+        }
+      } catch (e: any) {
+        if (!cancelled) {
+          setErr(e?.message ?? "Failed to load store settings");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const addressLine = [
-    storeData.address.line1,
-    storeData.address.line2,
-    storeData.address.city,
-    storeData.address.province,
-    storeData.address.postalCode,
+    store?.address.line1,
+    store?.address.line2,
+    store?.address.city,
+    store?.address.province,
+    store?.address.postalCode,
   ]
     .filter(Boolean)
     .join(", ");
+
+  if (loading) {
+    return (
+      <View
+        className="flex-1 bg-white items-center justify-center"
+        style={{ paddingTop: insets.top }}
+      >
+        <ActivityIndicator />
+        <Text className="mt-2 text-gray-500">Loading store…</Text>
+      </View>
+    );
+  }
+
+  if (err || !store) {
+    return (
+      <View
+        className="flex-1 bg-white items-center justify-center px-6"
+        style={{ paddingTop: insets.top }}
+      >
+        <Text className="text-red-600 mb-2 font-semibold">
+          {err ?? "Failed to load store"}
+        </Text>
+        <Text className="text-gray-500 text-center">
+          Please check your connection or try again later.
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView
@@ -80,12 +150,12 @@ export default function EditStoreScreen() {
           className="text-[28px] font-extrabold text-[#0B1220] mb-6"
           style={{ fontFamily: Fonts.bold }}
         >
-          Settings
+          Edit store
         </Text>
 
         <View className="flex-row items-center justify-between mb-4">
           <Text className="text-[22px] font-extrabold text-[#0B1220]">
-            {storeData.name}
+            {store.name}
           </Text>
           <Pressable
             onPress={() => router.push("/edit-store-detail")}
@@ -101,14 +171,20 @@ export default function EditStoreScreen() {
           {/* Store image row */}
           <View className="flex-row items-start gap-4">
             <View className="w-32 h-32 rounded-2xl bg-gray-100 border border-gray-200 overflow-hidden items-center justify-center">
-              {storeData.storeImage ? (
-                <Image source={{ uri: storeData.storeImage}} resizeMode="cover" className="w-full h-full" />
+              {store.storeImage ? (
+                <Image
+                  source={{ uri: store.storeImage }}
+                  resizeMode="cover"
+                  className="w-full h-full"
+                />
               ) : (
                 <PhotoIcon size={28} color="#22C55E" />
               )}
             </View>
             <View className="flex-1">
-              <Text className="text-[16px] font-semibold text-[#11181C]">Store image</Text>
+              <Text className="text-[16px] font-semibold text-[#11181C]">
+                Store image
+              </Text>
               <Text className="text-[13px] text-gray-500 mt-1">
                 This is the image for the top of your store menu.
               </Text>
@@ -118,16 +194,23 @@ export default function EditStoreScreen() {
           {/* List image row */}
           <View className="flex-row items-start gap-4">
             <View className="w-32 h-32 rounded-2xl bg-gray-100 border border-gray-200 overflow-hidden items-center justify-center">
-              {storeData.listImage ? (
-                <Image source={{ uri: storeData.listImage }} resizeMode="cover" className="w-full h-full" />
+              {store.listImage ? (
+                <Image
+                  source={{ uri: store.listImage }}
+                  resizeMode="cover"
+                  className="w-full h-full"
+                />
               ) : (
                 <PhotoIcon size={28} color="#22C55E" />
               )}
             </View>
             <View className="flex-1">
-              <Text className="text-[16px] font-semibold text-[#11181C]">List image</Text>
+              <Text className="text-[16px] font-semibold text-[#11181C]">
+                List image
+              </Text>
               <Text className="text-[13px] text-gray-500 mt-1">
-                This image will appear alongside other businesses when customers browse the restaurant list.
+                This image will appear alongside other businesses when customers
+                browse the restaurant list.
               </Text>
             </View>
           </View>
@@ -139,9 +222,11 @@ export default function EditStoreScreen() {
           icon={<AdjustmentsHorizontalIcon size={18} color="#22C55E" />}
           title="Cuisine and certification"
           subtitle={
-            storeData.cuisine.certification
-              ? `${storeData.cuisine.type} • ${storeData.cuisine.certification}`
-              : storeData.cuisine.type
+            store.cuisine.certification
+              ? `${store.cuisine.type ?? "Unknown"} • ${
+                  store.cuisine.certification
+                }`
+              : store.cuisine.type ?? "Unknown"
           }
           onPress={() => router.push("/edit-cuisine-certification")}
         />
@@ -155,12 +240,16 @@ export default function EditStoreScreen() {
             onPress={() => router.push("/edit-business-hours")}
           />
           <View className="mt-2 pl-12">
-            {storeData.businessHours.map((h: { day: string; hours: string }) => (
-              <View key={h.day} className="flex-row items-center justify-between pr-2 py-1">
-                <Text className="text-[15px] text-[#11181C]">{h.day}</Text>
-                <Text className="text-[15px] text-[#11181C]">{h.hours}</Text>
-              </View>
-            ))}
+            {Array.isArray(store.businessHours) &&
+              store.businessHours.map((h) => (
+                <View
+                  key={h.day}
+                  className="flex-row items-center justify-between pr-2 py-1"
+                >
+                  <Text className="text-[15px] text-[#11181C]">{h.day}</Text>
+                  <Text className="text-[15px] text-[#11181C]">{h.hours}</Text>
+                </View>
+              ))}
           </View>
         </View>
 
@@ -169,7 +258,7 @@ export default function EditStoreScreen() {
         <Row
           icon={<UserIcon size={18} color="#22C55E" />}
           title="Owner’s contact"
-          subtitle={`${storeData.owner.phone}\n${storeData.owner.email}`}
+          subtitle={`${store.owner.phone ?? "-"}\n${store.owner.email ?? "-"}`}
           onPress={() => router.push("/edit-owner-contact")}
         />
 
@@ -178,7 +267,7 @@ export default function EditStoreScreen() {
         <Row
           icon={<PhoneIcon size={18} color="#22C55E" />}
           title="Store contact number"
-          subtitle={storeData.contact.storePhone}
+          subtitle={store.contact.storePhone ?? "-"}
           onPress={() => router.push("/edit-store-contact")}
         />
 
@@ -196,7 +285,7 @@ export default function EditStoreScreen() {
         <Row
           icon={<BuildingStorefrontIcon size={18} color="#22C55E" />}
           title="Store ID"
-          subtitle={storeData.storeId}
+          subtitle={store.storeId}
         />
       </View>
     </ScrollView>

@@ -13,7 +13,7 @@ export default function EditStoreContact() {
 
   const [ownerPhone, setOwnerPhone] = useState("+66 121 231 2121");
   const [ownerEmail, setOwnerEmail] = useState("anya.forger@kmutt.com");
-  const [storePhone, setStorePhone] = useState("+66 012 345 6789");
+  const [storePhone, setStorePhone] = useState("");
   const [saving, setSaving] = useState(false);
 
   const canSave = useMemo(
