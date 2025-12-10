@@ -8,6 +8,8 @@ import { Colors, Fonts } from "@/constants/theme";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import data from "@/mockupData/menuData.json";
 import merchantData from "@/mockupData/merchant.json";
+import { updateOpenStatus } from "@/services/store";
+import type { OpenStatus } from "@/types/types";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import { Dimensions, Pressable, ScrollView, Text, View } from "react-native";
@@ -15,15 +17,14 @@ import { MapPinIcon } from "react-native-heroicons/outline";
 import { ChartBarIcon, HandRaisedIcon } from "react-native-heroicons/solid";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-type ShopStatus = "closed" | "pause" | "busy" | "open";
-
 const merchant = {
   id: merchantData.id,
   name: merchantData.displayName ?? "",
-  status: (merchantData.status as ShopStatus) ?? "closed",
+  status: (merchantData.status as OpenStatus) ?? "CLOSED",
   address: merchantData.address ?? "",
 };
 
+const merchantId = process.env.EXPO_PUBLIC_MERCHANT_ID;
 
 const mockMenu = data.menuItems.slice(0, 3).map((item) => ({
   id: item.id,
@@ -35,13 +36,18 @@ const mockMenu = data.menuItems.slice(0, 3).map((item) => ({
 }));
 
 export default function HomeScreen() {
-  const [status, setStatus] = useState<ShopStatus>("open");
+  const [status, setStatus] = useState<OpenStatus>("CLOSED");
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const screenWidth = Dimensions.get("window").width;
   const horizontalPadding = useMemo(() => Math.max(14, Math.min(screenWidth * 0.05, 24)), [screenWidth]);
   const { isLoaded: authLoaded, isSignedIn, user } = useFirebaseAuth();
 
+  const UpdateStatus = async (merchantId: string, status: OpenStatus) => {
+    const data = await updateOpenStatus(merchantId, status);
+    setStatus(data.openStatus)
+    console.log(data)
+  }
   if(!authLoaded)
   {
     if(isSignedIn && user){
@@ -76,9 +82,7 @@ export default function HomeScreen() {
           <View className="flex-row items-center justify-between py-2">
             <ShopStatusDropdown
               value={status}
-              onChange={(v) => setStatus(v as ShopStatus)}
-              size="md"
-            />
+              onChange={(v) => UpdateStatus(merchantId!, v as OpenStatus)}         />
             <Pressable
               onPress={() => router.push("/edit-store")}
               className="min-h-[40px] border border-gray-300 bg-white rounded-2xl px-4 py-2 justify-center items-center"
