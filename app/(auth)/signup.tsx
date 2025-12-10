@@ -27,7 +27,7 @@ import {
   type User as FirebaseUser,
 } from "firebase/auth";
 
-import { setStep, type OnboardingStep } from "@/src/lib/onboarding";
+import { type OnboardingStep } from "@/src/lib/onboarding";
 
 const BRAND = { green: "#26BD68", text: "#0B0F10" };
 const DEV = __DEV__;
@@ -195,7 +195,7 @@ export default function SignUpPage() {
             "We couldn't finish account setup, but you can continue."
         );
       }
-      await setStep(user, "store", saveOnboardingStep);
+      await saveOnboardingStep(user.uid, "store");
       router.replace("/(auth)/storeInfo");
     } catch (err: any) {
       console.error("Verification check error:", err);

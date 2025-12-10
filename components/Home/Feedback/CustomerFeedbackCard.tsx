@@ -77,7 +77,7 @@ export default function CustomerFeedbackCard({
         </View>
 
         <Text
-          className="w-9 text-right text-gray-500 text-[13px]"
+          className="w-8 text-right text-gray-500 text-[12px]"
           style={{ fontFamily: Fonts.medium }}
         >
           {count}
@@ -125,7 +125,7 @@ export default function CustomerFeedbackCard({
         >
           <Text
             className="text-slate-900 leading-10"
-            style={{ fontFamily: Fonts.bold, fontSize: 34 }}
+            style={{ fontFamily: Fonts.bold, fontSize: 28 }}
           >
             {roundedAvg.toFixed(1)}
           </Text>
