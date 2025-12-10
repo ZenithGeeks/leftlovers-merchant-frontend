@@ -18,7 +18,12 @@ import { ClickButton } from "@/components/Authen/ClickButton";
 import { InputBox } from "@/components/Authen/InputBox";
 import { PasswordInput } from "@/components/Authen/PasswordInput";
 import { PhoneInput } from "@/components/Authen/PhoneInput";
-import { OtpInput } from "@/components/Authen/VerifyBox";
+
+import { auth } from "@/lib/firebase";
+import {
+  type User as FirebaseUser
+} from "firebase/auth";
+
 
 const BRAND = { green: "#26BD68", text: "#0B0F10" };
 
@@ -136,41 +141,46 @@ export default function SignUpPage() {
 
     setLoading(true);
     try {
-      const res = await signUp.attemptEmailAddressVerification({ code: verificationCode });
-      await signUp.reload();
+      const user = auth.currentUser as FirebaseUser | null;
 
-      // If Clerk created a session, activate it
-      const createdSessionId =
-        res?.createdSessionId ?? (signUp as any)?.createdSessionId ?? null;
-      if (createdSessionId && setActive) {
-        await setActive({ session: createdSessionId });
+      if (!user) {
+        Alert.alert("Session lost", "Please sign up again.");
+        setPendingVerification(false);
+        return;
       }
 
-      // Prepare backend payload
-      const name = fullName.trim();
-      const emailLower = email.trim().toLowerCase();
+      // Refresh Firebase user to get latest emailVerified
+      await user.reload();
 
-      ////////////////////////joy fix//////////////////////
-          // Create merchant user row in backend
-    try {
-      await createMerchant({
-        name,
-        email: emailLower,
-        phone: localPhone || undefined,
-        avatarUrl: null,
-        role: "MERCHANT",
-      });
-      console.log("Backend merchant user created (email/password)");
-    } catch (e: any) {
-      console.warn("Create merchant user failed:", e);
-      Alert.alert(
-        "Account note",
-        e?.message ?? "We couldn't finish account setup, but you can continue."
-      );
-    }
-/////////////////////////joy fix end//////////////////////
+      if (!user.emailVerified) {
+        Alert.alert(
+          "Not verified yet",
+          "Please verify your email then try again."
+        );
+        return;
+      }
 
-      router.replace({ pathname: "/(auth)/storeInfo", params: { userId: user?.id } });
+      const emailLower = user.email?.toLowerCase() ?? email.trim().toLowerCase();
+      const name = emailLower.split("@")[0] || "Merchant";
+
+      // Create merchant row in backend (same signature you used before)
+      try {
+        await createMerchant({
+          name,
+          email: emailLower,
+          phone: localPhone || undefined,
+          avatarUrl: null,
+          role: "MERCHANT",
+        });
+      } catch (e: any) {
+        Alert.alert(
+          "Account note",
+          e?.message ??
+            "We couldn't finish account setup, but you can continue."
+        );
+      }
+      await saveOnboardingStep(user.uid, "store");
+      router.replace("/(auth)/storeInfo");
     } catch (err: any) {
       console.error("Verification error:", err);
       Alert.alert(

@@ -1,58 +1,32 @@
 // src/services/store.ts
-
-export type WeeklySlot = {
-  open: string;   // "08:00"
-  close: string;  // "18:00"
-};
-
-export type WeeklySchedule = {
-  mon?: WeeklySlot[];
-  tue?: WeeklySlot[];
-  wed?: WeeklySlot[];
-  thu?: WeeklySlot[];
-  fri?: WeeklySlot[];
-  sat?: WeeklySlot[];
-  sun?: WeeklySlot[];
-};
-
-export type BusinessHours = {
-  weekly: WeeklySchedule;
-  timezone: string;    // e.g. "Asia/Bangkok"
-  exceptions: any[];   // keep as any[] for now
-};
-
+import { httpGet, httpPut } from "@/lib/api";
+import { Merchant, OpenStatus } from "@/types/types";
 export type StoreSettings = {
   id: string;
-  name: string | null;
+  name: string;
   storeImage: string | null;
   listImage: string | null;
-
-  cuisine?: {
+  cuisine: {
     categoryId: string | null;
     type: string | null;
     certification: string | null;
-  } | null;
-
-  businessHours?: BusinessHours | null;
-
-  owner?: {
+  };
+  businessHours: { day: string; hours: string }[];
+  owner: {
     name: string | null;
     phone: string | null;
     email: string | null;
-  } | null;
-
-  contact?: {
-    storePhone?: string | null;
-  } | null;
-
-  address?: {
+  };
+  contact: {
+    storePhone: string | null;
+  };
+  address: {
     line1: string | null;
     line2: string | null;
     city: string | null;
     province: string | null;
     postalCode: string | null;
-  } | null;
-
+  };
   storeId: string;
 };
 
@@ -70,22 +44,29 @@ export async function fetchStoreSettings(
   }
   return res.json();
 }
+export type UpdateOpenStatusResponse = {
+  openStatus: OpenStatus;
+};
+export async function updateOpenStatus(
+  merchantId: string,
+  status: OpenStatus
+): Promise<UpdateOpenStatusResponse> {
+  return httpPut<UpdateOpenStatusResponse>(
+    `/api/merchant/${merchantId}/store-open-status`,
+    { openStatus: status }
+  );
+}
 
 export type UpdateStoreSettingsBody = {
   name?: string;
   storeImage?: string | null;
   listImage?: string | null;
-
   categoryId?: string;
-
-  businessHours?: BusinessHours;
-
+  businessHours?: { day: string; hours: string }[];
   ownerName?: string;
   ownerPhone?: string;
   ownerEmail?: string;
-
-  storeContactPhone?: string | null;
-
+  contactStorePhone?: string;
   address?: {
     line1?: string;
     line2?: string;
@@ -95,6 +76,9 @@ export type UpdateStoreSettingsBody = {
   };
 };
 
+export async function fetchMerchant(merchantId:string): Promise<Merchant> {
+  return httpGet<Merchant>(`/api/merchant/${merchantId}`)
+}
 export async function updateStoreSettings(
   merchantId: string,
   body: UpdateStoreSettingsBody
@@ -112,3 +96,4 @@ export async function updateStoreSettings(
 
   return res.json();
 }
+
