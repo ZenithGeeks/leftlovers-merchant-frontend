@@ -3,80 +3,77 @@ import type {
   CreateEmployeeInput,
   Employee,
   EmployeesResponse,
-} from '@/types/employee';
-
-const BASE = process.env.EXPO_PUBLIC_API_BASE ?? 'https://backend-leftlovers-production.up.railway.app/api';
+} from "@/types/employee";
+import { httpDelete, httpGet, postJSON } from "@/lib/api";
 
 /**
  * Load employees + owner for a merchant
+ * GET /api/merchant/:merchantId/employees
  */
-export async function fetchEmployees(merchantId: string): Promise<EmployeesResponse> {
-  const res = await fetch(`${BASE}/merchant/${merchantId}/employees`);
-  if (!res.ok) {
-    const msg = await res.text().catch(() => '');
-    throw new Error(`Fetch employees failed (${res.status}): ${msg}`);
-  }
-  return res.json();
+export async function fetchEmployees(
+  merchantId: string
+): Promise<EmployeesResponse> {
+  return httpGet<EmployeesResponse>(
+    `/api/merchant/${encodeURIComponent(merchantId)}/employees`
+  );
 }
 
 /**
  * Create a new employee
+ * POST /api/merchant/:merchantId/employees
  */
 export async function createEmployee(
   merchantId: string,
   payload: CreateEmployeeInput
 ): Promise<Employee> {
-  const res = await fetch(`${BASE}/merchant/${merchantId}/employees`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) {
-    const msg = await res.text().catch(() => '');
-    throw new Error(`Create employee failed (${res.status}): ${msg}`);
-  }
-  return res.json();
+  return postJSON<Employee>(
+    `/api/merchant/${encodeURIComponent(merchantId)}/employees`,
+    payload
+  );
 }
 
 /**
  * Disable access (used by your "Disable" action)
+ * POST /api/merchant/:merchantId/employees/:employeeId/disable
  */
-export async function disableEmployee(merchantId: string, employeeId: string): Promise<Employee> {
-  const res = await fetch(
-    `${BASE}/merchant/${merchantId}/employees/${employeeId}/disable`,
-    { method: 'POST' }
+export async function disableEmployee(
+  merchantId: string,
+  employeeId: string
+): Promise<Employee> {
+  return postJSON<Employee>(
+    `/api/merchant/${encodeURIComponent(
+      merchantId
+    )}/employees/${encodeURIComponent(employeeId)}/disable`,
+    {} // no body fields required
   );
-  if (!res.ok) {
-    const msg = await res.text().catch(() => '');
-    throw new Error(`Disable employee failed (${res.status}): ${msg}`);
-  }
-  return res.json();
 }
 
 /**
  * Enable access (not used by your current UI, but handy)
+ * POST /api/merchant/:merchantId/employees/:employeeId/enable
  */
-export async function enableEmployee(merchantId: string, employeeId: string): Promise<Employee> {
-  const res = await fetch(
-    `${BASE}/merchant/${merchantId}/employees/${employeeId}/enable`,
-    { method: 'POST' }
+export async function enableEmployee(
+  merchantId: string,
+  employeeId: string
+): Promise<Employee> {
+  return postJSON<Employee>(
+    `/api/merchant/${encodeURIComponent(
+      merchantId
+    )}/employees/${encodeURIComponent(employeeId)}/enable`,
+    {}
   );
-  if (!res.ok) {
-    const msg = await res.text().catch(() => '');
-    throw new Error(`Enable employee failed (${res.status}): ${msg}`);
-  }
-  return res.json();
 }
 
 /**
  * Hard delete (not used by current UI)
+ * DELETE /api/merchant/:merchantId/employees/:employeeId
  */
-export async function deleteEmployee(merchantId: string, employeeId: string): Promise<void> {
-  const res = await fetch(`${BASE}/merchant/${merchantId}/employees/${employeeId}`, {
-    method: 'DELETE',
-  });
-  if (!res.ok) {
-    const msg = await res.text().catch(() => '');
-    throw new Error(`Delete employee failed (${res.status}): ${msg}`);
-  }
+export async function deleteEmployee(
+  merchantId: string,
+  employeeId: string
+): Promise<void> {
+  const path = `/api/merchant/${encodeURIComponent(
+    merchantId
+  )}/employees/${encodeURIComponent(employeeId)}`;
+  await httpDelete(path);
 }

@@ -1,11 +1,7 @@
 // services/finance.ts
-import dayjs from 'dayjs';
-import type { DateKey, Payout, Summary, Transaction } from '@/types/finance';
-
-
-const BASE =
-  process.env.EXPO_PUBLIC_API_BASE ??
-  'https://backend-leftlovers-production.up.railway.app/api';
+import dayjs from "dayjs";
+import type { DateKey, Payout, Summary, Transaction } from "@/types/finance";
+import { httpGet } from "@/lib/api";
 
 /** --------------------------
  * Response shapes from backend
@@ -18,7 +14,7 @@ type TxnRes = {
     provider: string;
     providerChargeId?: string | null;
     currency: string;
-    status: 'PAID' | 'UNPAID' | 'REFUNDED';
+    status: "PAID" | "UNPAID" | "REFUNDED";
     amountTHB: number;
     paidAt: string; // ISO
     date: string; // YYYY-MM-DD
@@ -35,7 +31,7 @@ type PayoutsRes = {
     processedAt?: string | null;
     amountTHB: number;
     feeTHB: number;
-    status: 'Transferred' | 'Pending' | 'Failed';
+    status: "Transferred" | "Pending" | "Failed";
     balanceTHB: number;
     oweTHB: number;
   }>;
@@ -54,7 +50,7 @@ type SummaryRes = {
  * Normalizers to your UI types
  * -------------------------- */
 
-function normalizeTxn(x: TxnRes['transactions'][number]): Transaction {
+function normalizeTxn(x: TxnRes["transactions"][number]): Transaction {
   return {
     paymentId: x.paymentId,
     orderId: x.orderId,
@@ -72,7 +68,7 @@ function normalizeTxn(x: TxnRes['transactions'][number]): Transaction {
   };
 }
 
-function normalizePayout(p: PayoutsRes['payouts'][number]): Payout {
+function normalizePayout(p: PayoutsRes["payouts"][number]): Payout {
   const processedAt =
     p.processedAt ??
     dayjs(p.detailDate)
@@ -94,7 +90,7 @@ function normalizePayout(p: PayoutsRes['payouts'][number]): Payout {
   };
 }
 
-function normalizeSummary(s: SummaryRes['summary']): Summary {
+function normalizeSummary(s: SummaryRes["summary"]): Summary {
   return {
     netSales: s.netSales,
     deduction: s.deduction,
@@ -104,7 +100,7 @@ function normalizeSummary(s: SummaryRes['summary']): Summary {
 }
 
 /** --------------------------
- * Internal helpers
+ * Query-string helper
  * -------------------------- */
 
 function qs(params: Record<string, string | number | undefined>) {
@@ -117,51 +113,49 @@ function qs(params: Record<string, string | number | undefined>) {
   return u.toString();
 }
 
-async function getJSON<T>(url: string, signal?: AbortSignal): Promise<T> {
-  const res = await fetch(url, { method: 'GET', signal });
-  if (!res.ok) {
-    const txt = await res.text().catch(() => '');
-    throw new Error(`GET ${url} failed (${res.status}): ${txt}`);
-  }
-  return res.json() as Promise<T>;
-}
-
 /** --------------------------
- * Public API
+ * Public API (using lib/api)
  * -------------------------- */
 
 export async function fetchFinanceTransactions(
   merchantId: string,
   range: DateKey,
-  signal?: AbortSignal
+  // kept for backward compatibility, currently unused
+  _signal?: AbortSignal
 ): Promise<Transaction[]> {
-  const url = `${BASE}/merchant/${encodeURIComponent(
+  const query = qs({ range });
+  const path = `/api/merchant/${encodeURIComponent(
     merchantId
-  )}/finance/transactions?${qs({ range })}`;
-  const data = await getJSON<TxnRes>(url, signal);
+  )}/finance/transactions?${query}`;
+
+  const data = await httpGet<TxnRes>(path);
   return (data.transactions ?? []).map(normalizeTxn);
 }
 
 export async function fetchFinancePayouts(
   merchantId: string,
   range: DateKey,
-  signal?: AbortSignal
+  _signal?: AbortSignal
 ): Promise<Payout[]> {
-  const url = `${BASE}/merchant/${encodeURIComponent(
+  const query = qs({ range });
+  const path = `/api/merchant/${encodeURIComponent(
     merchantId
-  )}/finance/payouts?${qs({ range })}`;
-  const data = await getJSON<PayoutsRes>(url, signal);
+  )}/finance/payouts?${query}`;
+
+  const data = await httpGet<PayoutsRes>(path);
   return (data.payouts ?? []).map(normalizePayout);
 }
 
 export async function fetchFinanceSummary(
   merchantId: string,
   range: DateKey,
-  signal?: AbortSignal
+  _signal?: AbortSignal
 ): Promise<Summary> {
-  const url = `${BASE}/merchant/${encodeURIComponent(
+  const query = qs({ range });
+  const path = `/api/merchant/${encodeURIComponent(
     merchantId
-  )}/finance/summary?${qs({ range })}`;
-  const data = await getJSON<SummaryRes>(url, signal);
+  )}/finance/summary?${query}`;
+
+  const data = await httpGet<SummaryRes>(path);
   return normalizeSummary(data.summary);
 }
