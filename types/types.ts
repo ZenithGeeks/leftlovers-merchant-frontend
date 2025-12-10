@@ -278,6 +278,7 @@ export interface MerchantOrderLite {
   preference: OrderPreference;
   note?: string | null;
   review?: ReviewLite | null;
+  items?: OrderItem[] | null;
 }
 
 export interface Merchant {
@@ -302,3 +303,4 @@ export interface Merchant {
   owner?: MerchantOwner | null;
   orders?: MerchantOrderLite[] | null;
 }
+

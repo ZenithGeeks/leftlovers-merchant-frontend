@@ -1,6 +1,6 @@
 // src/services/store.ts
-import { httpPut } from "@/lib/api";
-import { OpenStatus } from "@/types/types";
+import { httpGet, httpPut } from "@/lib/api";
+import { Merchant, OpenStatus } from "@/types/types";
 // Shape aligned with your /merchant/:merchantId/editstore response
 export type StoreSettings = {
   id: string;
@@ -56,9 +56,8 @@ export async function updateOpenStatus(
   merchantId: string,
   status: OpenStatus
 ): Promise<UpdateOpenStatusResponse> {
-  console.log(merchantId,status)
   return httpPut<UpdateOpenStatusResponse>(
-    `/merchant/${merchantId}/store-open-status`,
+    `/api/merchant/${merchantId}/store-open-status`,
     { openStatus: status }
   );
 }
@@ -85,6 +84,9 @@ export type UpdateStoreSettingsBody = {
   };
 };
 
+export async function fetchMerchant(merchantId:string): Promise<Merchant> {
+  return httpGet<Merchant>(`/api/merchant/${merchantId}`)
+}
 export async function updateStoreSettings(
   merchantId: string,
   body: UpdateStoreSettingsBody

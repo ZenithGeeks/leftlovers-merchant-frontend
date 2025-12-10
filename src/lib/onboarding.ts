@@ -1,12 +1,13 @@
 import type { User as FirebaseUser } from "firebase/auth";
 
-export type OnboardingStep = "email" | "store" | "notifyPage";
+export type OnboardingStep = "email" | "store" | "notifyPage" | "done";
 
 export type AppUserProfile = {
   step?: OnboardingStep;
 };
 
 const DEFAULT_STEP: OnboardingStep = "email";
+
 export function getStep(
   _user: FirebaseUser | null,
   profile?: AppUserProfile | null
@@ -17,17 +18,20 @@ export function getStep(
 export function pathForStep(step: OnboardingStep): string {
   switch (step) {
     case "email":
-      return "/(auth)/storeInfo";
+      return "/(auth)/signup";
     case "store":
-      return "/(auth)/notifyPage";
+      return "/(auth)/storeInfo";
     case "notifyPage":
-      return "/(landing)/Check_can_login";
+      return "/(auth)/notifyPage";
+    case "done":
+      return "/(tabs)/home";
     default: {
       const _exhaustive: never = step;
       return "/(auth)/signin";
     }
   }
 }
+
 export async function setStep(
   user: FirebaseUser,
   step: OnboardingStep,
