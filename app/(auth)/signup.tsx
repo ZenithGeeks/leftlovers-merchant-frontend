@@ -125,36 +125,63 @@ export default function SignUpPage() {
 
   /* =========================== VERIFY EMAIL CODE ========================== */
   const handleVerifyCode = async () => {
-    if (!signUpLoaded || !verificationCode) return Alert.alert("Enter verification code");
+    if (!signUpLoaded) {
+      Alert.alert("Please wait", "Auth not ready yet");
+      return;
+    }
+    if (!verificationCode) {
+      Alert.alert("Missing code", "Enter your email verification code");
+      return;
+    }
 
     setLoading(true);
     try {
       const res = await signUp.attemptEmailAddressVerification({ code: verificationCode });
       await signUp.reload();
 
-      // Activate Clerk session
-      if (res?.createdSessionId && setActive) await setActive({ session: res.createdSessionId });
-      await user?.reload();
-      if (!user?.id) throw new Error("User ID not found");
+      // If Clerk created a session, activate it
+      const createdSessionId =
+        res?.createdSessionId ?? (signUp as any)?.createdSessionId ?? null;
+      if (createdSessionId && setActive) {
+        await setActive({ session: createdSessionId });
+      }
 
-      // ✅ Create merchant immediately
-      const merchant = await createMerchant({
-        name: fullName.trim(),
-        email: email.trim().toLowerCase(),
+      // Prepare backend payload
+      const name = fullName.trim();
+      const emailLower = email.trim().toLowerCase();
+
+      ////////////////////////joy fix//////////////////////
+          // Create merchant user row in backend
+    try {
+      await createMerchant({
+        name,
+        email: emailLower,
         phone: localPhone || undefined,
         avatarUrl: null,
         role: "MERCHANT",
       });
-      console.log("Merchant created:", merchant);
-      // Navigate to store info
-      router.replace({ pathname: "/(auth)/storeInfo", params: { userId: user.id } });
+      console.log("Backend merchant user created (email/password)");
+    } catch (e: any) {
+      console.warn("Create merchant user failed:", e);
+      Alert.alert(
+        "Account note",
+        e?.message ?? "We couldn't finish account setup, but you can continue."
+      );
+    }
+/////////////////////////joy fix end//////////////////////
+
+      router.replace({ pathname: "/(auth)/storeInfo", params: { userId: user?.id } });
     } catch (err: any) {
-      Alert.alert("Verification failed", err?.message ?? "Try again");
+      console.error("Verification error:", err);
+      Alert.alert(
+        "Verification failed",
+        err?.errors?.[0]?.message ?? err?.message ?? "Try again."
+      );
     } finally {
       setLoading(false);
     }
   };
-  
+
   /* ================================= Renders ================================ */
   if (pendingVerification) {
     return (
