@@ -6,7 +6,6 @@ import {
   Pressable,
   ScrollView,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { useRouter } from "expo-router";
@@ -16,20 +15,13 @@ import { ThemedView } from "@/components/themed-view";
 import FieldLabel from "@/components/add-item/FieldLabel";
 import { ChevronLeftIcon, XMarkIcon } from "react-native-heroicons/outline";
 
-import { httpGet, putJSON } from "@/lib/api";
+import {
+  fetchStoreSettings,
+  updateStoreSettings,
+  type StoreSettings,
+} from "@/services/store";
+import { fetchCategories, type Category } from "@/services/category";
 import { DEV_MERCHANT_ID } from "@/utils/env";
-
-// ---- Types that match /merchant/:merchantId/editstore GET response ----
-type StoreSettingsAPI = {
-  id: string;
-  name: string;
-  cuisine: {
-    categoryId: string | null;
-    type: string | null;
-    certification: string | null;
-  };
-  // we don't need the rest here, so keep them optional
-};
 
 const MERCHANT_ID =
   DEV_MERCHANT_ID || process.env.EXPO_PUBLIC_MERCHANT_ID || "";
@@ -42,14 +34,12 @@ export default function EditCuisineCertification() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [cuisine, setCuisine] = useState("");
-  const [certification, setCertification] = useState("");
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
 
-  // keep initial values so we know if anything changed
-  const [initialCuisine, setInitialCuisine] = useState("");
-  const [initialCertification, setInitialCertification] = useState("");
+  const [initialCategoryId, setInitialCategoryId] = useState<string | null>(null);
 
-  // -------- Load current settings from backend --------
+  // -------- Load categories + store (for current category) --------
   useEffect(() => {
     let cancelled = false;
 
@@ -64,24 +54,27 @@ export default function EditCuisineCertification() {
       setError(null);
 
       try {
-        const data = await httpGet<StoreSettingsAPI>(
-          `/merchant/${MERCHANT_ID}/editstore`
-        );
+        // 1) Load categories
+        const cats = await fetchCategories();
+        if (cancelled) return;
+        setCategories(cats ?? []);
 
+        // 2) Load store settings (for current category)
+        const store: StoreSettings = await fetchStoreSettings(MERCHANT_ID);
         if (cancelled) return;
 
-        const currCuisine = data.cuisine?.type ?? "";
-        const currCert = data.cuisine?.certification ?? "";
+        const currCategoryId =
+          store.cuisine?.categoryId ??
+          // fallback if your backend later exposes this directly
+          (store as any).categoryId ??
+          "";
 
-        setCuisine(currCuisine);
-        setCertification(currCert);
-
-        setInitialCuisine(currCuisine);
-        setInitialCertification(currCert);
+        setSelectedCategoryId(currCategoryId || "");
+        setInitialCategoryId(currCategoryId || null);
       } catch (e: any) {
         if (cancelled) return;
         console.error("Failed to load cuisine settings:", e);
-        const msg = e?.message ?? "Failed to load current settings.";
+        const msg = e?.message ?? "Failed to load cuisine information.";
         setError(msg);
         Alert.alert("Error", msg);
       } finally {
@@ -95,32 +88,29 @@ export default function EditCuisineCertification() {
     };
   }, []);
 
-  const hasChanges =
-    cuisine.trim() !== initialCuisine.trim() ||
-    certification.trim() !== initialCertification.trim();
+  const selectedCategory =
+    categories.find((c) => c.id === selectedCategoryId) ?? null;
+
+  const hasChanges = selectedCategoryId !== (initialCategoryId ?? "");
 
   const canSave = useMemo(
-    () => cuisine.trim().length > 0 && !saving && hasChanges,
-    [cuisine, saving, hasChanges]
+    () => !!selectedCategoryId && !saving && hasChanges,
+    [selectedCategoryId, saving, hasChanges]
   );
 
-  // -------- Save handler --------
   const onSave = async () => {
     if (!canSave || !MERCHANT_ID) return;
 
     setSaving(true);
     try {
-      await putJSON(`/merchant/${MERCHANT_ID}/editstore`, {
-        cuisine: {
-          type: cuisine.trim(),
-          certification: certification.trim() || null,
-        },
+      // Only update categoryId via existing /merchant/:id/editstore endpoint
+      await updateStoreSettings(MERCHANT_ID, {
+        categoryId: selectedCategoryId,
       });
 
-      setInitialCuisine(cuisine.trim());
-      setInitialCertification(certification.trim());
+      setInitialCategoryId(selectedCategoryId);
 
-      Alert.alert("Success", "Cuisine & certification updated.", [
+      Alert.alert("Success", "Cuisine updated.", [
         { text: "OK", onPress: () => router.back() },
       ]);
     } catch (e: any) {
@@ -131,7 +121,6 @@ export default function EditCuisineCertification() {
     }
   };
 
-  // -------- Loading state --------
   if (loading) {
     return (
       <ThemedView
@@ -139,7 +128,7 @@ export default function EditCuisineCertification() {
         style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
       >
         <ActivityIndicator />
-        <Text className="mt-2 text-gray-500">Loading current settings…</Text>
+        <Text className="mt-2 text-gray-500">Loading cuisine settings…</Text>
       </ThemedView>
     );
   }
@@ -147,7 +136,7 @@ export default function EditCuisineCertification() {
   return (
     <ThemedView
       className="flex-1 bg-white"
-      style={{ paddingTop: insets.top + 8 }}
+      style={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 8 }}
     >
       {/* Header */}
       <View className="px-5 pb-2 flex-row items-center justify-between">
@@ -169,6 +158,7 @@ export default function EditCuisineCertification() {
         className="flex-1 px-5"
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
       >
         {error && (
           <View className="mb-4 rounded-xl bg-red-50 px-3 py-2">
@@ -176,22 +166,75 @@ export default function EditCuisineCertification() {
           </View>
         )}
 
+        {/* Cuisine Type (category dropdown-style list) */}
         <FieldLabel label="Cuisine Type" className="pb-2 pt-4" required />
-        <TextInput
-          placeholder="e.g. Thai, Japanese, Bakery"
-          value={cuisine}
-          onChangeText={setCuisine}
-          className="w-full rounded-xl border border-gray-300 px-4 py-3 text-[16px]"
-        />
+        {categories.length === 0 ? (
+          <Text className="text-gray-500 mb-3">
+            No categories configured. Please contact admin.
+          </Text>
+        ) : (
+          <View className="mb-4">
+            {/* Display-style selected box (like ShopStatusDropdown trigger) */}
+            <Pressable
+              className="w-full rounded-xl border border-gray-300 px-4 py-3 flex-row justify-between items-center"
+              // no modal; selection happens in the list below
+              onPress={() => {
+                // no-op; list below is clickable
+              }}
+            >
+              <Text className="text-[16px] text-[#11181C]">
+                {selectedCategory
+                  ? selectedCategory.name
+                  : "Select cuisine category"}
+              </Text>
+            </Pressable>
 
+            {/* Simple list of categories to choose from */}
+            <View className="mt-3 rounded-xl border border-gray-200 overflow-hidden">
+              {categories.map((cat) => {
+                const active = cat.id === selectedCategoryId;
+                return (
+                  <Pressable
+                    key={cat.id}
+                    onPress={() => setSelectedCategoryId(cat.id)}
+                    className={`px-4 py-2 flex-row items-center justify-between ${
+                      active ? "bg-emerald-50" : "bg-white"
+                    }`}
+                  >
+                    <Text className="text-[15px] text-[#11181C]">
+                      {cat.name}
+                    </Text>
+                    {active && (
+                      <Text className="text-emerald-600 text-[13px]">
+                        Selected
+                      </Text>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
+        {/* Certification – just show "Verified" (no upload) */}
         <FieldLabel label="Certification" className="pb-2 pt-6" />
-        <TextInput
-          placeholder="e.g. Halal, Clean Food Good Taste"
-          value={certification}
-          onChangeText={setCertification}
-          className="w-full rounded-xl border border-gray-300 px-4 py-3 text-[16px]"
-        />
+        <View className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 flex-row items-center justify-between">
+          <View>
+            <Text className="text-[14px] text-emerald-700 font-semibold">
+              Certification status
+            </Text>
+            <Text className="text-[13px] text-emerald-700 mt-1">
+              Verified
+            </Text>
+          </View>
+          <View className="px-3 py-1 rounded-full bg-emerald-600">
+            <Text className="text-[12px] text-white font-semibold">
+              Verified
+            </Text>
+          </View>
+        </View>
 
+        {/* Save */}
         <Pressable
           onPress={onSave}
           disabled={!canSave}

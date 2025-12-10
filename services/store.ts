@@ -1,43 +1,65 @@
 // src/services/store.ts
 
-// Shape aligned with your /merchant/:merchantId/editstore response
+export type WeeklySlot = {
+  open: string;   // "08:00"
+  close: string;  // "18:00"
+};
+
+export type WeeklySchedule = {
+  mon?: WeeklySlot[];
+  tue?: WeeklySlot[];
+  wed?: WeeklySlot[];
+  thu?: WeeklySlot[];
+  fri?: WeeklySlot[];
+  sat?: WeeklySlot[];
+  sun?: WeeklySlot[];
+};
+
+export type BusinessHours = {
+  weekly: WeeklySchedule;
+  timezone: string;    // e.g. "Asia/Bangkok"
+  exceptions: any[];   // keep as any[] for now
+};
+
 export type StoreSettings = {
   id: string;
-  name: string;
+  name: string | null;
   storeImage: string | null;
   listImage: string | null;
-  cuisine: {
+
+  cuisine?: {
     categoryId: string | null;
     type: string | null;
     certification: string | null;
-  };
-  businessHours: { day: string; hours: string }[];
-  owner: {
+  } | null;
+
+  businessHours?: BusinessHours | null;
+
+  owner?: {
     name: string | null;
     phone: string | null;
     email: string | null;
-  };
-  contact: {
-    storePhone: string | null;
-  };
-  address: {
+  } | null;
+
+  contact?: {
+    storePhone?: string | null;
+  } | null;
+
+  address?: {
     line1: string | null;
     line2: string | null;
     city: string | null;
     province: string | null;
     postalCode: string | null;
-  };
+  } | null;
+
   storeId: string;
 };
 
-// ✅ Same base style as services/employees.ts and services/finance.ts
 const BASE =
   process.env.EXPO_PUBLIC_API_BASE ??
   "https://backend-leftlovers-production.up.railway.app/api";
 
-/**
- * GET /merchant/:merchantId/editstore
- */
 export async function fetchStoreSettings(
   merchantId: string
 ): Promise<StoreSettings> {
@@ -49,19 +71,21 @@ export async function fetchStoreSettings(
   return res.json();
 }
 
-/**
- * PUT /merchant/:merchantId/editstore
- */
 export type UpdateStoreSettingsBody = {
   name?: string;
   storeImage?: string | null;
   listImage?: string | null;
+
   categoryId?: string;
-  businessHours?: { day: string; hours: string }[];
+
+  businessHours?: BusinessHours;
+
   ownerName?: string;
   ownerPhone?: string;
   ownerEmail?: string;
-  contactStorePhone?: string;
+
+  storeContactPhone?: string | null;
+
   address?: {
     line1?: string;
     line2?: string;
