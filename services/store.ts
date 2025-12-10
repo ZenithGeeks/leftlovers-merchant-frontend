@@ -1,7 +1,6 @@
 // src/services/store.ts
 import { httpGet, httpPut } from "@/lib/api";
 import { Merchant, OpenStatus } from "@/types/types";
-// Shape aligned with your /merchant/:merchantId/editstore response
 export type StoreSettings = {
   id: string;
   name: string;
@@ -31,14 +30,10 @@ export type StoreSettings = {
   storeId: string;
 };
 
-// ✅ Same base style as services/employees.ts and services/finance.ts
 const BASE =
   process.env.EXPO_PUBLIC_API_BASE ??
   "https://backend-leftlovers-production.up.railway.app/api";
 
-/**
- * GET /merchant/:merchantId/editstore
- */
 export async function fetchStoreSettings(
   merchantId: string
 ): Promise<StoreSettings> {
@@ -62,9 +57,6 @@ export async function updateOpenStatus(
   );
 }
 
-/**
- * PUT /merchant/:merchantId/editstore
- */
 export type UpdateStoreSettingsBody = {
   name?: string;
   storeImage?: string | null;
