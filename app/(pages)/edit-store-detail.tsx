@@ -27,10 +27,6 @@ import {
 const MERCHANT_ID =
   DEV_MERCHANT_ID || process.env.EXPO_PUBLIC_MERCHANT_ID || "";
 
-/** -----------------------
- * Local MinIO upload helper
- * (does NOT touch services/upload.ts)
- * ------------------------ */
 
 const RAW_API_URL =
   process.env.EXPO_PUBLIC_API_URL ??
