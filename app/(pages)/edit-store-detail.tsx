@@ -15,7 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ThemedView } from "@/components/themed-view";
 import FieldLabel from "@/components/add-item/FieldLabel";
 import ImagePickerField from "@/components/ImagePickerField";
-import { ChevronLeftIcon, XMarkIcon } from "react-native-heroicons/outline";
+import { ChevronLeftIcon } from "react-native-heroicons/outline"; // ⬅️ removed XMarkIcon
 
 import { DEV_MERCHANT_ID } from "@/utils/env";
 import {
@@ -26,7 +26,6 @@ import {
 
 const MERCHANT_ID =
   DEV_MERCHANT_ID || process.env.EXPO_PUBLIC_MERCHANT_ID || "";
-
 
 const RAW_API_URL =
   process.env.EXPO_PUBLIC_API_URL ??
@@ -50,7 +49,6 @@ async function uploadToMinio(uri: string, folder: string): Promise<string> {
       body: formData,
       headers: {
         Accept: "application/json",
-        // DO NOT set Content-Type here (RN will set proper multipart boundary)
       },
     }
   );
@@ -64,10 +62,6 @@ async function uploadToMinio(uri: string, folder: string): Promise<string> {
   return json.url;
 }
 
-/** -----------------------
- * Screen
- * ------------------------ */
-
 export default function EditStoreDetail() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -75,17 +69,14 @@ export default function EditStoreDetail() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  // form state
   const [storeName, setStoreName] = useState("");
   const [storeImage, setStoreImage] = useState<string | null>(null);
   const [listImage, setListImage] = useState<string | null>(null);
 
-  // keep initial values so we know what changed
   const [initialName, setInitialName] = useState("");
   const [initialStoreImage, setInitialStoreImage] = useState<string | null>(null);
   const [initialListImage, setInitialListImage] = useState<string | null>(null);
 
-  // 1) Load settings via services/store (uses EXPO_PUBLIC_API_BASE, which works)
   useEffect(() => {
     let cancelled = false;
 
@@ -142,19 +133,14 @@ export default function EditStoreDetail() {
       let finalStoreImageUrl: string | null = initialStoreImage;
       let finalListImageUrl: string | null = initialListImage;
 
-      // ===== Store image =====
       if (storeImage === null) {
-        // user removed image
         finalStoreImageUrl = null;
       } else if (isLocalFileUri(storeImage)) {
-        // new local file picked → upload to MinIO
         finalStoreImageUrl = await uploadToMinio(storeImage, "store-images");
       } else if (storeImage !== initialStoreImage) {
-        // different remote URL (rare but possible)
         finalStoreImageUrl = storeImage;
       }
 
-      // ===== List image =====
       if (listImage === null) {
         finalListImageUrl = null;
       } else if (isLocalFileUri(listImage)) {
@@ -163,7 +149,6 @@ export default function EditStoreDetail() {
         finalListImageUrl = listImage;
       }
 
-      // 2) Use updateStoreSettings (same /merchant/:id/editstore backend)
       await updateStoreSettings(MERCHANT_ID, {
         name: storeName.trim(),
         storeImage: finalStoreImageUrl,
@@ -210,10 +195,11 @@ export default function EditStoreDetail() {
         >
           <ChevronLeftIcon size={18} color="#11181C" />
         </Pressable>
-        <Text className="text-2xl font-bold text-[#11181C]">Edit Store Details</Text>
-        <Pressable onPress={() => router.back()} accessibilityLabel="close">
-          <XMarkIcon size={22} color="#11181C" />
-        </Pressable>
+        <Text className="text-2xl font-bold text-[#11181C]">
+          Edit Store Details
+        </Text>
+        {/* spacer to keep title centered */}
+        <View className="w-9 h-9" />
       </View>
 
       {/* Content */}
@@ -238,7 +224,9 @@ export default function EditStoreDetail() {
 
         {/* Store Image */}
         <View className="mt-8">
-          <Text className="text-[18px] font-bold text-[#11181C] mb-2">Store image</Text>
+          <Text className="text-[18px] font-bold text-[#11181C] mb-2">
+            Store image
+          </Text>
           <Text className="text-[14px] text-[#6B7280] mb-3">
             This is the image for the top of your store menu.
           </Text>
@@ -262,10 +250,12 @@ export default function EditStoreDetail() {
 
         {/* List Image */}
         <View className="mt-8">
-          <Text className="text-[18px] font-bold text-[#11181C] mb-2">List image</Text>
+          <Text className="text-[18px] font-bold text-[#11181C] mb-2">
+            List image
+          </Text>
           <Text className="text-[14px] text-[#6B7280] mb-3">
-            This image will appear alongside other businesses when customers browse
-            the restaurant list.
+            This image will appear alongside other businesses when customers
+            browse the restaurant list.
           </Text>
           <ImagePickerField
             value={listImage ?? undefined}
