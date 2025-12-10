@@ -1,119 +1,302 @@
-import React, { useState } from "react";
-import {
-  StyleSheet,
-  Text,
-  View
-} from "react-native";
-import ToggleButton from "@/components/Order/ToggleButton";
-import { OrderListItem } from "@/constants/order.type";
-import CardItem from "./CardItem";
 import { Ionicons } from "@expo/vector-icons";
+import React, { useCallback, useMemo, useState } from "react";
+import { Alert, Pressable, Text, View } from "react-native";
 
-interface OrderListRowProps {
-  item: OrderListItem;
-}
+import CardItem from "@/components/Order/CardItem";
+import ToggleButton from "@/components/Order/ToggleButton";
+import { updateMerchantOrderStatus } from "@/services/order";
+import type { Order, OrderStatus } from "@/types/types";
 
-export default function OrderListRow({ item }: OrderListRowProps) {
-   const [expanded, setExpanded] = useState(false);
+type OrderListRowProps = {
+  item: Order;
+  onUpdated?: (next: Order) => void;
+};
 
-   function getTimeUntilPickup(pickupTime: Date): string {
-      const now = new Date();
-      const diffMs = pickupTime.getTime() - now.getTime();
-
-      if (diffMs <= 0) {
-         return "Pickup time passed";
-      }
-
-      const hours = Math.floor(diffMs / (1000 * 60 * 60));
-      const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-
-      if (hours > 0) {
-         return `${hours}h ${minutes}m left`;
-      } else {
-         return `${minutes}m until left`;
-      }
-   }
-
-   return (
-      <>
-         <View style={[styles.orderRow, expanded ? styles.expanded : { borderRadius: BORDER_RADIUS }]}>
-         <Text style={{ marginTop: 8 }}>Order #{item.bookingId}</Text>
-            <View style={styles.pickupTimeBox}>
-               <Text>{getTimeUntilPickup(item.pickupTime)}</Text>
-            </View>
-            <ToggleButton expanded={expanded} onToggle={() => setExpanded(!expanded)} />
-         </View>
-         {expanded && (
-            <View style={styles.orderDetails}>
-               <Text style={styles.detailTitle}>{item.userName}</Text>
-               <Text style={styles.detailBody}>Pickup time at {item.pickupTime.toLocaleString()}</Text>
-               <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <Ionicons name="call-outline" size={12} color="#6B7280" />
-                  <Text style={styles.detailBody}>{item.telephone}</Text>
-               </View>
-               {/* Item Card */}
-               {item.orderItems.map((card: any, index: number) => (
-                  <CardItem
-                     key={index}
-                     orderItem={card}
-                  />
-               ))}
-            </View>
-         )}
-      </>
-
-   );
-}
-
-const BORDER_RADIUS = 16;
-
-const PADDING_ORDER_ROW = 4;
-const PADDING_ORDER_DETAILS = 16;
-
-const styles = StyleSheet.create({
-  orderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    padding: PADDING_ORDER_ROW,
-    paddingLeft: 16,
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  pickupTimeBox: {
-   backgroundColor: "#FECD4C",
-   borderRadius: 8,
-   padding: 8,
-   width: 160,
-   alignItems: "center",
-  },
-  expanded: {
-   borderTopStartRadius: BORDER_RADIUS,
-   borderTopEndRadius: BORDER_RADIUS,
-  },
-  orderInfo: {
-   marginTop: 8,
-  },
-  orderDetails: {
-   flexDirection: "column",
-   justifyContent: "space-between",
-   alignItems: "flex-start",
-   borderWidth: 1,
-   borderColor: "#E5E7EB",
-   borderBottomStartRadius: BORDER_RADIUS,
-   borderBottomEndRadius: BORDER_RADIUS,
-   padding: PADDING_ORDER_DETAILS,
-  },
-  detailTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#11181C",
-  },
-  detailBody: {
-   fontSize: 12,
+const statusLabel = (s: OrderStatus) => {
+  switch (s) {
+    case "PENDING":
+      return "Pending";
+    case "CONFIRMED":
+      return "Confirmed";
+    case "READY":
+      return "Ready";
+    case "PICKED_UP":
+      return "Picked up";
+    case "CANCELLED":
+      return "Cancelled";
+    default:
+      return s;
   }
-});
+};
+
+const statusPillClass = (s: OrderStatus) => {
+  switch (s) {
+    case "PENDING":
+      return "bg-amber-50 text-amber-700 border-amber-200";
+    case "CONFIRMED":
+      return "bg-blue-50 text-blue-700 border-blue-200";
+    case "READY":
+      return "bg-green-50 text-green-700 border-green-200";
+    case "PICKED_UP":
+      return "bg-gray-100 text-gray-700 border-gray-200";
+    case "CANCELLED":
+      return "bg-red-50 text-red-700 border-red-200";
+    default:
+      return "bg-gray-100 text-gray-700 border-gray-200";
+  }
+};
+
+const paymentPillClass = (p?: string) => {
+  switch (p) {
+    case "PAID":
+      return "bg-green-50 text-green-700 border-green-200";
+    case "REFUNDED":
+      return "bg-purple-50 text-purple-700 border-purple-200";
+    case "UNPAID":
+    default:
+      return "bg-gray-100 text-gray-700 border-gray-200";
+  }
+};
+
+function formatDateTime(d?: string | null) {
+  if (!d) return "-";
+  const date = new Date(d);
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleString();
+}
+
+function getTimeLeft(deadline?: string | null) {
+  if (!deadline) return null;
+  const end = new Date(deadline).getTime();
+  const now = Date.now();
+  const diff = end - now;
+
+  if (Number.isNaN(end)) return null;
+  if (diff <= 0) return "Expired";
+
+  const mins = Math.floor(diff / 60000);
+  const hrs = Math.floor(mins / 60);
+  const rem = mins % 60;
+
+  if (hrs > 0) return `${hrs}h ${rem}m left`;
+  return `${rem}m left`;
+}
+
+export default function OrderListRow({ item, onUpdated }: OrderListRowProps) {
+  const [expanded, setExpanded] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const merchantId = process.env.EXPO_PUBLIC_MERCHANT_ID ?? "";
+
+  const shortId = useMemo(() => item.id?.slice(0, 6)?.toUpperCase() ?? "ORDER", [item.id]);
+  const timeLeft = useMemo(() => getTimeLeft(item.pickupDeadline), [item.pickupDeadline]);
+
+  const itemsCount = useMemo(
+    () => (item.items ?? []).reduce((sum, it) => sum + (it.quantity ?? 0), 0),
+    [item.items]
+  );
+
+  const primaryAction = useMemo(() => {
+    if (item.status === "PENDING" || item.status === "CONFIRMED") {
+      return { label: "Mark Ready", next: "READY" as OrderStatus };
+    }
+    if (item.status === "READY") {
+      return { label: "Picked up", next: "PICKED_UP" as OrderStatus };
+    }
+    return null;
+  }, [item.status]);
+
+  const handleUpdateStatus = useCallback(async () => {
+    if (!primaryAction) return;
+    if (!merchantId) {
+      Alert.alert("Missing merchantId", "Please set EXPO_PUBLIC_MERCHANT_ID.");
+      return;
+    }
+
+    setBusy(true);
+    try {
+      const updated = await updateMerchantOrderStatus(
+        merchantId,
+        item.id,
+        primaryAction.next
+      );
+
+      onUpdated?.(updated);
+    } catch (e: any) {
+      Alert.alert("Update failed", e?.message ?? "Unable to update order.");
+    } finally {
+      setBusy(false);
+    }
+  }, [primaryAction, merchantId, item.id, onUpdated]);
+
+  return (
+    <View className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+      {/* ================= HEADER ================= */}
+      <View className="px-4 pt-4 pb-3">
+        <View className="flex-row items-center justify-between">
+          {/* Left: Order ID */}
+          <View className="flex-row items-center">
+            <Text className="text-xl font-semibold text-gray-900">
+              Order #{shortId}
+            </Text>
+            {!!item.pickupCode && (
+              <Text className="ml-2 text-[10px] text-gray-500">
+                Code: {item.pickupCode}
+              </Text>
+            )}
+          </View>
+
+          {/* Right: Toggle */}
+          <ToggleButton expanded={expanded} onToggle={() => setExpanded((s) => !s)} />
+        </View>
+
+        {/* Pills row */}
+        <View className="flex-row flex-wrap items-center mt-3">
+          {/* Status */}
+          <View className={`border rounded-full px-2.5 py-1 mr-2 ${statusPillClass(item.status)}`}>
+            <Text className="text-[10px] font-semibold">
+              {statusLabel(item.status)}
+            </Text>
+          </View>
+
+          {/* Payment */}
+          <View className={`border rounded-full px-2.5 py-1 mr-2 ${paymentPillClass(item.paymentStatus)}`}>
+            <Text className="text-[10px] font-semibold">
+              {item.paymentStatus ?? "UNPAID"}
+            </Text>
+          </View>
+
+          {/* Preference */}
+          <View className="border border-gray-200 rounded-full px-2.5 py-1 mr-2 bg-gray-50">
+            <Text className="text-[10px] font-medium text-gray-700">
+              {item.preference ?? "CONTACT"}
+            </Text>
+          </View>
+
+          {/* Cutlery */}
+          <View className="border border-gray-200 rounded-full px-2.5 py-1 bg-gray-50">
+            <Text className="text-[10px] font-medium text-gray-700">
+              {item.cutlery ? "Cutlery: Yes" : "Cutlery: No"}
+            </Text>
+          </View>
+        </View>
+
+        {/* Timer pill (if have deadline) */}
+        {!!timeLeft && (
+          <View className="mt-3 self-start bg-amber-200/70 rounded-full px-4 py-2">
+            <Text className="text-[11px] font-semibold text-gray-900">
+              {timeLeft}
+            </Text>
+          </View>
+        )}
+
+        {/* Summary line */}
+        <View className="mt-3 flex-row items-center justify-between">
+          <Text className="text-[11px] text-gray-500">
+            Items: {itemsCount || 0}
+          </Text>
+          <Text className="text-[11px] text-gray-500">
+            Total: ฿{item.totalAmount ?? "0"}
+          </Text>
+        </View>
+      </View>
+
+      {/* Divider */}
+      <View className="h-[1px] bg-gray-100" />
+
+      {/* ================= BODY ================= */}
+      <View className="px-4 py-4">
+        {/* Customer block */}
+        <Text className="text-lg font-semibold text-gray-900">
+          {item.customer?.name ?? "Customer"}
+        </Text>
+
+        <View className="mt-2">
+          <View className="flex-row items-center">
+            <Ionicons name="time-outline" size={14} color="#6B7280" />
+            <Text className="ml-2 text-xs text-gray-600">
+              Pickup deadline: {formatDateTime(item.pickupDeadline)}
+            </Text>
+          </View>
+
+          <View className="flex-row items-center mt-1">
+            <Ionicons name="calendar-outline" size={14} color="#6B7280" />
+            <Text className="ml-2 text-xs text-gray-600">
+              Created: {formatDateTime(item.createdAt)}
+            </Text>
+          </View>
+
+          <View className="flex-row items-center mt-1">
+            <Ionicons name="call-outline" size={14} color="#6B7280" />
+            <Text className="ml-2 text-xs text-gray-600">
+              {item.customer?.phone ?? "-"}
+            </Text>
+          </View>
+        </View>
+
+        {/* Items preview when collapsed */}
+        {!expanded && (
+          <View className="mt-4">
+            {(item.items ?? []).slice(0, 2).map((it) => (
+              <View key={it.id} className="flex-row items-center mb-2">
+                <View className="w-6 h-6 rounded-full border border-green-500 items-center justify-center">
+                  <Text className="text-[10px] font-semibold text-green-600">
+                    {it.quantity ?? 0}
+                  </Text>
+                </View>
+                <Text className="ml-3 text-sm text-gray-800">
+                  {it.menu?.name ?? "Menu item"}
+                </Text>
+              </View>
+            ))}
+
+            {(item.items?.length ?? 0) > 2 && (
+              <Text className="text-[11px] text-gray-500 ml-9">
+                +{(item.items?.length ?? 0) - 2} more items
+              </Text>
+            )}
+          </View>
+        )}
+
+        {/* Expanded full items */}
+        {expanded && (
+          <View className="mt-4">
+            <Text className="text-xs font-semibold text-gray-900 mb-2">
+              Order items
+            </Text>
+
+            {(item.items ?? []).map((it) => (
+              <CardItem key={it.id} orderItem={it} />
+            ))}
+
+            {!!item.note && (
+              <View className="mt-4 bg-gray-50 border border-gray-200 rounded-xl p-3">
+                <Text className="text-[11px] text-gray-500">Note</Text>
+                <Text className="text-xs text-gray-800 mt-1">
+                  {item.note}
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+      </View>
+
+      {/* ================= FOOTER ACTION ================= */}
+      {!!primaryAction && (
+        <View className="px-4 pb-4">
+          <Pressable
+            onPress={handleUpdateStatus}
+            disabled={busy}
+            className={`self-end rounded-2xl px-6 py-3 ${
+              busy ? "bg-green-300" : "bg-green-500"
+            }`}
+          >
+            <Text className="text-white font-semibold">
+              {busy ? "Updating..." : primaryAction.label}
+            </Text>
+          </Pressable>
+        </View>
+      )}
+    </View>
+  );
+}

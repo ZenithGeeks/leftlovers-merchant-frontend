@@ -1,40 +1,56 @@
 // app/(auth)/notifyPage.tsx
-import { setStep } from "@/src/lib/onboarding";
-import { useAuth, useUser } from "@clerk/clerk-expo";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import React from "react";
-import { ActivityIndicator, Image, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  Image,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-export default function FinishSignUp() {
-  const router = useRouter();
-  const { user } = useUser();
-  const { signOut } = useAuth();
+import { auth } from "@/lib/firebase";
+import { signOut, type User as FirebaseUser } from "firebase/auth";
 
+import { setStep, type OnboardingStep } from "@/src/lib/onboarding";
+
+// Store step per Firebase UID (local MVP)
+const stepKey = (uid: string) => `onboarding:step:${uid}`;
+
+async function saveOnboardingStep(uid: string, step: OnboardingStep) {
+  await AsyncStorage.setItem(stepKey(uid), step);
+}
+
+export default function NotifyPage() {
+  const router = useRouter();
   const [submitting, setSubmitting] = React.useState(false);
 
   const onDone = React.useCallback(async () => {
     if (submitting) return;
     setSubmitting(true);
-    try {
-      // Persist the “waiting for approval” step and refresh local user
-      if (user) {
-        await setStep(user, "notifyPage");
-        await user.reload();
-      }
-      // Sign out to avoid layout redirecting you back to notify page
-      await signOut();
 
-      // Go to Sign In
+    try {
+      const user = auth.currentUser as FirebaseUser | null;
+
+      // ✅ Persist the “waiting for approval” step
+      if (user) {
+        await setStep(user, "notifyPage", saveOnboardingStep);
+      }
+
+      // ✅ Sign out to avoid redirect loops
+      await signOut(auth);
+
+      // ✅ Go to Sign In
       router.replace("/(auth)/signin");
     } catch (e) {
-      console.warn("FinishSignUp onDone error:", e);
-      // Fallback: still try to go to Sign In
+      console.warn("notifyPage onDone error:", e);
       router.replace("/(auth)/signin");
     } finally {
       setSubmitting(false);
     }
-  }, [submitting, user, signOut, router]);
+  }, [submitting, router]);
 
   return (
     <SafeAreaView

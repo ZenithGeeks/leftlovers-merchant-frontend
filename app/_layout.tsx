@@ -1,4 +1,6 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { auth } from "@/lib/firebase";
+import { AuthProvider } from "@/providers/AuthProvider";
 import {
   Poppins_400Regular,
   Poppins_500Medium,
@@ -7,18 +9,14 @@ import {
   useFonts,
 } from "@expo-google-fonts/poppins";
 import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";
-import { Stack } from "expo-router";
+import { Stack, router } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect } from "react";
+import { onAuthStateChanged, type User as FirebaseUser } from "firebase/auth";
+import React, { useEffect, useState } from "react";
 import { LogBox } from "react-native";
 import "react-native-reanimated";
-
-//Authentication
-import { ClerkProvider } from "@clerk/clerk-expo";
-import { tokenCache } from "@clerk/clerk-expo/token-cache";
-import Constants from "expo-constants";
-
+import './globals.css';
 if (__DEV__) {
   LogBox.ignoreLogs([
     "Open debugger to view warnings.",
@@ -30,40 +28,54 @@ try { SplashScreen.preventAutoHideAsync(); } catch {}
 export const unstable_settings = {
   initialRouteName: "(tabs)",
 };
+export type FirebaseAuthState = {
+  user: FirebaseUser | null;
+  isLoaded: boolean;
+};
 
-const clerkPublishableKey =
-  Constants.expoConfig?.extra?.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
-  
-
+export const FirebaseAuthContext = React.createContext<FirebaseAuthState>({
+  user: null,
+  isLoaded: false,
+});
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [fontsLoaded] = useFonts({
     Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold, Poppins_700Bold,
   });
+  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
 
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setIsLoaded(true);
+    });
+    return unsub;
+  }, []);
+  
+  useEffect(() => {
+    if (!isLoaded) return;
+
+    if (!user) {
+      router.replace("/(landing)");
+    }
+  }, [user, isLoaded]);
   useEffect(() => {
     if (fontsLoaded) SplashScreen.hideAsync();
   }, [fontsLoaded]);
-
-  if (!clerkPublishableKey) {
-    console.error("Missing EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY");
-    // Render nothing or a fallback UI to avoid crashing during development
-    return null;
-  }
-
   if (!fontsLoaded) return null;
 
   return (
-    <ClerkProvider publishableKey={clerkPublishableKey} tokenCache={tokenCache}>
+    
+    <AuthProvider>
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="(pages)" />
           <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(home)" />
         </Stack>
         <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
       </ThemeProvider>
-    </ClerkProvider>
+    </AuthProvider>
   );
 }

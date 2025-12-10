@@ -1,14 +1,19 @@
-import { UserResource } from "@clerk/types";
+import type { User as FirebaseUser } from "firebase/auth";
 
 export type OnboardingStep = "email" | "store" | "notifyPage";
 
-/** Read user's current onboarding step (defaults to "email") */
-export function getStep(user?: UserResource | null): OnboardingStep {
-  const meta = user?.unsafeMetadata ?? {};
-  return (meta.step as OnboardingStep) || "email";
+export type AppUserProfile = {
+  step?: OnboardingStep;
+};
+
+const DEFAULT_STEP: OnboardingStep = "email";
+export function getStep(
+  _user: FirebaseUser | null,
+  profile?: AppUserProfile | null
+): OnboardingStep {
+  return profile?.step ?? DEFAULT_STEP;
 }
 
-/** Map a step to the route the user should be on next */
 export function pathForStep(step: OnboardingStep): string {
   switch (step) {
     case "email":
@@ -16,12 +21,17 @@ export function pathForStep(step: OnboardingStep): string {
     case "store":
       return "/(auth)/notifyPage";
     case "notifyPage":
+      return "/(landing)/Check_can_login";
+    default: {
+      const _exhaustive: never = step;
       return "/(auth)/signin";
+    }
   }
 }
-
-/** Persist the step on Clerk user */
-export async function setStep(user: any, step: OnboardingStep) {
-  const prev = (user?.unsafeMetadata ?? {}) as Record<string, unknown>;
-  await user.update({ unsafeMetadata: { ...prev, step } });
+export async function setStep(
+  user: FirebaseUser,
+  step: OnboardingStep,
+  save: (uid: string, step: OnboardingStep) => Promise<void>
+): Promise<void> {
+  await save(user.uid, step);
 }

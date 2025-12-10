@@ -1,18 +1,17 @@
-// src/api/users.ts
 const BASE =
   process.env.EXPO_PUBLIC_API_BASE ??
   (global as any).__API_BASE__ ??
-  "http://localhost:3000"; 
+  "https://backend-leftlovers-production.up.railway.app"; 
 
 export type Role = "CUSTOMER" | "MERCHANT" | "ADMIN" | "STAFF";
 export type UserStatus = "ACTIVE" | "SUSPENDED" | "DELETED";
 
 export type CreateUserBody = {
   email: string;
-  role: Role;             // for merchant flow: "MERCHANT"
+  role: Role;
   name?: string;
-  phone?: string | null;  // E.164, e.g. +66xxxxxxxxx
-  dob?: string | null;    // ISO or "YYYY-MM-DD" (optional for merchant)
+  phone?: string | null;
+  dob?: string | null;
   avatarUrl?: string | null;
   status?: UserStatus;
 };
@@ -67,10 +66,7 @@ const PATHS = {
   user: "/api/merchant/user",
 };
 
-// ---- Public API ---- 
-
-/** Create or update a user. In merchant flow, pass role: "MERCHANT". */
-export async function createMerchant(
+export default async function createMerchant(
   body: CreateUserBody,
   opts?: { token?: string }
 ) {

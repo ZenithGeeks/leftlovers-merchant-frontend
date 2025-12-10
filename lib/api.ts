@@ -1,4 +1,4 @@
-export const API_HOST = process.env.EXPO_PUBLIC_API_HOST ?? "http://localhost:3000";
+export const API_HOST = process.env.EXPO_PUBLIC_API_HOST ?? "https://backend-leftlovers-production.up.railway.app";
 const DEFAULT_TIMEOUT_MS = 12000;
 type Json = Record<string, any>;
 
@@ -83,4 +83,19 @@ export async function putJSON<T = unknown>(
     throw new Error(`PUT ${path} failed: ${res.status} ${text}`)
   }
   return (await res.json()) as T
+}
+
+export async function httpPut<T>(url: string, body?: any): Promise<T> {
+  const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}${url}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data?.message ?? "Request failed");
+  }
+
+  return res.json();
 }

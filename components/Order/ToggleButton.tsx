@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { Animated, Easing, Pressable, StyleSheet, View } from "react-native";
 import { ChevronUpIcon } from "react-native-heroicons/solid";
 
@@ -7,24 +7,29 @@ type ToggleButtonProps = {
   onToggle: () => void;
 };
 
-export default function ToggleButton({
-  expanded,
-  onToggle,
-}: ToggleButtonProps) {
-  const rotation = new Animated.Value(expanded ? 0 : 1);
-  const rotateTo = (open: boolean) => {
-    Animated.timing(rotation, {
-      toValue: open ? 0 : 1,
-      duration: 160,
-      easing: Easing.out(Easing.quad),
-      useNativeDriver: true,
-    }).start();
-  };
+export default function ToggleButton({ expanded, onToggle }: ToggleButtonProps) {
+  // 0 = collapsed, 1 = expanded
+  const rotation = useRef(new Animated.Value(expanded ? 1 : 0)).current;
+
+  const animateTo = useCallback(
+    (open: boolean) => {
+      Animated.timing(rotation, {
+        toValue: open ? 1 : 0,
+        duration: 180,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }).start();
+    },
+    [rotation]
+  );
+
+  // sync animation whenever parent state changes
+  useEffect(() => {
+    animateTo(expanded);
+  }, [expanded, animateTo]);
 
   const toggle = () => {
-    const next = !expanded;
-    rotateTo(next);
-    onToggle();
+    onToggle(); // parent will update expanded -> triggers useEffect animation
   };
 
   const rotate = rotation.interpolate({
@@ -34,19 +39,19 @@ export default function ToggleButton({
 
   return (
     <View style={styles.section}>
-        <Pressable onPress={toggle} style={styles.chevronBtn} hitSlop={8}>
-          <Animated.View style={{ transform: [{ rotate }] }}>
-            <ChevronUpIcon size={18} color="#22C55E" />
-          </Animated.View>
-        </Pressable>
-   </View>
+      <Pressable onPress={toggle} style={styles.chevronBtn} hitSlop={8}>
+        <Animated.View style={{ transform: [{ rotate }] }}>
+          <ChevronUpIcon size={16} color="#22C55E" />
+        </Animated.View>
+      </Pressable>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   section: {
     width: "auto",
-    height  : "auto",
+    height: "auto",
   },
   chevronBtn: {
     width: 38,

@@ -1,11 +1,21 @@
-// app/edit-store.tsx  (full file for convenience)
+// app/edit-store.tsx
 import React from "react";
-import { Image, Pressable, ScrollView, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import * as Clipboard from "expo-clipboard";
 
-import storeData from "@/mockupData/storeData.json";
 import { Fonts } from "@/constants/theme";
+import { fetchStoreSettings, type StoreSettings } from "@/services/store";
+import { DEV_MERCHANT_ID } from "@/utils/env";
 
 import {
   ChevronRightIcon,
@@ -16,7 +26,11 @@ import {
   AdjustmentsHorizontalIcon,
   BuildingStorefrontIcon,
   PhotoIcon,
+  ClipboardDocumentIcon,
 } from "react-native-heroicons/outline";
+
+const MERCHANT_ID =
+  DEV_MERCHANT_ID || process.env.EXPO_PUBLIC_MERCHANT_ID || "";
 
 function Divider() {
   return <View className="h-[1px] w-full bg-gray-200 my-5" />;
@@ -27,11 +41,13 @@ function Row({
   title,
   subtitle,
   onPress,
+  rightSlot,
 }: {
   icon: React.ReactNode;
   title: string;
   subtitle?: string;
   onPress?: () => void;
+  rightSlot?: React.ReactNode;
 }) {
   return (
     <Pressable
@@ -43,29 +59,121 @@ function Row({
         {icon}
       </View>
       <View className="flex-1">
-        <Text className="text-[16px] font-semibold text-[#11181C]">{title}</Text>
+        <Text className="text-[16px] font-semibold text-[#11181C]">
+          {title}
+        </Text>
         {!!subtitle && (
-          <Text className="text-[13px] text-gray-500 mt-0.5">{subtitle}</Text>
+          <Text className="text-[13px] text-gray-500 mt-0.5">
+            {subtitle}
+          </Text>
         )}
       </View>
-      {onPress ? <ChevronRightIcon size={20} color="#11181C" /> : null}
+      <View className="ml-2">
+        {rightSlot ??
+          (onPress ? <ChevronRightIcon size={20} color="#11181C" /> : null)}
+      </View>
     </Pressable>
   );
 }
+
+const DAY_LABELS: { key: string; label: string }[] = [
+  { key: "mon", label: "Mon" },
+  { key: "tue", label: "Tue" },
+  { key: "wed", label: "Wed" },
+  { key: "thu", label: "Thu" },
+  { key: "fri", label: "Fri" },
+  { key: "sat", label: "Sat" },
+  { key: "sun", label: "Sun" },
+];
 
 export default function EditStoreScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
+  const [store, setStore] = React.useState<StoreSettings | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [err, setErr] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      setLoading(true);
+      setErr(null);
+      try {
+        if (!MERCHANT_ID) {
+          throw new Error("Missing merchant id");
+        }
+        const data = await fetchStoreSettings(MERCHANT_ID);
+        if (!cancelled) {
+          setStore(data);
+        }
+      } catch (e: any) {
+        if (!cancelled) {
+          setErr(e?.message ?? "Failed to load store settings");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const addressLine = [
-    storeData.address.line1,
-    storeData.address.line2,
-    storeData.address.city,
-    storeData.address.province,
-    storeData.address.postalCode,
+    store?.address?.line1,
+    store?.address?.line2,
+    store?.address?.city,
+    store?.address?.province,
+    store?.address?.postalCode,
   ]
     .filter(Boolean)
     .join(", ");
+
+  const weekly = (store?.businessHours as any)?.weekly;
+
+  const handleCopyStoreId = async () => {
+    if (!store?.storeId) return;
+    try {
+      await Clipboard.setStringAsync(store.storeId);
+      Alert.alert("Copied", "Store ID copied to clipboard.");
+    } catch (e) {
+      console.error("Copy store ID failed:", e);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View
+        className="flex-1 bg-white items-center justify-center"
+        style={{ paddingTop: insets.top }}
+      >
+        <ActivityIndicator />
+        <Text className="mt-2 text-gray-500">Loading store…</Text>
+      </View>
+    );
+  }
+
+  if (err || !store) {
+    return (
+      <View
+        className="flex-1 bg-white items-center justify-center px-6"
+        style={{ paddingTop: insets.top }}
+      >
+        <Text className="text-red-600 mb-2 font-semibold">
+          {err ?? "Failed to load store"}
+        </Text>
+        <Text className="text-gray-500 text-center">
+          Please check your connection or try again later.
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView
@@ -80,12 +188,12 @@ export default function EditStoreScreen() {
           className="text-[28px] font-extrabold text-[#0B1220] mb-6"
           style={{ fontFamily: Fonts.bold }}
         >
-          Settings
+          Edit store
         </Text>
 
         <View className="flex-row items-center justify-between mb-4">
           <Text className="text-[22px] font-extrabold text-[#0B1220]">
-            {storeData.name}
+            {store.name ?? "Unnamed store"}
           </Text>
           <Pressable
             onPress={() => router.push("/edit-store-detail")}
@@ -96,38 +204,51 @@ export default function EditStoreScreen() {
           </Pressable>
         </View>
 
-        {/* === Images section: each row has image (left) + text (right) === */}
+        {/* === Images section === */}
         <View className="gap-6 mb-4">
-          {/* Store image row */}
+          {/* Store image */}
           <View className="flex-row items-start gap-4">
             <View className="w-32 h-32 rounded-2xl bg-gray-100 border border-gray-200 overflow-hidden items-center justify-center">
-              {storeData.storeImage ? (
-                <Image source={{ uri: storeData.storeImage}} resizeMode="cover" className="w-full h-full" />
+              {store.storeImage ? (
+                <Image
+                  source={{ uri: store.storeImage }}
+                  resizeMode="cover"
+                  className="w-full h-full"
+                />
               ) : (
                 <PhotoIcon size={28} color="#22C55E" />
               )}
             </View>
             <View className="flex-1">
-              <Text className="text-[16px] font-semibold text-[#11181C]">Store image</Text>
+              <Text className="text-[16px] font-semibold text-[#11181C]">
+                Store image
+              </Text>
               <Text className="text-[13px] text-gray-500 mt-1">
                 This is the image for the top of your store menu.
               </Text>
             </View>
           </View>
 
-          {/* List image row */}
+          {/* List image */}
           <View className="flex-row items-start gap-4">
             <View className="w-32 h-32 rounded-2xl bg-gray-100 border border-gray-200 overflow-hidden items-center justify-center">
-              {storeData.listImage ? (
-                <Image source={{ uri: storeData.listImage }} resizeMode="cover" className="w-full h-full" />
+              {store.listImage ? (
+                <Image
+                  source={{ uri: store.listImage }}
+                  resizeMode="cover"
+                  className="w-full h-full"
+                />
               ) : (
                 <PhotoIcon size={28} color="#22C55E" />
               )}
             </View>
             <View className="flex-1">
-              <Text className="text-[16px] font-semibold text-[#11181C]">List image</Text>
+              <Text className="text-[16px] font-semibold text-[#11181C]">
+                List image
+              </Text>
               <Text className="text-[13px] text-gray-500 mt-1">
-                This image will appear alongside other businesses when customers browse the restaurant list.
+                This image will appear alongside other businesses when customers
+                browse the restaurant list.
               </Text>
             </View>
           </View>
@@ -135,19 +256,23 @@ export default function EditStoreScreen() {
 
         <Divider />
 
+        {/* Cuisine */}
         <Row
           icon={<AdjustmentsHorizontalIcon size={18} color="#22C55E" />}
           title="Cuisine and certification"
           subtitle={
-            storeData.cuisine.certification
-              ? `${storeData.cuisine.type} • ${storeData.cuisine.certification}`
-              : storeData.cuisine.type
+            store.cuisine?.certification
+              ? `${store.cuisine?.type ?? "Unknown"} • ${
+                  store.cuisine?.certification
+                }`
+              : store.cuisine?.type ?? "Unknown"
           }
           onPress={() => router.push("/edit-cuisine-certification")}
         />
 
         <Divider />
 
+        {/* Business hours preview */}
         <View className="w-full">
           <Row
             icon={<ClockIcon size={18} color="#22C55E" />}
@@ -155,48 +280,88 @@ export default function EditStoreScreen() {
             onPress={() => router.push("/edit-business-hours")}
           />
           <View className="mt-2 pl-12">
-            {storeData.businessHours.map((h: { day: string; hours: string }) => (
-              <View key={h.day} className="flex-row items-center justify-between pr-2 py-1">
-                <Text className="text-[15px] text-[#11181C]">{h.day}</Text>
-                <Text className="text-[15px] text-[#11181C]">{h.hours}</Text>
-              </View>
-            ))}
+            {weekly ? (
+              DAY_LABELS.map(({ key, label }) => {
+                const slots = (weekly as any)[key] as
+                  | { open: string; close: string }[]
+                  | undefined;
+
+                const text =
+                  !slots || slots.length === 0
+                    ? "Closed"
+                    : slots
+                        .map((s) => `${s.open}–${s.close}`)
+                        .join(", ");
+
+                return (
+                  <View
+                    key={key}
+                    className="flex-row items-center justify-between pr-2 py-1"
+                  >
+                    <Text className="text-[15px] text-[#11181C]">
+                      {label}
+                    </Text>
+                    <Text className="text-[15px] text-[#11181C]">
+                      {text}
+                    </Text>
+                  </View>
+                );
+              })
+            ) : (
+              <Text className="text-[14px] text-gray-500">
+                Not configured yet.
+              </Text>
+            )}
           </View>
         </View>
 
         <Divider />
 
+        {/* Owner contact */}
         <Row
           icon={<UserIcon size={18} color="#22C55E" />}
           title="Owner’s contact"
-          subtitle={`${storeData.owner.phone}\n${storeData.owner.email}`}
+          subtitle={`${store.owner?.phone ?? "-"}\n${store.owner?.email ?? "-"}`}
           onPress={() => router.push("/edit-owner-contact")}
         />
 
         <Divider />
 
+        {/* Store contact */}
         <Row
           icon={<PhoneIcon size={18} color="#22C55E" />}
           title="Store contact number"
-          subtitle={storeData.contact.storePhone}
+          subtitle={store.contact?.storePhone ?? "-"}
           onPress={() => router.push("/edit-store-contact")}
         />
 
         <Divider />
 
+        {/* Address */}
         <Row
           icon={<MapPinIcon size={18} color="#22C55E" />}
           title="Address"
-          subtitle={addressLine}
+          subtitle={addressLine || "-"}
           onPress={() => router.push("/edit-address")}
         />
 
         <Divider />
 
+        {/* Store ID with copy button */}
         <Row
           icon={<BuildingStorefrontIcon size={18} color="#22C55E" />}
           title="Store ID"
-          subtitle={storeData.storeId}
+          subtitle={store.storeId}
+          rightSlot={
+            <Pressable
+              onPress={handleCopyStoreId}
+              accessibilityLabel="copy-store-id"
+              className="flex-row items-center px-3 py-1 rounded-full bg-gray-100"
+            >
+              <ClipboardDocumentIcon size={16} color="#11181C" />
+              <Text className="ml-1 text-xs text-[#11181C]">Copy</Text>
+            </Pressable>
+          }
         />
       </View>
     </ScrollView>

@@ -1,4 +1,3 @@
-// src/api/merchant.ts
 import { apiFetch } from "./users"; // re-use the exported apiFetch
 
 // types
@@ -39,7 +38,7 @@ const PATHS = {
   updateMerchant: (id: string) => `/api/merchant/user/${id}`,
 };
 
-export async function createMerchantInfo(body: CreateMerchantBody, opts?: { token?: string }) {
+export default async function createMerchantInfo(body: CreateMerchantBody, opts?: { token?: string }) {
   return apiFetch<{ message?: string; merchant?: any }>(PATHS.createMerchantInfo, {
     method: "POST",
     body: JSON.stringify(body),

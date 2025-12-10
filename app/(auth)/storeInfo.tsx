@@ -1,10 +1,16 @@
 // app/(auth)/storeInfo.tsx
-import { useUser } from "@clerk/clerk-expo";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as DocumentPicker from "expo-document-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
 import { Alert, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+import { auth } from "@/lib/firebase";
+import type { User as FirebaseUser } from "firebase/auth";
+
+import { auth } from "@/lib/firebase";
+import type { User as FirebaseUser } from "firebase/auth";
 
 import { ClickButton } from "@/components/Authen/ClickButton";
 import { InputBox } from "@/components/Authen/InputBox";
@@ -21,11 +27,32 @@ import { setStep } from "@/src/lib/onboarding";
 type Doc = DocumentPicker.DocumentPickerAsset;
 const DEV = __DEV__;
 
+// ------------------------------------
+// Local persistence (no backend yet)
+// ------------------------------------
+
+// Store step per Firebase UID
+const stepKey = (uid: string) => `onboarding:step:${uid}`;
+const storeInfoKey = (uid: string) => `onboarding:storeInfoSubmitted:${uid}`;
+
+async function saveOnboardingStep(uid: string, step: OnboardingStep) {
+  await AsyncStorage.setItem(stepKey(uid), step);
+}
+
+async function markStoreInfoSubmitted(uid: string) {
+  await AsyncStorage.setItem(storeInfoKey(uid), "true");
+}
+
+// ------------------------------------
+
 export default function StoreInfo() {
   const router = useRouter();
   const params = useLocalSearchParams() as { userId?: string };
   const { user, isLoaded } = useUser();
   const ownerUserId = params.userId ?? user?.id ?? null;
+
+  // Firebase user
+  const user = auth.currentUser as FirebaseUser | null;
 
   // Form state
   const [brandName, setBrandName] = React.useState(DEV ? "WakeUp" : "");
@@ -87,10 +114,13 @@ React.useEffect(() => {
   const removeStoreImage = (idx: number) =>
     setStoreImages((prev) => prev.filter((_, i) => i !== idx));
 
-  const isBrandNameValid = brandName.trim().length >= 2 && brandName.trim().length <= 250;
+  const isBrandNameValid =
+    brandName.trim().length >= 2 && brandName.trim().length <= 250;
   const isValidPostal = /^\d{5}$/.test(postalCode);
-  const isValidLat = lat !== "" && !isNaN(Number(lat)) && Math.abs(Number(lat)) <= 90;
-  const isValidLng = lng !== "" && !isNaN(Number(lng)) && Math.abs(Number(lng)) <= 180;
+  const isValidLat =
+    lat !== "" && !isNaN(Number(lat)) && Math.abs(Number(lat)) <= 90;
+  const isValidLng =
+    lng !== "" && !isNaN(Number(lng)) && Math.abs(Number(lng)) <= 180;
   const hasUploads = !!commercialReg && !!ownerIdDoc && storeImages.length > 0;
 
   const canSave =
@@ -104,11 +134,49 @@ React.useEffect(() => {
     isValidLng &&
     hasUploads;
 
+  // ----- Pickers
+  const pickOne = async (
+    types: DocumentPicker.DocumentPickerOptions["type"],
+  ) => {
+    const res = await DocumentPicker.getDocumentAsync({
+      type: types,
+      multiple: false,
+      copyToCacheDirectory: true,
+    });
+    if (res.canceled) return null;
+    return res.assets[0];
+  };
+
+  const pickManyImages = async () => {
+    const res = await DocumentPicker.getDocumentAsync({
+      type: ["image/*"],
+      multiple: true,
+      copyToCacheDirectory: true,
+    });
+    if (res.canceled) return;
+    setStoreImages((prev) => [...prev, ...res.assets].slice(0, 5));
+  };
+
+  // ----- Remove actions
+  const clearCommercialReg = () => setCommercialReg(null);
+  const clearOwnerIdDoc = () => setOwnerIdDoc(null);
+  const removeStoreImage = (idx: number) =>
+    setStoreImages((prev) => prev.filter((_, i) => i !== idx));
+
+  // ----- Submit (client-only) with lock
   const [saving, setSaving] = React.useState(false);
   const submittingRef = React.useRef(false);
 
   const onSave = async () => {
     if (!canSave || !isLoaded || !ownerUserId) return;
+    if (!canSave) return;
+
+    if (!user) {
+      Alert.alert("Not signed in", "Please sign in again.");
+      router.replace("/(auth)/signin");
+      return;
+    }
+
     if (submittingRef.current) return;
 
     submittingRef.current = true;
@@ -165,6 +233,11 @@ React.useEffect(() => {
       await user?.reload();
 
       router.replace("./(auth)/notifyPage");
+        },
+      });
+      await markStoreInfoSubmitted(user.uid);
+      await setStep(user, "notifyPage", saveOnboardingStep);
+      router.replace("/(auth)/notifyPage");
     } catch (err: any) {
       console.log("ERROR:", err);
       Alert.alert("Save failed", err?.message ?? "Something went wrong.");
@@ -183,7 +256,12 @@ React.useEffect(() => {
           Tell us about your store
         </Text>
         <Text
-          style={{ color: "#6B7280", marginTop: 4, marginBottom: 16, textAlign: "center" }}
+          style={{
+            color: "#6B7280",
+            marginTop: 4,
+            marginBottom: 16,
+            textAlign: "center",
+          }}
         >
           Fill your store details to display to customers
         </Text>
@@ -193,7 +271,9 @@ React.useEffect(() => {
           value={brandName}
           onChangeText={setBrandName}
           placeholder="e.g. WakeUp"
-          errorText={!isBrandNameValid ? "Brand name must be 2–250 characters." : undefined}
+          errorText={
+            !isBrandNameValid ? "Brand name must be 2–250 characters." : undefined
+          }
         />
 
         <View style={{ marginTop: 15, marginBottom: -15 }}>
@@ -212,6 +292,12 @@ React.useEffect(() => {
           value={address}
           onChangeText={setAddress}
           placeholder="e.g. 123 Soi Sukhumvit 10"
+        />
+        <InputBox
+          label="City *"
+          value={city}
+          onChangeText={setCity}
+          placeholder="e.g. Bangkok"
         />
         <InputBox
           label="City *"

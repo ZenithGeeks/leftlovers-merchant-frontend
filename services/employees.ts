@@ -5,7 +5,7 @@ import type {
   EmployeesResponse,
 } from '@/types/employee';
 
-const BASE = process.env.EXPO_PUBLIC_API_BASE ?? 'http://localhost:3000/api';
+const BASE = process.env.EXPO_PUBLIC_API_BASE ?? 'https://backend-leftlovers-production.up.railway.app/api';
 
 /**
  * Load employees + owner for a merchant

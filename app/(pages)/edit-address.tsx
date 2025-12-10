@@ -1,48 +1,167 @@
+// app/(pages)/edit-address.tsx
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
-import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
-import { ChevronLeftIcon } from "react-native-heroicons/outline";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ChevronLeftIcon } from "react-native-heroicons/outline";
 
 import { ThemedView } from "@/components/themed-view";
 import { Fonts } from "@/constants/theme";
-import storeData from "@/mockupData/storeData.json";
+import {
+  fetchStoreSettings,
+  updateStoreSettings,
+  type StoreSettings,
+} from "@/services/store";
+import { DEV_MERCHANT_ID } from "@/utils/env";
+
+const MERCHANT_ID =
+  DEV_MERCHANT_ID || process.env.EXPO_PUBLIC_MERCHANT_ID || "";
 
 export default function EditAddressScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const initial = useMemo(
-    () => ({
-      label: storeData.address?.label ?? "",
-      line1: storeData.address?.line1 ?? "",
-      line2: storeData.address?.line2 ?? "",
-      city: storeData.address?.city ?? "",
-      province: storeData.address?.province ?? "",
-      postalCode: storeData.address?.postalCode ?? "",
-    }),
-    []
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // ---- form state ----
+  const [line1, setLine1] = useState("");
+  const [line2, setLine2] = useState("");
+  const [city, setCity] = useState("");
+  const [province, setProvince] = useState("");
+  const [postalCode, setPostalCode] = useState("");
+
+  // ---- initial values for change detection ----
+  const [initialLine1, setInitialLine1] = useState("");
+  const [initialLine2, setInitialLine2] = useState("");
+  const [initialCity, setInitialCity] = useState("");
+  const [initialProvince, setInitialProvince] = useState("");
+  const [initialPostalCode, setInitialPostalCode] = useState("");
+
+  // -------- Load address from backend via /merchant/:id/editstore --------
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      if (!MERCHANT_ID) {
+        setError("Missing merchant id.");
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        const data: StoreSettings = await fetchStoreSettings(MERCHANT_ID);
+        if (cancelled) return;
+
+        const addr = data.address ?? {
+          line1: "",
+          line2: "",
+          city: "",
+          province: "",
+          postalCode: "",
+        };
+
+        const l1 = addr.line1 ?? "";
+        const l2 = addr.line2 ?? "";
+        const c = addr.city ?? "";
+        const p = addr.province ?? "";
+        const pc = addr.postalCode ?? "";
+
+        setLine1(l1);
+        setLine2(l2);
+        setCity(c);
+        setProvince(p);
+        setPostalCode(pc);
+
+        setInitialLine1(l1);
+        setInitialLine2(l2);
+        setInitialCity(c);
+        setInitialProvince(p);
+        setInitialPostalCode(pc);
+      } catch (e: any) {
+        if (cancelled) return;
+        console.error("Failed to load address:", e);
+        const msg = e?.message ?? "Failed to load address.";
+        setError(msg);
+        Alert.alert("Error", msg);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const hasChanges =
+    line1.trim() !== initialLine1.trim() ||
+    line2.trim() !== initialLine2.trim() ||
+    city.trim() !== initialCity.trim() ||
+    province.trim() !== initialProvince.trim() ||
+    postalCode.trim() !== initialPostalCode.trim();
+
+  const canSave = useMemo(
+    () => line1.trim().length > 0 && hasChanges && !saving,
+    [line1, hasChanges, saving]
   );
 
-  const [label, setLabel] = useState(initial.label);
-  const [line1, setLine1] = useState(initial.line1);
-  const [line2, setLine2] = useState(initial.line2);
-  const [city, setCity] = useState(initial.city);
-  const [province, setProvince] = useState(initial.province);
-  const [postalCode, setPostalCode] = useState(initial.postalCode);
+  const onSave = async () => {
+    if (!canSave || !MERCHANT_ID) return;
 
-  const canSave = line1.trim().length > 0;
+    setSaving(true);
+    try {
+      await updateStoreSettings(MERCHANT_ID, {
+        address: {
+          line1: line1.trim(),
+          line2: line2.trim() || undefined,
+          city: city.trim() || undefined,
+          province: province.trim() || undefined,
+          postalCode: postalCode.trim() || undefined,
+        },
+      });
 
-  const onSave = () => {
-    console.log("Saving address:", {
-      label: label.trim() || undefined,
-      line1: line1.trim(),
-      line2: line2.trim() || undefined,
-      city: city.trim() || undefined,
-      province: province.trim() || undefined,
-      postalCode: postalCode.trim() || undefined,
-    });
-    router.back();
+      setInitialLine1(line1.trim());
+      setInitialLine2(line2.trim());
+      setInitialCity(city.trim());
+      setInitialProvince(province.trim());
+      setInitialPostalCode(postalCode.trim());
+
+      Alert.alert("Success", "Address updated.", [
+        { text: "OK", onPress: () => router.back() },
+      ]);
+    } catch (e: any) {
+      console.error("Save address failed:", e);
+      Alert.alert("Save failed", e?.message ?? "Something went wrong.");
+    } finally {
+      setSaving(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <ThemedView
+        className="flex-1 bg-white items-center justify-center"
+        style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
+      >
+        <ActivityIndicator />
+        <Text className="mt-2 text-gray-500">Loading address…</Text>
+      </ThemedView>
+    );
+  }
 
   return (
     <ThemedView
@@ -72,17 +191,11 @@ export default function EditAddressScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Label (optional) */}
-        <View className="mt-4">
-          <Text className="text-[16px] font-semibold text-[#11181C]">Label (optional)</Text>
-          <TextInput
-            value={label}
-            onChangeText={setLabel}
-            placeholder="e.g., Main Store, Kitchen, HQ"
-            placeholderTextColor="#9AA0A6"
-            className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-[16px] text-[#11181C]"
-          />
-        </View>
+        {error && (
+          <View className="mb-4 rounded-xl bg-red-50 px-3 py-2">
+            <Text className="text-red-600 text-[14px]">{error}</Text>
+          </View>
+        )}
 
         {/* Line 1 (required) */}
         <View className="mt-5">
@@ -100,7 +213,9 @@ export default function EditAddressScreen() {
 
         {/* Line 2 (optional) */}
         <View className="mt-5">
-          <Text className="text-[16px] font-semibold text-[#11181C]">Address Line 2 (optional)</Text>
+          <Text className="text-[16px] font-semibold text-[#11181C]">
+            Address Line 2 (optional)
+          </Text>
           <TextInput
             value={line2}
             onChangeText={setLine2}
@@ -113,7 +228,9 @@ export default function EditAddressScreen() {
         {/* City & Province */}
         <View className="mt-5 flex-row gap-3">
           <View className="flex-1">
-            <Text className="text-[16px] font-semibold text-[#11181C]">City</Text>
+            <Text className="text-[16px] font-semibold text-[#11181C]">
+              City
+            </Text>
             <TextInput
               value={city}
               onChangeText={setCity}
@@ -123,7 +240,9 @@ export default function EditAddressScreen() {
             />
           </View>
           <View className="flex-1">
-            <Text className="text-[16px] font-semibold text-[#11181C]">Province</Text>
+            <Text className="text-[16px] font-semibold text-[#11181C]">
+              Province
+            </Text>
             <TextInput
               value={province}
               onChangeText={setProvince}
@@ -136,7 +255,9 @@ export default function EditAddressScreen() {
 
         {/* Postal code */}
         <View className="mt-5">
-          <Text className="text-[16px] font-semibold text-[#11181C]">Postal Code</Text>
+          <Text className="text-[16px] font-semibold text-[#11181C]">
+            Postal Code
+          </Text>
           <TextInput
             value={postalCode}
             onChangeText={setPostalCode}
@@ -152,11 +273,14 @@ export default function EditAddressScreen() {
           onPress={onSave}
           disabled={!canSave}
           accessibilityLabel="save-address"
+          accessibilityState={{ disabled: !canSave }}
           className={`mt-8 w-full rounded-2xl py-4 items-center justify-center ${
             canSave ? "bg-[#26BD68]" : "bg-gray-300"
           }`}
         >
-          <Text className="text-white text-[16px] font-semibold">Save</Text>
+          <Text className="text-white text-[16px] font-semibold">
+            {saving ? "Saving..." : "Save"}
+          </Text>
         </Pressable>
       </ScrollView>
     </ThemedView>

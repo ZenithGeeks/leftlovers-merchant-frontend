@@ -1,7 +1,11 @@
 // services/finance.ts
 import dayjs from 'dayjs';
-import { API_BASE } from '@/utils/env';
 import type { DateKey, Payout, Summary, Transaction } from '@/types/finance';
+
+
+const BASE =
+  process.env.EXPO_PUBLIC_API_BASE ??
+  'https://backend-leftlovers-production.up.railway.app/api';
 
 /** --------------------------
  * Response shapes from backend
@@ -17,8 +21,8 @@ type TxnRes = {
     status: 'PAID' | 'UNPAID' | 'REFUNDED';
     amountTHB: number;
     paidAt: string; // ISO
-    date: string;   // YYYY-MM-DD
-    time: string;   // hh:mma
+    date: string; // YYYY-MM-DD
+    time: string; // hh:mma
     id: string;
     title: string;
   }>;
@@ -27,8 +31,8 @@ type TxnRes = {
 type PayoutsRes = {
   payouts: Array<{
     id: string;
-    detailDate: string;       // YYYY-MM-DD (transfer date)
-    processedAt?: string;     // ISO (optional on Pending in your backend)
+    detailDate: string; // YYYY-MM-DD
+    processedAt?: string | null;
     amountTHB: number;
     feeTHB: number;
     status: 'Transferred' | 'Pending' | 'Failed';
@@ -50,7 +54,6 @@ type SummaryRes = {
  * Normalizers to your UI types
  * -------------------------- */
 
-// Your UI `Transaction` is effectively the same as backend’s object
 function normalizeTxn(x: TxnRes['transactions'][number]): Transaction {
   return {
     paymentId: x.paymentId,
@@ -59,7 +62,7 @@ function normalizeTxn(x: TxnRes['transactions'][number]): Transaction {
     provider: x.provider,
     providerChargeId: x.providerChargeId ?? null,
     currency: x.currency,
-    status: x.status as 'PAID', // server only returns PAID for finance anyway
+    status: x.status, // keep server status as-is
     amountTHB: x.amountTHB,
     paidAt: x.paidAt,
     date: x.date,
@@ -69,20 +72,20 @@ function normalizeTxn(x: TxnRes['transactions'][number]): Transaction {
   };
 }
 
-/**
- * Your UI `Payout` type usually has `processedAt: string` required.
- * Backend may omit it when status = Pending. To keep TS happy and your UI simple,
- * we DEFAULT it to the transfer day at 09:00 if missing.
- */
 function normalizePayout(p: PayoutsRes['payouts'][number]): Payout {
   const processedAt =
     p.processedAt ??
-    dayjs(p.detailDate).hour(9).minute(0).second(0).millisecond(0).toISOString();
+    dayjs(p.detailDate)
+      .hour(9)
+      .minute(0)
+      .second(0)
+      .millisecond(0)
+      .toISOString();
 
   return {
     id: p.id,
     detailDate: p.detailDate,
-    processedAt,              // guaranteed
+    processedAt,
     amountTHB: p.amountTHB,
     feeTHB: p.feeTHB,
     status: p.status,
@@ -101,13 +104,15 @@ function normalizeSummary(s: SummaryRes['summary']): Summary {
 }
 
 /** --------------------------
- * Fetch helpers
+ * Internal helpers
  * -------------------------- */
 
 function qs(params: Record<string, string | number | undefined>) {
   const u = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
-    if (v !== undefined && v !== null && `${v}`.length > 0) u.set(k, String(v));
+    if (v !== undefined && v !== null && `${v}`.length > 0) {
+      u.set(k, String(v));
+    }
   }
   return u.toString();
 }
@@ -130,9 +135,9 @@ export async function fetchFinanceTransactions(
   range: DateKey,
   signal?: AbortSignal
 ): Promise<Transaction[]> {
-  const url = `${API_BASE}/merchant/${encodeURIComponent(merchantId)}/finance/transactions?${qs(
-    { range }
-  )}`;
+  const url = `${BASE}/merchant/${encodeURIComponent(
+    merchantId
+  )}/finance/transactions?${qs({ range })}`;
   const data = await getJSON<TxnRes>(url, signal);
   return (data.transactions ?? []).map(normalizeTxn);
 }
@@ -142,9 +147,9 @@ export async function fetchFinancePayouts(
   range: DateKey,
   signal?: AbortSignal
 ): Promise<Payout[]> {
-  const url = `${API_BASE}/merchant/${encodeURIComponent(merchantId)}/finance/payouts?${qs({
-    range,
-  })}`;
+  const url = `${BASE}/merchant/${encodeURIComponent(
+    merchantId
+  )}/finance/payouts?${qs({ range })}`;
   const data = await getJSON<PayoutsRes>(url, signal);
   return (data.payouts ?? []).map(normalizePayout);
 }
@@ -154,9 +159,9 @@ export async function fetchFinanceSummary(
   range: DateKey,
   signal?: AbortSignal
 ): Promise<Summary> {
-  const url = `${API_BASE}/merchant/${encodeURIComponent(merchantId)}/finance/summary?${qs({
-    range,
-  })}`;
+  const url = `${BASE}/merchant/${encodeURIComponent(
+    merchantId
+  )}/finance/summary?${qs({ range })}`;
   const data = await getJSON<SummaryRes>(url, signal);
   return normalizeSummary(data.summary);
 }
