@@ -1,7 +1,7 @@
 // app/(authen)/signup.tsx
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useAuth, useSignUp, useUser } from "@clerk/clerk-expo";
 import { Link, Stack, useRouter } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -9,7 +9,7 @@ import {
   ScrollView,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -18,67 +18,64 @@ import { ClickButton } from "@/components/Authen/ClickButton";
 import { InputBox } from "@/components/Authen/InputBox";
 import { PasswordInput } from "@/components/Authen/PasswordInput";
 import { PhoneInput } from "@/components/Authen/PhoneInput";
-
-import { auth } from "@/lib/firebase";
-import { FirebaseError } from "firebase/app";
-import {
-  createUserWithEmailAndPassword,
-  sendEmailVerification,
-  type User as FirebaseUser,
-} from "firebase/auth";
-
-import { setStep, type OnboardingStep } from "@/src/lib/onboarding";
+import { OtpInput } from "@/components/Authen/VerifyBox";
 
 const BRAND = { green: "#26BD68", text: "#0B0F10" };
-const DEV = __DEV__;
-
-// --- local onboarding save (MVP) ---
-const stepKey = (uid: string) => `onboarding:step:${uid}`;
-async function saveOnboardingStep(uid: string, step: OnboardingStep) {
-  await AsyncStorage.setItem(stepKey(uid), step);
-}
-
-// --- validation ---
-const isValidEmail = (v: string) =>
-  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim().toLowerCase());
 
 export default function SignUpPage() {
   const router = useRouter();
+  const { isLoaded: signUpLoaded, signUp, setActive } = useSignUp();
+  const { isLoaded: authLoaded, isSignedIn, signOut } = useAuth();
+  const { user } = useUser();
 
-  const [email, setEmail] = useState(DEV ? "test@example.com" : "");
-  const [password, setPassword] = useState(DEV ? "12345678" : "");
+  const [email, setEmail] = useState("");
+  const [fullName] = useState("");
+  const [password, setPassword] = useState("");
   const [passwordValid, setPasswordValid] = useState(false);
   const [loading, setLoading] = useState(false);
 
   // Email verification UI state
   const [pendingVerification, setPendingVerification] = useState(false);
+  const [verificationCode, setVerificationCode] = useState("");
 
   // Resend control
-  const [resendCooldown, setResendCooldown] = useState(0);
+  const [canResend, setCanResend] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0); // seconds
   const [localPhone, setLocalPhone] = useState("");
 
-  const mountedRef = useRef(true);
-
   useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
+    const clearExistingSession = async () => {
+      if (!authLoaded) return;
+      if (isSignedIn) {
+        try {
+          await signOut();
+        } catch (e) {
+          console.warn("Sign-out cleanup failed:", e);
+        }
+      }
     };
-  }, []);
+    clearExistingSession();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoaded]);
 
   // Resend cooldown ticker
   useEffect(() => {
     if (resendCooldown <= 0) return;
-    const t = setInterval(() => {
-      setResendCooldown((s) => Math.max(0, s - 1));
-    }, 1000);
+    const t = setInterval(() => setResendCooldown((s) => Math.max(0, s - 1)), 1000);
     return () => clearInterval(t);
   }, [resendCooldown]);
 
+  const isValidEmail = (v: string) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim().toLowerCase());
+
   /* ======================== EMAIL/PASSWORD SIGN UP ======================== */
   const handleSignUp = async () => {
-    const normEmail = email.trim().toLowerCase();
+    if (!signUpLoaded) {
+      Alert.alert("Please wait", "Auth not ready yet");
+      return;
+    }
 
+    const normEmail = email.trim().toLowerCase();
     if (!isValidEmail(normEmail)) {
       Alert.alert("Invalid email", "Please enter a valid email address.");
       return;
@@ -94,136 +91,104 @@ export default function SignUpPage() {
 
     setLoading(true);
     try {
-      const cred = await createUserWithEmailAndPassword(auth, normEmail, password);
-
-      // Send Firebase verification email
-      await sendEmailVerification(cred.user);
-
-      if (!mountedRef.current) return;
-
+      await signUp.create({
+        emailAddress: normEmail,
+        password,
+      });
+      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
       setPendingVerification(true);
+      setCanResend(true);
       setResendCooldown(60);
-    } catch (err: unknown) {
+    } catch (err: any) {
       console.error("SignUp error:", err);
-
-      let message = "Try again.";
-      if (err instanceof FirebaseError) {
-        switch (err.code) {
-          case "auth/email-already-in-use":
-            message = "This email is already in use.";
-            break;
-          case "auth/invalid-email":
-            message = "Invalid email address.";
-            break;
-          case "auth/weak-password":
-            message = "Password is too weak.";
-            break;
-          default:
-            message = err.message || message;
-        }
-      }
-
-      Alert.alert("Sign up failed", message);
+      Alert.alert(
+        "Sign up failed",
+        err?.errors?.[0]?.message ?? err?.message ?? "Try again."
+      );
     } finally {
-      if (mountedRef.current) setLoading(false);
+      setLoading(false);
     }
   };
 
   /* ================================ RESEND ================================ */
   const handleResend = async () => {
-    if (resendCooldown > 0) return;
-
+    if (!signUpLoaded || !canResend || resendCooldown > 0) return;
     try {
-      const user = auth.currentUser;
-      if (!user) {
-        Alert.alert("Session lost", "Please sign up again.");
-        setPendingVerification(false);
-        return;
-      }
-
-      await sendEmailVerification(user);
+      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
       setResendCooldown(30);
-
-      Alert.alert("Code sent", "We sent the verification email again.");
-    } catch (err: unknown) {
+      Alert.alert("Code sent", "We sent the code again to your email.");
+    } catch (err: any) {
       console.warn("Resend failed:", err);
-      Alert.alert("Resend failed", "Unable to resend verification email.");
+      Alert.alert("Resend failed", err?.message ?? "Unable to resend.");
     }
   };
 
-  /* ======================= CHECK EMAIL VERIFIED ======================= */
-  const handleIVerified = async () => {
-    if (loading) return;
+  /* =========================== VERIFY EMAIL CODE ========================== */
+  const handleVerifyCode = async () => {
+    if (!signUpLoaded) {
+      Alert.alert("Please wait", "Auth not ready yet");
+      return;
+    }
+    if (!verificationCode) {
+      Alert.alert("Missing code", "Enter your email verification code");
+      return;
+    }
 
     setLoading(true);
     try {
-      const user = auth.currentUser as FirebaseUser | null;
+      const res = await signUp.attemptEmailAddressVerification({ code: verificationCode });
+      await signUp.reload();
 
-      if (!user) {
-        Alert.alert("Session lost", "Please sign up again.");
-        setPendingVerification(false);
-        return;
+      // If Clerk created a session, activate it
+      const createdSessionId =
+        res?.createdSessionId ?? (signUp as any)?.createdSessionId ?? null;
+      if (createdSessionId && setActive) {
+        await setActive({ session: createdSessionId });
       }
 
-      // Refresh Firebase user to get latest emailVerified
-      await user.reload();
+      // Prepare backend payload
+      const name = fullName.trim();
+      const emailLower = email.trim().toLowerCase();
 
-      if (!user.emailVerified) {
-        Alert.alert(
-          "Not verified yet",
-          "Please verify your email then try again."
-        );
-        return;
-      }
+      ////////////////////////joy fix//////////////////////
+          // Create merchant user row in backend
+    try {
+      await createMerchant({
+        name,
+        email: emailLower,
+        phone: localPhone || undefined,
+        avatarUrl: null,
+        role: "MERCHANT",
+      });
+      console.log("Backend merchant user created (email/password)");
+    } catch (e: any) {
+      console.warn("Create merchant user failed:", e);
+      Alert.alert(
+        "Account note",
+        e?.message ?? "We couldn't finish account setup, but you can continue."
+      );
+    }
+/////////////////////////joy fix end//////////////////////
 
-      const emailLower = user.email?.toLowerCase() ?? email.trim().toLowerCase();
-      const name = emailLower.split("@")[0] || "Merchant";
-
-      // Create merchant row in backend (same signature you used before)
-      try {
-        await createMerchant({
-          name,
-          email: emailLower,
-          phone: localPhone || undefined,
-          avatarUrl: null,
-          role: "MERCHANT",
-        });
-      } catch (e: any) {
-        Alert.alert(
-          "Account note",
-          e?.message ??
-            "We couldn't finish account setup, but you can continue."
-        );
-      }
-      await setStep(user, "store", saveOnboardingStep);
-      router.replace("/(auth)/storeInfo");
+      router.replace({ pathname: "/(auth)/storeInfo", params: { userId: user?.id } });
     } catch (err: any) {
-      console.error("Verification check error:", err);
-      Alert.alert("Verification failed", err?.message ?? "Try again.");
+      console.error("Verification error:", err);
+      Alert.alert(
+        "Verification failed",
+        err?.errors?.[0]?.message ?? err?.message ?? "Try again."
+      );
     } finally {
-      if (mountedRef.current) setLoading(false);
+      setLoading(false);
     }
   };
 
-  /* ================================ Renders ================================ */
-
+  /* ================================= Renders ================================ */
   if (pendingVerification) {
-    const displayEmail = email.trim().toLowerCase();
-
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: "#FFF", padding: 28 }}>
-        <Stack.Screen options={{ headerShown: false }} />
-
-        <Text
-          style={{
-            fontSize: 24,
-            fontFamily: "Poppins_700Bold",
-            textAlign: "center",
-          }}
-        >
-          Verify your email
+        <Text style={{ fontSize: 24, fontFamily: "Poppins_700Bold", textAlign: "center" }}>
+          Enter Verification Code
         </Text>
-
         <Text
           style={{
             marginTop: 8,
@@ -233,20 +198,20 @@ export default function SignUpPage() {
             fontFamily: "Poppins_400Regular",
           }}
         >
-          We sent a verification email to {displayEmail}
+          We sent a 6-digit code to your email address {email.trim().toLowerCase()}
         </Text>
 
+        <OtpInput value={verificationCode} setValue={setVerificationCode} />
+
         <ClickButton
-          label={loading ? "Checking..." : "I’ve verified my email"}
-          onPress={handleIVerified}
+          label="Verify"
+          onPress={handleVerifyCode}
           loading={loading}
           style={{ marginTop: 30 }}
         />
 
         <View style={{ marginTop: 20, alignItems: "center" }}>
-          <Text style={{ fontFamily: "Poppins_400Regular" }}>
-            Didn’t receive email?
-          </Text>
+          <Text style={{ fontFamily: "Poppins_400Regular" }}>Didn’t receive code?</Text>
           <TouchableOpacity onPress={handleResend} disabled={resendCooldown > 0}>
             <Text
               style={{
@@ -256,17 +221,10 @@ export default function SignUpPage() {
                 fontFamily: "Poppins_400Regular",
               }}
             >
-              {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend email"}
+              {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend code"}
             </Text>
           </TouchableOpacity>
         </View>
-
-        <TouchableOpacity
-          onPress={() => setPendingVerification(false)}
-          style={{ marginTop: 24, alignItems: "center" }}
-        >
-          <Text style={{ color: "#6B7280" }}>Back</Text>
-        </TouchableOpacity>
       </SafeAreaView>
     );
   }
@@ -285,9 +243,7 @@ export default function SignUpPage() {
           keyboardShouldPersistTaps="always"
         >
           <View style={{ alignItems: "center", marginTop: 8, marginBottom: 6 }}>
-            <Text style={{ fontSize: 24, fontFamily: "Poppins_700Bold" }}>
-              Create an account
-            </Text>
+            <Text style={{ fontSize: 24, fontFamily: "Poppins_700Bold" }}>Create an account</Text>
             <Text
               style={{
                 marginTop: 15,
@@ -310,13 +266,7 @@ export default function SignUpPage() {
             autoCapitalize="none"
           />
 
-          <Text
-            style={{
-              marginTop: 15,
-              fontFamily: "Poppins_400Regular",
-              fontSize: 15,
-            }}
-          >
+          <Text style={{ marginTop: 15, fontFamily: "Poppins_400Regular", fontSize: 15 }}>
             Phone
           </Text>
 
@@ -350,23 +300,11 @@ export default function SignUpPage() {
             disabled={!email || !passwordValid || loading}
           />
 
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "center",
-              marginTop: 20,
-            }}
-          >
-            <Text
-              style={{
-                color: BRAND.text,
-                fontSize: 12,
-                fontFamily: "Poppins_400Regular",
-              }}
-            >
+          <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 20 }}>
+            <Text style={{ color: BRAND.text, fontSize: 12, fontFamily: "Poppins_400Regular" }}>
               Already have an account?{" "}
               <Link
-                href="/(auth)/signin"
+                href="/(auth)/signin" // ✅ keep this consistent with your folder name
                 style={{
                   fontFamily: "Poppins_700Bold",
                   fontSize: 12,

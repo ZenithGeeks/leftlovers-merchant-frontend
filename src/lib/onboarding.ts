@@ -23,7 +23,6 @@ export function pathForStep(step: OnboardingStep): string {
     case "notifyPage":
       return "/(landing)/Check_can_login";
     default: {
-      const _exhaustive: never = step;
       return "/(auth)/signin";
     }
   }

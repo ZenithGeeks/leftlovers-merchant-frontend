@@ -1,16 +1,9 @@
 // app/(auth)/storeInfo.tsx
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as DocumentPicker from "expo-document-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
 import { Alert, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-import { auth } from "@/lib/firebase";
-import type { User as FirebaseUser } from "firebase/auth";
-
-import { auth } from "@/lib/firebase";
-import type { User as FirebaseUser } from "firebase/auth";
 
 import { ClickButton } from "@/components/Authen/ClickButton";
 import { InputBox } from "@/components/Authen/InputBox";
@@ -20,93 +13,91 @@ import UploadFile from "@/components/Authen/UploadFile";
 import UploadImagesGrid from "@/components/Authen/UploadImages";
 
 import { getCategories } from "@/app/api/getCategories";
-import { createMerchantInfo } from "@/app/api/merchant";
+import createMerchantInfo from "@/app/api/merchant";
 import { uploadFile } from "@/services/upload";
-import { setStep } from "@/src/lib/onboarding";
 
 type Doc = DocumentPicker.DocumentPickerAsset;
 const DEV = __DEV__;
 
-// ------------------------------------
-// Local persistence (no backend yet)
-// ------------------------------------
-
-// Store step per Firebase UID
-const stepKey = (uid: string) => `onboarding:step:${uid}`;
-const storeInfoKey = (uid: string) => `onboarding:storeInfoSubmitted:${uid}`;
-
-async function saveOnboardingStep(uid: string, step: OnboardingStep) {
-  await AsyncStorage.setItem(stepKey(uid), step);
-}
-
-async function markStoreInfoSubmitted(uid: string) {
-  await AsyncStorage.setItem(storeInfoKey(uid), "true");
-}
-
-// ------------------------------------
-
 export default function StoreInfo() {
   const router = useRouter();
   const params = useLocalSearchParams() as { userId?: string };
-  const { user, isLoaded } = useUser();
-  const ownerUserId = params.userId ?? user?.id ?? null;
 
-  // Firebase user
-  const user = auth.currentUser as FirebaseUser | null;
+  // This is the Prisma user.id from /api/merchant/user
+  const ownerUserId = params.userId ?? null;
 
-  // Form state
-  const [brandName, setBrandName] = React.useState(DEV ? "WakeUp" : "");
-  const [address, setAddress] = React.useState(DEV ? "123 Soi Sukhumvit 10" : "");
+  // ---------------- HOOKS: STATE ----------------
+  const [brandName, setBrandName] = React.useState(DEV ? "WakeUp Cafe" : "");
+  const [address, setAddress] = React.useState(DEV ? "123 Sukhumvit 10" : "");
   const [city, setCity] = React.useState(DEV ? "Bangkok" : "");
   const [district, setDistrict] = React.useState(DEV ? "Khlong Toei" : "");
   const [subdistrict, setSubdistrict] = React.useState(DEV ? "Khlong Toei" : "");
   const [postalCode, setPostalCode] = React.useState(DEV ? "10110" : "");
+
+  const [lat, setLat] = React.useState(DEV ? "13.736717" : "");
+  const [lng, setLng] = React.useState(DEV ? "100.523186" : "");
+
   const [foodType, setFoodType] = React.useState<FoodType | null>(null);
-  const [lat, setLat] = React.useState<string>(DEV ? "13.736717" : "");
-  const [lng, setLng] = React.useState<string>(DEV ? "100.523186" : "");
+  const [categories, setCategories] = React.useState<FoodType[]>([]);
+  const [loadingCategories, setLoadingCategories] = React.useState(true);
+
   const [commercialReg, setCommercialReg] = React.useState<Doc | null>(null);
   const [ownerIdDoc, setOwnerIdDoc] = React.useState<Doc | null>(null);
   const [storeImages, setStoreImages] = React.useState<Doc[]>([]);
-  // ===== CATEGORY FETCHING =====
-const [categories, setCategories] = React.useState<FoodType[]>([]);
-const [loadingCategories, setLoadingCategories] = React.useState(true);
 
-React.useEffect(() => {
-  const load = async () => {
-    try {
-      const data = await getCategories();
-      console.log("Received categories:", data);
+  const [saving, setSaving] = React.useState(false);
+  const submittingRef = React.useRef(false);
 
-      const mapped: FoodType[] = data.map((c) => ({
-        id: String(c.id),
-        label: c.name,
-      }));
-
-      setCategories(mapped);
-
-      if (!foodType && mapped.length > 0) {
-        setFoodType(mapped[0]);
+  // ---------------- HOOKS: EFFECTS ----------------
+  // Fetch categories once
+  React.useEffect(() => {
+    const load = async () => {
+      try {
+        const data = await getCategories();
+        const mapped: FoodType[] = data.map((c: any) => ({
+          id: String(c.id),
+          label: c.name,
+        }));
+        setCategories(mapped);
+        if (!foodType && mapped.length > 0) {
+          setFoodType(mapped[0]);
+        }
+      } catch (err) {
+        console.error("Category fetch failed:", err);
+      } finally {
+        setLoadingCategories(false);
       }
-    } catch (e) {
-      console.log("Failed to load categories:", e);
-    } finally {
-      setLoadingCategories(false);
-    }
-  };
+    };
 
-  load();
-}, [foodType]);
+    load();
+  }, [foodType]);
 
+  // ---------------- EARLY RETURN (SAFE: AFTER HOOKS) ----------------
+  if (!ownerUserId) {
+    return (
+      <SafeAreaView style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <Text style={{ fontSize: 16, textAlign: "center", paddingHorizontal: 24 }}>
+          No userId provided. Please go through the sign-up flow again.
+        </Text>
+      </SafeAreaView>
+    );
+  }
+
+  // ---------------- HELPERS: PICKERS ----------------
   const pickOne = async (types: DocumentPicker.DocumentPickerOptions["type"]) => {
-    const res = await DocumentPicker.getDocumentAsync({ type: types, multiple: false });
+    const res = await DocumentPicker.getDocumentAsync({ type: types });
     if (res.canceled) return null;
     return res.assets[0];
   };
 
   const pickManyImages = async () => {
-    const res = await DocumentPicker.getDocumentAsync({ type: ["image/*"], multiple: true });
-    if (res.canceled) return;
-    setStoreImages((prev) => [...prev, ...res.assets].slice(0, 5));
+    const res = await DocumentPicker.getDocumentAsync({
+      type: ["image/*"],
+      multiple: true,
+    });
+    if (!res.canceled) {
+      setStoreImages((prev) => [...prev, ...res.assets].slice(0, 5));
+    }
   };
 
   const clearCommercialReg = () => setCommercialReg(null);
@@ -114,14 +105,16 @@ React.useEffect(() => {
   const removeStoreImage = (idx: number) =>
     setStoreImages((prev) => prev.filter((_, i) => i !== idx));
 
+  // ---------------- VALIDATION ----------------
   const isBrandNameValid =
     brandName.trim().length >= 2 && brandName.trim().length <= 250;
   const isValidPostal = /^\d{5}$/.test(postalCode);
   const isValidLat =
-    lat !== "" && !isNaN(Number(lat)) && Math.abs(Number(lat)) <= 90;
+    lat !== "" && !Number.isNaN(Number(lat)) && Math.abs(Number(lat)) <= 90;
   const isValidLng =
-    lng !== "" && !isNaN(Number(lng)) && Math.abs(Number(lng)) <= 180;
-  const hasUploads = !!commercialReg && !!ownerIdDoc && storeImages.length > 0;
+    lng !== "" && !Number.isNaN(Number(lng)) && Math.abs(Number(lng)) <= 180;
+  const hasUploads =
+    !!commercialReg && !!ownerIdDoc && storeImages.length > 0 && !!foodType;
 
   const canSave =
     isBrandNameValid &&
@@ -134,68 +127,32 @@ React.useEffect(() => {
     isValidLng &&
     hasUploads;
 
-  // ----- Pickers
-  const pickOne = async (
-    types: DocumentPicker.DocumentPickerOptions["type"],
-  ) => {
-    const res = await DocumentPicker.getDocumentAsync({
-      type: types,
-      multiple: false,
-      copyToCacheDirectory: true,
-    });
-    if (res.canceled) return null;
-    return res.assets[0];
-  };
-
-  const pickManyImages = async () => {
-    const res = await DocumentPicker.getDocumentAsync({
-      type: ["image/*"],
-      multiple: true,
-      copyToCacheDirectory: true,
-    });
-    if (res.canceled) return;
-    setStoreImages((prev) => [...prev, ...res.assets].slice(0, 5));
-  };
-
-  // ----- Remove actions
-  const clearCommercialReg = () => setCommercialReg(null);
-  const clearOwnerIdDoc = () => setOwnerIdDoc(null);
-  const removeStoreImage = (idx: number) =>
-    setStoreImages((prev) => prev.filter((_, i) => i !== idx));
-
-  // ----- Submit (client-only) with lock
-  const [saving, setSaving] = React.useState(false);
-  const submittingRef = React.useRef(false);
-
+  // ---------------- SAVE HANDLER ----------------
   const onSave = async () => {
-    if (!canSave || !isLoaded || !ownerUserId) return;
-    if (!canSave) return;
-
-    if (!user) {
-      Alert.alert("Not signed in", "Please sign in again.");
-      router.replace("/(auth)/signin");
-      return;
-    }
-
-    if (submittingRef.current) return;
+    if (!canSave || saving || submittingRef.current) return;
 
     submittingRef.current = true;
     setSaving(true);
 
     try {
-      if (!commercialReg || !ownerIdDoc) throw new Error("Missing required documents");
+      if (!commercialReg || !ownerIdDoc) {
+        throw new Error("Missing required documents.");
+      }
 
-      // Upload files
-      const commercialUpload = await uploadFile(commercialReg, "merchant-docs");
-      const ownerIdUpload = await uploadFile(ownerIdDoc, "merchant-docs");
-      const storeUploads = await Promise.all(
+      // 1) Upload files
+      const commercial = await uploadFile(commercialReg, "merchant-docs");
+      const idDoc = await uploadFile(ownerIdDoc, "merchant-docs");
+      const imgs = await Promise.all(
         storeImages.map((img) => uploadFile(img, "store-images"))
       );
 
+      // 2) Build payload matching CreateMerchantBody & backend schema
       const payload = {
-        id: "", // will be set by backend
-        ownerUserId,
+        id: "", // backend assigns merchant id
+        ownerUserId, // Prisma user.id
         displayName: brandName.trim(),
+        branchName: "",
+        description: "",
         categoryId: foodType?.id ?? "",
         address: {
           label: null,
@@ -207,15 +164,21 @@ React.useEffect(() => {
           lat: Number(lat),
           lng: Number(lng),
         },
-        branchName: "",
-        description: "",
         openHours: "",
-        listImageUrl: storeUploads[0]?.url ?? "",
-        storeImageUrl: storeUploads[0]?.url ?? "",
+        listImageUrl: imgs[0]?.url ?? null,
+        storeImageUrl: imgs[0]?.url ?? null,
         files: [
-          { kind: "COMMERCIAL_REG", url: commercialUpload.url, label: commercialReg.name },
-          { kind: "OWNER_ID", url: ownerIdUpload.url, label: ownerIdDoc.name },
-          ...storeUploads.map((u, i) => ({
+          {
+            kind: "COMMERCIAL_REG",
+            url: commercial.url,
+            label: commercialReg.name,
+          },
+          {
+            kind: "OWNER_ID",
+            url: idDoc.url,
+            label: ownerIdDoc.name,
+          },
+          ...imgs.map((u, i) => ({
             kind: "STORE_IMAGE",
             url: u.url,
             label: storeImages[i]?.name ?? "Store image",
@@ -225,27 +188,29 @@ React.useEffect(() => {
 
       const res = await createMerchantInfo(payload);
 
-      if (!res || !res.merchant) throw new Error("Failed to save merchant info");
+      if (!res || !("merchant" in res) || !res.merchant) {
+        throw new Error("Failed to save merchant info.");
+      }
 
-      // Update Clerk metadata & onboarding
-      await user?.update({ unsafeMetadata: { ...(user.unsafeMetadata ?? {}), storeInfoSubmitted: true } });
-      await setStep(user!, "notifyPage");
-      await user?.reload();
-
-      router.replace("./(auth)/notifyPage");
+      Alert.alert("Success", "Store information saved.", [
+        {
+          text: "OK",
+          onPress: () => {
+            // go to next onboarding step (adjust route if needed)
+            router.replace("/(auth)/notifyPage");
+          },
         },
-      });
-      await markStoreInfoSubmitted(user.uid);
-      await setStep(user, "notifyPage", saveOnboardingStep);
-      router.replace("/(auth)/notifyPage");
+      ]);
     } catch (err: any) {
-      console.log("ERROR:", err);
+      console.error("Save error:", err);
       Alert.alert("Save failed", err?.message ?? "Something went wrong.");
     } finally {
-      setSaving(false);
       submittingRef.current = false;
+      setSaving(false);
     }
   };
+
+  // ---------------- UI ----------------
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
       <ScrollView
@@ -272,7 +237,9 @@ React.useEffect(() => {
           onChangeText={setBrandName}
           placeholder="e.g. WakeUp"
           errorText={
-            !isBrandNameValid ? "Brand name must be 2–250 characters." : undefined
+            !isBrandNameValid
+              ? "Brand name must be 2–250 characters."
+              : undefined
           }
         />
 
@@ -300,12 +267,6 @@ React.useEffect(() => {
           placeholder="e.g. Bangkok"
         />
         <InputBox
-          label="City *"
-          value={city}
-          onChangeText={setCity}
-          placeholder="e.g. Bangkok"
-        />
-        <InputBox
           label="District *"
           value={district}
           onChangeText={setDistrict}
@@ -323,21 +284,24 @@ React.useEffect(() => {
           onChangeText={(t) => setPostalCode(t.replace(/\D/g, "").slice(0, 5))}
           keyboardType="number-pad"
           placeholder="e.g. 10110"
-          errorText={!isValidPostal ? "Postal code must be exactly 5 digits." : undefined}
+          errorText={
+            !isValidPostal ? "Postal code must be exactly 5 digits." : undefined
+          }
         />
 
         {loadingCategories ? (
-        <Text style={{ color: "#6B7280", marginBottom: 10 }}>Loading food types…</Text>
+          <Text style={{ color: "#6B7280", marginBottom: 10 }}>
+            Loading food types…
+          </Text>
         ) : (
-        <FoodTypePicker
-          value={foodType}
-          onChange={setFoodType}
-          options={categories}
-          required
-          errorText={!foodType ? "Please select a food type." : undefined}
+          <FoodTypePicker
+            value={foodType}
+            onChange={setFoodType}
+            options={categories}
+            required
+            errorText={!foodType ? "Please select a food type." : undefined}
           />
         )}
-
 
         <UploadFile
           label={
@@ -393,7 +357,7 @@ React.useEffect(() => {
           files={storeImages.map((f) => ({ name: f.name, uri: f.uri }))}
           max={5}
           onAdd={pickManyImages}
-          onRemove={(idx) => removeStoreImage(idx)}
+          onRemove={removeStoreImage}
         />
 
         <View style={{ marginTop: 20 }}>

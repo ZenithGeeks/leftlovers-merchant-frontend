@@ -23,7 +23,7 @@ export type CreateMerchantBody = {
 
   openHours?: any;
   listImageUrl?: string | null;
-  storeImageUrl?: string | null;
+  StoreImageUrl?: string | null;
 
   files: {
     kind: string;
