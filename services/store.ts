@@ -1,6 +1,26 @@
 // src/services/store.ts
 import { httpGet, httpPut } from "@/lib/api";
 import { Merchant, OpenStatus } from "@/types/types";
+
+export type DailySlot = { open: string; close: string };
+
+export type WeeklySchedule = {
+  mon?: DailySlot[];
+  tue?: DailySlot[];
+  wed?: DailySlot[];
+  thu?: DailySlot[];
+  fri?: DailySlot[];
+  sat?: DailySlot[];
+  sun?: DailySlot[];
+};
+
+export type BusinessHours = {
+  weekly?: WeeklySchedule;
+  timezone?: string | null;
+  exceptions?: any[] | null;
+};
+
+/** Existing type – only touched the `businessHours` line */
 export type StoreSettings = {
   id: string;
   name: string;
@@ -11,14 +31,12 @@ export type StoreSettings = {
     type: string | null;
     certification: string | null;
   };
-  businessHours: { day: string; hours: string }[];
+  
+  businessHours: BusinessHours | { day: string; hours: string }[] | any;
   owner: {
     name: string | null;
     phone: string | null;
     email: string | null;
-  };
-  contact: {
-    storePhone: string | null;
   };
   address: {
     line1: string | null;
@@ -26,6 +44,8 @@ export type StoreSettings = {
     city: string | null;
     province: string | null;
     postalCode: string | null;
+    lat?: number | null; // number from backend
+    lng?: number | null;
   };
   storeId: string;
 };
@@ -44,9 +64,11 @@ export async function fetchStoreSettings(
   }
   return res.json();
 }
+
 export type UpdateOpenStatusResponse = {
   openStatus: OpenStatus;
 };
+
 export async function updateOpenStatus(
   merchantId: string,
   status: OpenStatus
@@ -62,7 +84,7 @@ export type UpdateStoreSettingsBody = {
   storeImage?: string | null;
   listImage?: string | null;
   categoryId?: string;
-  businessHours?: { day: string; hours: string }[];
+  businessHours?: { day: string; hours: string }[] | any;
   ownerName?: string;
   ownerPhone?: string;
   ownerEmail?: string;
@@ -73,12 +95,15 @@ export type UpdateStoreSettingsBody = {
     city?: string;
     province?: string;
     postalCode?: string;
+    lat?: number; // Decimal backend
+    lng?: number;
   };
 };
 
-export async function fetchMerchant(merchantId:string): Promise<Merchant> {
-  return httpGet<Merchant>(`/api/merchant/${merchantId}`)
+export async function fetchMerchant(merchantId: string): Promise<Merchant> {
+  return httpGet<Merchant>(`/api/merchant/${merchantId}`);
 }
+
 export async function updateStoreSettings(
   merchantId: string,
   body: UpdateStoreSettingsBody
@@ -96,4 +121,3 @@ export async function updateStoreSettings(
 
   return res.json();
 }
-
