@@ -95,7 +95,7 @@ export default function FinanceScreen() {
             paddingHorizontal: horizontalPadding,
           }}
         >
-          <Text className="text-[32px] font-extrabold text-[#0B1220] mb-4">Finance</Text>
+          <Text className="text-[36px] font-extrabold text-[#0B1220] mb-4">Finance</Text>
           <Tabs active={activeTab} onChange={setActiveTab} />
         </ThemedView>
 

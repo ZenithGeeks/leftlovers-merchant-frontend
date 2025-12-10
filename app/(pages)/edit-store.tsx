@@ -306,23 +306,27 @@ export default function EditStoreScreen() {
           <View className="mt-1 pl-12">
             {weekly ? (
               DAY_LABELS.map(({ key, label }) => {
-                const slots = weekly[key];
+                const slots = (weekly?.[key] ?? []) as {
+                  open: string;
+                  close: string;
+                }[];
                 const isClosed = !slots || slots.length === 0;
 
                 const text = isClosed
                   ? "Closed"
-                  : slots.map((s) => `${s.open}-${s.close}`).join(", ");
+                  : slots
+                      .map(
+                        (s: { open: string; close: string }) =>
+                          `${s.open}-${s.close}`
+                      )
+                      .join(", ");
 
                 return (
-                  <View key={key} className="flex-row py-0.5">
+                  <View key={String(key)} className="flex-row py-0.5">
                     <Text className="w-10 text-[13px] text-gray-500">
                       {label}
                     </Text>
-                    <Text
-                      className={`ml-4 text-[13px] ${
-                        isClosed ? "text-gray-500" : "text-gray-500"
-                      }`}
-                    >
+                    <Text className="ml-4 text-[13px] text-gray-500">
                       {text}
                     </Text>
                   </View>
