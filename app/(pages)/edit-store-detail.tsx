@@ -1,4 +1,3 @@
-// app/(pages)/edit-store-detail.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -6,8 +5,6 @@ import {
   Pressable,
   ScrollView,
   Text,
-  TextInput,
-  View,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -27,41 +24,6 @@ import StoreImagePickerSection from "@/components/store/StoreImagePickerSection"
 const MERCHANT_ID =
   DEV_MERCHANT_ID || process.env.EXPO_PUBLIC_MERCHANT_ID || "";
 
-const RAW_API_URL =
-  process.env.EXPO_PUBLIC_API_URL ??
-  "https://backend-leftlovers-production.up.railway.app";
-
-// trim trailing slashes so we don’t get //api/...
-const API_BASE_URL = RAW_API_URL.replace(/\/+$/, "");
-
-async function uploadToMinio(uri: string, folder: string): Promise<string> {
-  const formData = new FormData();
-  formData.append("file", {
-    uri,
-    name: "store-image.jpg",
-    type: "image/jpeg",
-  } as any);
-
-  const res = await fetch(
-    `${API_BASE_URL}/api/minio/upload?folder=${encodeURIComponent(folder)}`,
-    {
-      method: "POST",
-      body: formData,
-      headers: {
-        Accept: "application/json",
-      },
-    }
-  );
-
-  if (!res.ok) {
-    const txt = await res.text().catch(() => "");
-    throw new Error(`Upload failed: ${res.status} ${txt}`);
-  }
-
-  const json = (await res.json()) as { url: string };
-  return json.url;
-}
-
 export default function EditStoreDetail() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -78,6 +40,10 @@ export default function EditStoreDetail() {
     null
   );
   const [initialListImage, setInitialListImage] = useState<string | null>(null);
+
+  // track upload states from children
+  const [storeImgUploading, setStoreImgUploading] = useState(false);
+  const [listImgUploading, setListImgUploading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -120,42 +86,30 @@ export default function EditStoreDetail() {
   }, []);
 
   const canSave = useMemo(
-    () => storeName.trim().length > 0 && !submitting,
-    [storeName, submitting]
+    () =>
+      storeName.trim().length > 0 &&
+      !submitting &&
+      !storeImgUploading &&
+      !listImgUploading,
+    [storeName, submitting, storeImgUploading, listImgUploading]
   );
-
-  const isLocalFileUri = (uri: string | null): boolean =>
-    !!uri && uri.startsWith("file://");
 
   const onSave = async () => {
     if (!canSave || !MERCHANT_ID) return;
 
     setSubmitting(true);
     try {
-      let finalStoreImageUrl: string | null = initialStoreImage;
-      let finalListImageUrl: string | null = initialListImage;
-
-      if (storeImage === null) {
-        finalStoreImageUrl = null;
-      } else if (isLocalFileUri(storeImage)) {
-        finalStoreImageUrl = await uploadToMinio(storeImage, "store-images");
-      } else if (storeImage !== initialStoreImage) {
-        finalStoreImageUrl = storeImage;
-      }
-
-      if (listImage === null) {
-        finalListImageUrl = null;
-      } else if (isLocalFileUri(listImage)) {
-        finalListImageUrl = await uploadToMinio(listImage, "store-images");
-      } else if (listImage !== initialListImage) {
-        finalListImageUrl = listImage;
-      }
-
+      // images are already URLs (or null) because we uploaded on pick
       await updateStoreSettings(MERCHANT_ID, {
         name: storeName.trim(),
-        storeImage: finalStoreImageUrl,
-        listImage: finalListImageUrl,
+        storeImage,
+        listImage,
       });
+
+      // update initial values (optional)
+      setInitialName(storeName.trim());
+      setInitialStoreImage(storeImage);
+      setInitialListImage(listImage);
 
       Alert.alert("Success", "Store details updated.", [
         { text: "OK", onPress: () => router.back() },
@@ -189,10 +143,7 @@ export default function EditStoreDetail() {
       style={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 8 }}
     >
       {/* Header */}
-      <StoreHeader
-        title="Edit Store Details"
-        onBack={() => router.back()}
-      />
+      <StoreHeader title="Edit Store Details" onBack={() => router.back()} />
 
       {/* Content */}
       <ScrollView
@@ -205,10 +156,7 @@ export default function EditStoreDetail() {
         showsVerticalScrollIndicator={false}
       >
         {/* Store Name */}
-        <StoreNameField
-          storeName={storeName}
-          setStoreName={setStoreName}
-        />
+        <StoreNameField storeName={storeName} setStoreName={setStoreName} />
 
         {/* Store Image */}
         <StoreImagePickerSection
@@ -216,6 +164,8 @@ export default function EditStoreDetail() {
           description="This is the image for the top of your store menu."
           value={storeImage}
           onChange={setStoreImage}
+          folder="store-images"
+          onUploadingChange={setStoreImgUploading}
         />
 
         {/* List Image */}
@@ -224,6 +174,8 @@ export default function EditStoreDetail() {
           description="This image will appear alongside other businesses when customers browse the restaurant list."
           value={listImage}
           onChange={setListImage}
+          folder="store-images"
+          onUploadingChange={setListImgUploading}
         />
 
         {/* Save button */}
@@ -237,7 +189,11 @@ export default function EditStoreDetail() {
           }`}
         >
           <Text className="text-white text-[16px] font-semibold">
-            {submitting ? "Saving..." : "Save"}
+            {submitting
+              ? "Saving..."
+              : storeImgUploading || listImgUploading
+              ? "Waiting for upload…"
+              : "Save"}
           </Text>
         </Pressable>
       </ScrollView>
