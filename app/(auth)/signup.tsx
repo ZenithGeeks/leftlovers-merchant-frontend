@@ -58,7 +58,6 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
   const [dob, setDob] = useState("");
-  // Email verification UI state
   const [pendingVerification, setPendingVerification] = useState(false);
 
   // Resend control

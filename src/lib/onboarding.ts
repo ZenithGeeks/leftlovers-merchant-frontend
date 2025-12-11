@@ -26,7 +26,6 @@ export function pathForStep(step: OnboardingStep): string {
     case "done":
       return "/(tabs)/home";
     default: {
-      const _exhaustive: never = step;
       return "/(auth)/signin";
     }
   }

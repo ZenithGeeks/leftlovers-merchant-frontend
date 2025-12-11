@@ -1,7 +1,16 @@
 // components/LocationPicker.tsx
 import * as Location from 'expo-location'
 import * as React from 'react'
-import { Alert, Modal, Platform, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import {
+  Alert,
+  Modal,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native'
 import MapView, { Marker, Region } from 'react-native-maps'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -15,7 +24,6 @@ export type LocationPickerProps = {
   placeholder?: string
   disabled?: boolean
   defaultRegion?: Region
-  /** Error text to show under the field (optional) */
   errorText?: string
 }
 
@@ -27,26 +35,21 @@ export default function LocationPicker({
   lat,
   lng,
   onChange,
-  label = (
-    <Text className="font-poppins text-[15px]">
-      Location <Text className="text-black0">*</Text>
-    </Text>
-  ),
+  label = <Text style={styles.label}>Location <Text style={styles.required}>*</Text></Text>,
   placeholder = 'Tap map icon to set location',
   disabled = false,
   defaultRegion = {
     latitude: 13.736717,
     longitude: 100.523186,
     latitudeDelta: 0.01,
-    longitudeDelta: 0.01,
+    longitudeDelta: 0.01
   },
-  errorText,
+  errorText
 }: LocationPickerProps) {
   const insets = useSafeAreaInsets()
   const [mapVisible, setMapVisible] = React.useState(false)
   const mapRef = React.useRef<MapView>(null)
 
-  // search
   const [q, setQ] = React.useState('')
   const [suggestions, setSuggestions] = React.useState<Suggestion[]>([])
   const searchTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -62,7 +65,7 @@ export default function LocationPicker({
           setInitialRegion(r => ({
             ...r,
             latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
+            longitude: pos.coords.longitude
           }))
         }
       } catch {}
@@ -78,7 +81,7 @@ export default function LocationPicker({
       term.trim()
     )}`
     const res = await fetch(url, {
-      headers: { 'User-Agent': 'LeftloversMerchant/1.0 (contact@leftlovers.example)' },
+      headers: { 'User-Agent': 'LeftloversMerchant/1.0 (contact@leftlovers.example)' }
     })
     return (await res.json()) as any[]
   }
@@ -87,6 +90,7 @@ export default function LocationPicker({
     setQ(text)
     if (searchTimer.current) clearTimeout(searchTimer.current)
     if (text.trim().length < 2) return setSuggestions([])
+
     searchTimer.current = setTimeout(async () => {
       try {
         const data = await fetchNominatim(text)
@@ -94,7 +98,7 @@ export default function LocationPicker({
           (data || []).map((d: any) => ({
             display_name: d.display_name,
             lat: d.lat,
-            lon: d.lon,
+            lon: d.lon
           }))
         )
       } catch (e) {
@@ -106,53 +110,37 @@ export default function LocationPicker({
   const showInvalid = !isValidLat(lat) || !isValidLng(lng)
 
   return (
-    <View className="mb-[14px]">
+    <View style={styles.container}>
       {/* Label */}
-      <View className="mb-1">
-        {typeof label === 'string' ? (
-          <Text className="font-poppins text-[15px]">{label}</Text>
-        ) : (
-          label
-        )}
+      <View style={styles.labelContainer}>
+        {typeof label === 'string'
+          ? <Text style={styles.label}>{label}</Text>
+          : label}
       </View>
 
-      {/* Readonly input + pin button */}
-      <View className="flex-row items-center">
+      {/* Input + pin button */}
+      <View style={styles.row}>
         <TextInput
           value={lat && lng ? `${lat}, ${lng}` : ''}
           editable={false}
           placeholder={placeholder}
           placeholderTextColor="#9CA3AF"
           keyboardType="numbers-and-punctuation"
-          className="flex-1 rounded-lg px-3 py-3 bg-[rgba(38,189,104,0.2)] border border-[rgba(38,189,104,0.05)]"
-          // NativeWind "shadow" is limited; small inline for subtle shadow:
-          style={{
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 0.5 },
-            shadowOpacity: 0.05,
-            shadowRadius: 0.1,
-            height: 44.5
-          }}
+          style={[styles.input, disabled && { opacity: 0.5 }]}
         />
+
         <TouchableOpacity
           disabled={disabled}
           onPress={() => setMapVisible(true)}
-          className="ml-2 rounded-lg px-3 py-3 bg-[rgba(38,189,104,0.2)] border border-[rgba(38,189,104,0.05)]"
-          style={{
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 0.5 },
-            shadowOpacity: 0.05,
-            shadowRadius: 0.1,
-            opacity: disabled ? 0.5 : 1,
-          }}
+          style={[styles.mapButton, disabled && { opacity: 0.5 }]}
         >
-          <Text className="text-[18px]">📍</Text>
+          <Text style={styles.pinIcon}>📍</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Validation / error */}
+      {/* Error text */}
       {(showInvalid || !!errorText) && (
-        <Text className="font-poppins text-[12px] text-red-600 mt-1">
+        <Text style={styles.errorText}>
           {errorText || 'Please pick a valid location.'}
         </Text>
       )}
@@ -164,32 +152,27 @@ export default function LocationPicker({
         onRequestClose={() => setMapVisible(false)}
         presentationStyle="fullScreen"
       >
-        <SafeAreaView
-          className="flex-1 bg-white"
-          style={{ paddingTop: insets.top }}
-        >
+        <SafeAreaView style={[styles.modalContainer, { paddingTop: insets.top }]}>
           {/* Header + search */}
-          <View className="px-3 pt-2 pb-2">
-            <Text className="text-center font-poppins font-bold text-[18px]">
-              Pin your store location
-            </Text>
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>Pin your store location</Text>
 
             {Platform.OS !== 'web' && (
-              <View className="mt-2">
-                <View className="border border-gray-200 rounded-xl bg-white px-3">
+              <View style={styles.searchContainer}>
+                <View style={styles.searchBox}>
                   <TextInput
                     placeholder="Search a place or address…"
                     value={q}
                     onChangeText={onChangeQ}
                     returnKeyType="search"
-                    className="h-[46px]"
                     autoCorrect={false}
                     autoCapitalize="none"
+                    style={styles.searchInput}
                   />
                 </View>
 
                 {suggestions.length > 0 && (
-                  <View className="mt-2 bg-white rounded-xl border border-gray-200 overflow-hidden">
+                  <View style={styles.suggestionList}>
                     {suggestions.map((s, idx) => {
                       const latitude = parseFloat(s.lat)
                       const longitude = parseFloat(s.lon)
@@ -202,17 +185,15 @@ export default function LocationPicker({
                               latitude,
                               longitude,
                               latitudeDelta: 0.01,
-                              longitudeDelta: 0.01,
+                              longitudeDelta: 0.01
                             }
                             setInitialRegion(next)
                             mapRef.current?.animateToRegion(next, 350)
                             setSuggestions([])
                           }}
-                          className="p-3"
+                          style={styles.suggestionItem}
                         >
-                          <Text numberOfLines={2} className="font-poppins">
-                            {s.display_name}
-                          </Text>
+                          <Text numberOfLines={2}>{s.display_name}</Text>
                         </TouchableOpacity>
                       )
                     })}
@@ -222,7 +203,7 @@ export default function LocationPicker({
             )}
           </View>
 
-          {/* Map (MapView itself doesn't support className well) */}
+          {/* Map */}
           <MapView
             ref={mapRef}
             style={{ flex: 1 }}
@@ -232,7 +213,7 @@ export default function LocationPicker({
                     latitude: parseFloat(lat),
                     longitude: parseFloat(lng),
                     latitudeDelta: 0.01,
-                    longitudeDelta: 0.01,
+                    longitudeDelta: 0.01
                   }
                 : initialRegion
             }
@@ -241,55 +222,49 @@ export default function LocationPicker({
               setLatLng(latitude, longitude)
             }}
           >
-            {lat && lng ? (
-              <Marker
-                coordinate={{ latitude: parseFloat(lat), longitude: parseFloat(lng) }}
-                draggable
-                onDragEnd={(e) => {
-                  const { latitude, longitude } = e.nativeEvent.coordinate
-                  setLatLng(latitude, longitude)
-                }}
-              />
-            ) : (
-              <Marker
-                coordinate={{ latitude: initialRegion.latitude, longitude: initialRegion.longitude }}
-                draggable
-                onDragEnd={(e) => {
-                  const { latitude, longitude } = e.nativeEvent.coordinate
-                  setLatLng(latitude, longitude)
-                }}
-              />
-            )}
+            <Marker
+              coordinate={{
+                latitude: lat ? parseFloat(lat) : initialRegion.latitude,
+                longitude: lng ? parseFloat(lng) : initialRegion.longitude
+              }}
+              draggable
+              onDragEnd={(e) => {
+                const { latitude, longitude } = e.nativeEvent.coordinate
+                setLatLng(latitude, longitude)
+              }}
+            />
           </MapView>
 
           {/* Actions */}
-          <View className="p-4 gap-2">
+          <View style={styles.actionContainer}>
             <TouchableOpacity
               onPress={async () => {
                 try {
                   const pos = await Location.getCurrentPositionAsync({})
                   const { latitude, longitude } = pos.coords
                   setLatLng(latitude, longitude)
-                  const next = { latitude, longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 }
+                  const next = {
+                    latitude,
+                    longitude,
+                    latitudeDelta: 0.01,
+                    longitudeDelta: 0.01
+                  }
                   setInitialRegion(next)
                   mapRef.current?.animateToRegion(next, 350)
                 } catch {
                   Alert.alert('Location', 'Unable to fetch your current location.')
                 }
               }}
-              className="p-3 rounded-xl bg-slate-100"
+              style={styles.currentLocationBtn}
             >
-              <Text className="text-center font-poppins">Use my current location</Text>
+              <Text style={styles.currentLocationText}>Use my current location</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={() => setMapVisible(false)}
-              className="p-[14px] rounded-xl"
-              style={{ backgroundColor: BRAND.green }}
+              style={[styles.confirmBtn, { backgroundColor: BRAND.green }]}
             >
-              <Text className="text-center text-white font-poppins font-bold">
-                Confirm Location
-              </Text>
+              <Text style={styles.confirmBtnText}>Confirm Location</Text>
             </TouchableOpacity>
           </View>
         </SafeAreaView>
@@ -297,3 +272,95 @@ export default function LocationPicker({
     </View>
   )
 }
+
+const styles = StyleSheet.create({
+  container: { marginBottom: 14 },
+  labelContainer: { marginBottom: 4 },
+  label: { fontSize: 15, fontWeight: '400' },
+  required: { color: 'black' },
+  row: { flexDirection: 'row', alignItems: 'center' },
+
+  input: {
+    flex: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    backgroundColor: 'rgba(38,189,104,0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(38,189,104,0.05)',
+    height: 44.5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 0.5 },
+    shadowOpacity: 0.05,
+    shadowRadius: 0.1
+  },
+
+  mapButton: {
+    marginLeft: 8,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    backgroundColor: 'rgba(38,189,104,0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(38,189,104,0.05)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 0.5 },
+    shadowOpacity: 0.05,
+    shadowRadius: 0.1
+  },
+
+  pinIcon: { fontSize: 18 },
+
+  errorText: {
+    fontSize: 12,
+    color: 'red',
+    marginTop: 4
+  },
+
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'white'
+  },
+
+  header: { paddingHorizontal: 12, paddingTop: 8, paddingBottom: 8 },
+  headerTitle: { textAlign: 'center', fontWeight: '700', fontSize: 18 },
+
+  searchContainer: { marginTop: 8 },
+  searchBox: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    backgroundColor: 'white',
+    paddingHorizontal: 12
+  },
+  searchInput: { height: 46 },
+
+  suggestionList: {
+    marginTop: 8,
+    backgroundColor: 'white',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    overflow: 'hidden'
+  },
+  suggestionItem: { padding: 12, borderBottomColor: '#eee', borderBottomWidth: 1 },
+
+  actionContainer: { padding: 16, gap: 12 },
+
+  currentLocationBtn: {
+    padding: 12,
+    backgroundColor: '#f1f5f9',
+    borderRadius: 12
+  },
+  currentLocationText: { textAlign: 'center' },
+
+  confirmBtn: {
+    paddingVertical: 14,
+    borderRadius: 12
+  },
+  confirmBtnText: {
+    textAlign: 'center',
+    color: 'white',
+    fontWeight: '700'
+  }
+})
