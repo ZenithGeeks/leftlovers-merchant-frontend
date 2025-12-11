@@ -33,15 +33,11 @@ import { DobPickerHybrid } from "@/components/Authen/DateInput";
 import { type OnboardingStep } from "@/src/lib/onboarding";
 
 const BRAND = { green: "#26BD68", text: "#0B0F10" };
-const DEV = __DEV__;
 
-// --- local onboarding save (MVP) ---
 const stepKey = (uid: string) => `onboarding:step:${uid}`;
 async function saveOnboardingStep(uid: string, step: OnboardingStep) {
   await AsyncStorage.setItem(stepKey(uid), step);
 }
-
-// --- validation ---
 const isValidEmail = (v: string) =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim().toLowerCase());
 
@@ -56,18 +52,18 @@ const parseDobToISO = (d: string): string | null => {
 export default function SignUpPage() {
   const router = useRouter();
 
-  const [email, setEmail] = useState(DEV ? "wttwkitipatthavorn@gmail.com" : "");
-  const [password, setPassword] = useState(DEV ? "_Earth29872987" : "");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [passwordValid, setPasswordValid] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [name, setName] = useState("Vitawat");
+  const [name, setName] = useState("");
   const [dob, setDob] = useState("");
   // Email verification UI state
   const [pendingVerification, setPendingVerification] = useState(false);
 
   // Resend control
   const [resendCooldown, setResendCooldown] = useState(0);
-  const [localPhone, setLocalPhone] = useState("0863981093");
+  const [localPhone, setLocalPhone] = useState("");
 
   const mountedRef = useRef(true);
 
