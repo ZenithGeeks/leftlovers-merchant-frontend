@@ -1,6 +1,6 @@
-import { httpDelete, httpGet, postJSON, putJSON } from "@/lib/api";
+import { httpDelete, httpGet, httpPut, postJSON, putJSON } from "@/lib/api";
 import { uploadFile } from "@/services/upload";
-import { MenuItemAPI, UpdateMenuItemForm } from "@/types/types";
+import { MenuItemAPI, MenuStatus, UpdateMenuItemForm } from "@/types/types";
 export interface Option {
   id: string;
   optionGroupId: string;
@@ -79,18 +79,129 @@ export async function fetchMenuItem(merchantId:string, id: string): Promise<Menu
   return httpGet<MenuItemAPI>(`/api/merchant/${merchantId}/menu/${id}`)
 }
 
-// PUT /api/menu/:id
-export async function updateMenuItem(payload: UpdateMenuItemForm, merchantId:string): Promise<MenuItemAPI> {
+type ImageLike =
+  | string
+  | {
+      uri: string;
+      name?: string;
+      type?: string;
+    }
+  | null
+  | undefined;
+
+type UpdateMenuItemWithImages = UpdateMenuItemForm & {
+  photoUrl?: ImageLike;
+  expireLabelUrl?: ImageLike;
+};
+
+const isRemoteUrl = (value: string): boolean =>
+  /^https?:\/\//.test(value);
+
+const isImageObject = (
+  value: ImageLike,
+): value is { uri: string; name?: string; type?: string } =>
+  typeof value === "object" &&
+  value !== null &&
+  "uri" in value &&
+  typeof (value as { uri: string }).uri === "string";
+
+const isLocalUri = (value: ImageLike): value is string =>
+  typeof value === "string" &&
+  !isRemoteUrl(value) &&
+  (value.startsWith("file://") ||
+    value.startsWith("content://") ||
+    value.startsWith("/"));
+
+export async function updateMenuItem(
+  payload: UpdateMenuItemWithImages,
+  merchantId: string
+): Promise<MenuItemAPI> {
+  let finalPhotoUrl: string | null = null;
+  let finalExpireLabelUrl: string | null = null;
+  if (isImageObject(payload.photoUrl)) {
+    const uploaded = await uploadFile(
+      {
+        uri: payload.photoUrl.uri,
+        name: payload.photoUrl.name ?? "photo.jpg",
+        type: payload.photoUrl.type ?? "image/jpeg",
+      },
+      "menu-photos"
+    );
+    finalPhotoUrl = uploaded.url;
+  } else if (isLocalUri(payload.photoUrl)) {
+    const uploaded = await uploadFile(
+      {
+        uri: payload.photoUrl,
+        name: "photo.jpg",
+        type: "image/jpeg",
+      },
+      "menu-photos"
+    );
+    finalPhotoUrl = uploaded.url;
+  } else if (typeof payload.photoUrl === "string" && isRemoteUrl(payload.photoUrl)) {
+    finalPhotoUrl = payload.photoUrl;
+  } else {
+    finalPhotoUrl = null;
+  }
+
+  if (isImageObject(payload.expireLabelUrl)) {
+    const uploaded = await uploadFile(
+      {
+        uri: payload.expireLabelUrl.uri,
+        name: payload.expireLabelUrl.name ?? "expire-label.jpg",
+        type: payload.expireLabelUrl.type ?? "image/jpeg",
+      },
+      "expired-photos"
+    );
+    finalExpireLabelUrl = uploaded.url;
+  } else if (isLocalUri(payload.expireLabelUrl)) {
+    const uploaded = await uploadFile(
+      {
+        uri: payload.expireLabelUrl,
+        name: "expire-label.jpg",
+        type: "image/jpeg",
+      },
+      "expired-photos"
+    );
+    finalExpireLabelUrl = uploaded.url;
+  } else if (
+    typeof payload.expireLabelUrl === "string" &&
+    isRemoteUrl(payload.expireLabelUrl)
+  ) {
+    finalExpireLabelUrl = payload.expireLabelUrl;
+  } else {
+    finalExpireLabelUrl = null;
+  }
+
   const body = {
     name: payload.name,
     description: payload.description ?? null,
     basePrice: payload.basePrice,
     originalPrice: payload.originalPrice,
     leftoverQty: payload.leftoverQty,
-    expiresAt: payload.expiresAt ? payload.expiresAt.toString() : null,
-    photoUrl: payload.photoUrl ?? "",
-    expirePhotoUrl: payload.expireLabelUrl ?? "",
-    groupTemplateIds: payload.groupTemplateIds ?? []
-  }
-  return putJSON<MenuItemAPI>(`/api/merchant/${merchantId}/menu/${payload.id}`, body)
+    expiresAt:
+      payload.expiresAt instanceof Date
+        ? payload.expiresAt.toISOString()
+        : payload.expiresAt ?? null,
+    photoUrl: finalPhotoUrl ?? "",
+    expireLabelUrl: finalExpireLabelUrl ?? "",
+    groupTemplateIds: payload.groupTemplateIds ?? [],
+  };
+
+  return putJSON<MenuItemAPI>(
+    `/api/merchant/${merchantId}/menu/${payload.id}`,
+    body
+  );
+}
+
+
+
+export async function updateMenuStatus(
+  merchantId: string,
+  menuId: string,
+  status: Extract<MenuStatus, "DRAFT" | "LIVE">
+): Promise<MenuItemAPI> {
+  return httpPut<MenuItemAPI>(`/api/merchant/${merchantId}/menu/${menuId}/status`, {
+    status,
+  });
 }

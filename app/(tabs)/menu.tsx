@@ -4,7 +4,11 @@ import ContentSwitcher from "@/components/Menu/Content-Switcher";
 import MenuWrapper from "@/components/Menu/Menu-Wrapper";
 import OptionWrapper from "@/components/Menu/Option-Wrapper";
 import { ThemedView } from "@/components/themed-view";
-import { useFocusEffect, useRouter } from "expo-router";
+import { fetchMerchantOptionGroups, type OptionGroupAPI } from "@/services/group";
+import { getMenuItems } from "@/services/menu";
+import type { MenuItemAPI } from "@/types/types";
+import { useFocusEffect } from "@react-navigation/native";
+import { useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -17,11 +21,8 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { fetchMerchantOptionGroups, type OptionGroupAPI } from "@/services/group";
-import { getMenuItems } from "@/services/menu";
-import type { MenuItemAPI } from "@/types/types";
+const MERCHANT_ID = process.env.EXPO_PUBLIC_MERCHANT_ID;
 
-const MERCHANT_ID = process.env.EXPO_PUBLIC_MERCHANT_ID!;
 type TabKey = "items" | "options";
 type Section = { id: string; title: string; items: MenuItemAPI[] };
 
@@ -43,21 +44,31 @@ export default function MenuScreen() {
   const [groups, setGroups] = useState<OptionGroupAPI[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const horizontalPadding = useMemo(() => {
-    const px = Math.max(16, Math.min(width * 0.05, 28));
-    return px;
-  }, [width]);
+  const horizontalPadding = useMemo(
+    () => Math.max(16, Math.min(width * 0.05, 28)),
+    [width]
+  );
 
   const fetchAll = useCallback(async () => {
+    if (!MERCHANT_ID) {
+      setError("Missing merchant id.");
+      setMenu([]);
+      setGroups([]);
+      setLoading(false);
+      return;
+    }
+
     setError(null);
     setLoading(true);
+
     try {
       const [menuRes, groupRes] = await Promise.all([
         getMenuItems(MERCHANT_ID),
         fetchMerchantOptionGroups(MERCHANT_ID),
       ]);
-      setMenu(menuRes);
-      setGroups(groupRes);
+
+      setMenu(menuRes ?? []);
+      setGroups(groupRes ?? []);
     } catch (e: any) {
       setError(e?.message ?? "Failed to load data");
     } finally {
@@ -66,15 +77,19 @@ export default function MenuScreen() {
   }, []);
 
   const onRefresh = useCallback(async () => {
+    if (!MERCHANT_ID) return;
+
     setRefreshing(true);
     setError(null);
+
     try {
       const [menuRes, groupRes] = await Promise.all([
         getMenuItems(MERCHANT_ID),
         fetchMerchantOptionGroups(MERCHANT_ID),
       ]);
-      setMenu(menuRes);
-      setGroups(groupRes);
+
+      setMenu(menuRes ?? []);
+      setGroups(groupRes ?? []);
     } catch (e: any) {
       setError(e?.message ?? "Failed to refresh");
     } finally {
@@ -93,12 +108,22 @@ export default function MenuScreen() {
   const handleAddItem = () => router.push("/add-item");
   const handleAddOption = () => router.push("/add-option");
 
+  if (!MERCHANT_ID) {
+    return (
+      <ThemedView className="flex-1 bg-[#F7F8FA] justify-center items-center px-6">
+        <Text className="text-base text-gray-700">Missing merchant id</Text>
+      </ThemedView>
+    );
+  }
+
   return (
     <ThemedView className="flex-1 bg-[#F7F8FA]">
       <ScrollView
         contentContainerStyle={{ paddingBottom: insets.bottom + 96 }}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
         <ThemedView
           className="w-full"
@@ -108,7 +133,10 @@ export default function MenuScreen() {
           }}
         >
           <View className="mb-6 gap-3">
-            <Text className="text-[36px] font-extrabold text-[#0B1220]">Menu</Text>
+            <Text className="text-[36px] font-extrabold text-[#0B1220]">
+              Menu
+            </Text>
+
             <ContentSwitcher
               tabs={[
                 { key: "items", label: "Items" },
@@ -127,32 +155,32 @@ export default function MenuScreen() {
           </View>
         ) : error ? (
           <View
-            className="mx-4 rounded-2xl border border-red-200 bg-red-50 p-4"
+            className="rounded-2xl border border-red-200 bg-red-50 p-4"
             style={{ marginHorizontal: horizontalPadding }}
           >
             <Text className="font-semibold text-red-700">Error</Text>
             <Text className="mt-1 text-red-700">{error}</Text>
             <Pressable onPress={fetchAll} className="mt-3">
-              <Text className="font-semibold text-[#26BD68]">Tap to retry</Text>
+              <Text className="font-semibold text-[#26BD68]">
+                Tap to retry
+              </Text>
             </Pressable>
           </View>
         ) : (
-          <ThemedView className="w-full" style={{ paddingHorizontal: horizontalPadding }}>
+          <ThemedView
+            className="w-full"
+            style={{ paddingHorizontal: horizontalPadding }}
+          >
             {tab === "items" ? (
               sections[0]?.items.length ? (
                 sections.map((section) => (
                   <View key={section.id} className="mb-10">
                     <MenuWrapper
                       title={section.title}
-                      items={section.items.map((m) => ({
-                        id: m.id,
-                        name: m.name,
-                        price: m.basePrice,
-                        imageUrl: m.photoUrl || "",
-                        leftoverQty: m.leftoverQty ?? 0,
-                        inStock: (m.leftoverQty ?? 0) > 0,
-                      }))}
+                      merchantId={MERCHANT_ID}
+                      items={section.items}
                       defaultExpanded
+                      onToggleItem={onRefresh}
                     />
                   </View>
                 ))
@@ -171,14 +199,7 @@ export default function MenuScreen() {
                     merchantId={MERCHANT_ID}
                     groupId={group.id}
                     title={group.name}
-                    options={group.options.map((o) => ({
-                      id: o.id,
-                      optionGroupId: o.optionGroupId,
-                      name: o.name,
-                      active: o.active,
-                      priceDelta: o.priceDelta,
-                      sortOrder: o.sortOrder,
-                    }))}
+                    options={group.options}
                     defaultExpanded
                     maxSelect={group.maxSelect}
                     onAfterChange={onRefresh}
@@ -187,7 +208,9 @@ export default function MenuScreen() {
               </View>
             ) : (
               <View className="rounded-2xl border border-gray-200 bg-white p-6">
-                <Text className="text-gray-600">No option groups. Use the + button to add.</Text>
+                <Text className="text-gray-600">
+                  No option groups. Use the + button to add.
+                </Text>
               </View>
             )}
           </ThemedView>
@@ -195,6 +218,7 @@ export default function MenuScreen() {
       </ScrollView>
 
       <Fab onPress={() => setAddOpen(true)} testID="fab" />
+
       <AddSheet
         visible={addOpen}
         onClose={() => setAddOpen(false)}
