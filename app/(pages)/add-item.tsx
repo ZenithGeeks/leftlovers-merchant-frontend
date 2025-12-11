@@ -1,5 +1,5 @@
 import { ThemedView } from "@/components/themed-view";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
@@ -22,18 +22,21 @@ import SelectMultiModal, {
   MultiOption,
 } from "@/components/common/SelectMultiModal";
 
+import { ProcessingScreen } from "@/components/common/processingScreen";
 import { fetchMerchantOptionGroups, OptionGroupAPI } from "@/services/group";
 import { createMenuItem } from "@/services/menu";
 import { GroupTemplate } from "@/types/types";
-
-const EXPO_PUBLIC_MERCHANT_ID = process.env.EXPO_PUBLIC_MERCHANT_ID!;
 
 const asNumber = (s: string): number => {
   const n = parseFloat(String(s).replace(/[^0-9.]/g, ""));
   return Number.isFinite(n) ? n : 0;
 };
 
+type AddItemParams = { merchantId?: string };
+
 export default function AddItemScreen() {
+  const params = useLocalSearchParams<AddItemParams>();
+  const merchantId = params.merchantId ?? "";
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [name, setName] = useState("");
@@ -77,7 +80,7 @@ export default function AddItemScreen() {
     let mounted = true;
     (async () => {
       try {
-        const groups = await fetchMerchantOptionGroups(EXPO_PUBLIC_MERCHANT_ID);
+        const groups = await fetchMerchantOptionGroups(merchantId);
         if (!mounted) return;
         setOptionGroups(groups ?? []);
       } catch {
@@ -89,7 +92,7 @@ export default function AddItemScreen() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [merchantId]);
 
   const groupTemplatesAll: GroupTemplate[] = useMemo(
     () =>
@@ -142,7 +145,7 @@ export default function AddItemScreen() {
           selectedGroups.length > 0
             ? selectedGroups.map((g) => ({
                 name: g.name,
-                merchantId: EXPO_PUBLIC_MERCHANT_ID,
+                merchantId: merchantId,
                 minSelect: g.minSelect ?? 0,
                 maxSelect: g.maxSelect ?? 1,
                 options: (g.options ?? []).map((o) => ({
@@ -154,7 +157,7 @@ export default function AddItemScreen() {
             : undefined,
       };
 
-      await createMenuItem(EXPO_PUBLIC_MERCHANT_ID, payload as any);
+      await createMenuItem(merchantId, payload as any);
 
       Alert.alert("Success", "Item created successfully!");
       router.back();
@@ -176,6 +179,7 @@ export default function AddItemScreen() {
     photoUrl,
     expireLabelUrl,
     selectedGroups,
+    merchantId,
     router,
   ]);
 
@@ -309,6 +313,13 @@ export default function AddItemScreen() {
             {submitting ? "Submitting..." : "Done"}
           </Text>
         </Pressable>
+        <ProcessingScreen
+          visible={submitting}
+          title="Saving your menu item"
+          description="We’re uploading your images and applying your changes."
+          helperText="This usually only takes a moment. Please keep this screen open until we’re done."
+          cancellable={false}
+        />
       </ScrollView>
     </ThemedView>
   );

@@ -45,9 +45,7 @@ export default function MenuList({
     } catch (err: any) {
       setLocalItems((prev) =>
         prev.map((it) =>
-          it.id === id
-            ? { ...it, status: value ? "DRAFT" : "LIVE" }
-            : it
+          it.id === id ? { ...it, status: value ? "DRAFT" : "LIVE" } : it
         )
       );
       Alert.alert("Error", err?.message ?? "Failed to update menu status.");
@@ -73,7 +71,10 @@ export default function MenuList({
               onDelete?.(menuId);
             } catch (err: any) {
               setLocalItems(prev);
-              Alert.alert("Error", err?.message ?? "Failed to delete menu item.");
+              Alert.alert(
+                "Error",
+                err?.message ?? "Failed to delete menu item."
+              );
             } finally {
               setDeletingId(null);
             }
@@ -138,7 +139,9 @@ export default function MenuList({
               >
                 <Text
                   className={`text-xs ${
-                    (item.leftoverQty ?? 0) > 0 ? "text-green-700" : "text-gray-500"
+                    (item.leftoverQty ?? 0) > 0
+                      ? "text-green-700"
+                      : "text-gray-500"
                   }`}
                   style={{ fontFamily: Fonts.medium }}
                 >
@@ -149,26 +152,34 @@ export default function MenuList({
 
             <View className="items-center justify-between py-2 h-[100px]">
               <Switch
-                  accessibilityRole="switch"
-                  accessibilityLabel={`${item.name}-switch`}
-                  accessibilityState={{ checked: isLive, disabled: isDeleting }}
-                  value={isLive}
-                  disabled={isDeleting}
-                  onValueChange={(val) => {
-                    if (val && (item.leftoverQty ?? 0) === 0) {
-                      Alert.alert("Cannot enable", "No stock left.");
-                      return;
-                    }
-                    toggleItem(item.id, val);
-                  }}
-                  trackColor={{ false: "#D1D5DB", true: "#86EFAC" }}
-                  thumbColor={isLive ? "#16A34A" : "#F4F4F5"}
-                />
+                accessibilityRole="switch"
+                accessibilityLabel={`${item.name}-switch`}
+                accessibilityState={{ checked: isLive, disabled: isDeleting }}
+                value={isLive}
+                disabled={isDeleting}
+                onValueChange={(val) => {
+                  if (val && (item.leftoverQty ?? 0) === 0) {
+                    Alert.alert("Cannot enable", "No stock left.");
+                    return;
+                  }
+                  toggleItem(item.id, val);
+                }}
+                trackColor={{ false: "#D1D5DB", true: "#86EFAC" }}
+                thumbColor={isLive ? "#16A34A" : "#F4F4F5"}
+              />
 
               <View className="flex-row items-center justify-end">
                 <Pressable
                   disabled={isDeleting}
-                  onPress={() => router.push(`/edit-item/${item.id}`)}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/edit-item/[id]",
+                      params: {
+                        id: item.id,
+                        merchantId: merchantId ?? "",
+                      },
+                    })
+                  }
                   className="p-2"
                   accessibilityLabel={`edit-${item.name}`}
                 >

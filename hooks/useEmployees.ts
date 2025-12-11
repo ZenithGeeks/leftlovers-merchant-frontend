@@ -1,13 +1,11 @@
 // hooks/useEmployees.ts
-import { useCallback, useEffect, useState } from 'react';
-import type { Employee, Owner, Role } from '@/types/employee';
 import {
   createEmployee,
   disableEmployee,
   fetchEmployees,
 } from '@/services/employees';
-
-const MERCHANT_ID = process.env.EXPO_PUBLIC_MERCHANT_ID ?? '';
+import type { Employee, Owner, Role } from '@/types/employee';
+import { useCallback, useEffect, useState } from 'react';
 
 type AddLocalInput = {
   id?: string;            // ignored (backend generates)
@@ -19,7 +17,7 @@ type AddLocalInput = {
   role: Role;             // Owner not allowed when creating
 };
 
-export function useEmployees() {
+export function useEmployees(merchantId: string) {
   const [owner, setOwner] = useState<Owner | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,7 +26,7 @@ export function useEmployees() {
   const load = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await fetchEmployees(MERCHANT_ID);
+      const data = await fetchEmployees(merchantId);
       setOwner(data.owner);
       setEmployees(data.employees ?? []);
       setErr(null);
@@ -39,7 +37,7 @@ export function useEmployees() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [merchantId]);
 
   useEffect(() => {
     void load();
@@ -62,18 +60,18 @@ export function useEmployees() {
           >,
       };
 
-      const created = await createEmployee(MERCHANT_ID, payload);
+      const created = await createEmployee(merchantId, payload);
       setEmployees((prev) => [created, ...prev]);
       return created;
     },
-    []
+    [merchantId]
   );
 
   const removeEmployee = useCallback(async (employeeId: string) => {
     // Your Detail modal is "Disable access" — we call the disable endpoint
-    await disableEmployee(MERCHANT_ID, employeeId);
+    await disableEmployee(merchantId, employeeId);
     setEmployees((prev) => prev.filter((e) => e.id !== employeeId));
-  }, []);
+  }, [merchantId]);
 
   return {
     loading,
