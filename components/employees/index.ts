@@ -5,4 +5,3 @@ export { default as DetailModal } from './DetailModal';
 export { default as EmployeeRow } from './EmployeeRow';
 export { default as EmployeesHeader } from './EmployeesHeader';
 export { default as RoleBadge } from './RoleBadge';
-
