@@ -1,10 +1,10 @@
+import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Text,
 } from "react-native";
-import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedView } from "@/components/themed-view";
@@ -15,10 +15,10 @@ import {
 } from "@/services/store";
 import { DEV_MERCHANT_ID } from "@/utils/env";
 
-import StoreHeader from "@/components/store/StoreHeader";
 import BusinessHoursForm, {
   type DayHour,
 } from "@/components/store/BusinessHoursForm";
+import StoreHeader from "@/components/store/StoreHeader";
 import TimePickerModal from "@/components/store/TimePickerModal";
 
 const MERCHANT_ID =

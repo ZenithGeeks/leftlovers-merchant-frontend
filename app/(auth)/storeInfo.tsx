@@ -7,9 +7,7 @@ import FoodTypePicker, { FoodType } from "@/components/Authen/menuType";
 import UploadFile from "@/components/Authen/UploadFile";
 import UploadImagesGrid from "@/components/Authen/UploadImages";
 import * as DocumentPicker from "expo-document-picker";
-import {
-  type User as FirebaseUser,
-} from "firebase/auth";
+import { type User as FirebaseUser } from "firebase/auth";
 import React from "react";
 import { Alert, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -20,7 +18,39 @@ import { ProcessingScreen } from "@/components/common/processingScreen";
 import { auth } from "@/lib/firebase";
 import { uploadFile } from "@/services/upload";
 import { CreateMerchantBody } from "@/types/types";
+import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
+
+import AuthBusinessHoursForm, {
+  DayHour,
+} from "@/components/Authen/AuthBusinessHoursForm";
+import TimePickerModal from "@/components/store/TimePickerModal";
+
+// ------------------------------
+// Helpers for time
+// ------------------------------
+function mkTime(h: number, m: number) {
+  const d = new Date();
+  d.setHours(h, m, 0, 0);
+  return d;
+}
+function pad(n: number) {
+  return n < 10 ? `0${n}` : `${n}`;
+}
+function fmtTime(d: Date) {
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+const DAY_META = [
+  { ui: "Monday", key: "mon" },
+  { ui: "Tuesday", key: "tue" },
+  { ui: "Wednesday", key: "wed" },
+  { ui: "Thursday", key: "thu" },
+  { ui: "Friday", key: "fri" },
+  { ui: "Saturday", key: "sat" },
+  { ui: "Sunday", key: "sun" },
+];
+
 // ------------------------------
 // Strict Types
 // ------------------------------
@@ -32,25 +62,22 @@ type DocFile = {
   size: number | null;
 };
 
-
 const DEV = __DEV__;
 
 export default function StoreInfo() {
   const router = useRouter();
   const user = auth.currentUser as FirebaseUser | null;
-  let ownerUserId = ""
-  if(user){
-    if(user.uid){
-      ownerUserId = user.uid
-    }
-    else{
-      router.replace('/(auth)/signup')
-    }
+
+  let ownerUserId = "";
+  if (user?.uid) {
+    ownerUserId = user.uid;
+  } else {
+    router.replace("/(auth)/signup");
   }
+
   // ------------------------------
   // State
   // ------------------------------
-
   const [brandName, setBrandName] = React.useState(DEV ? "WakeUp Cafe" : "");
   const [address, setAddress] = React.useState(DEV ? "123 Sukhumvit 10" : "");
   const [city, setCity] = React.useState(DEV ? "Bangkok" : "");
@@ -73,24 +100,73 @@ export default function StoreInfo() {
   const submittingRef = React.useRef(false);
 
   // ------------------------------
+  // Business Hours State (+ Default)
+  // ------------------------------
+  const [hours, setHours] = React.useState<DayHour[]>([]);
+  const [pickerOpen, setPickerOpen] = React.useState(false);
+  const [pickerTarget, setPickerTarget] = React.useState<{
+    index: number;
+    field: "open" | "close";
+  } | null>(null);
+
+  React.useEffect(() => {
+    if (hours.length === 0) {
+      setHours(
+        DAY_META.map((d) => ({
+          day: d.ui,
+          open: mkTime(9, 0),
+          close: mkTime(18, 0),
+          closed: false,
+        }))
+      );
+    }
+  }, [hours.length]);
+
+
+  const openPicker = (i: number, field: "open" | "close") => {
+    setPickerTarget({ index: i, field });
+    setPickerOpen(true);
+  };
+
+  const closePicker = () => setPickerOpen(false);
+
+  const setTime = (d: Date) => {
+    if (!pickerTarget) return;
+    setHours((prev) => {
+      const n = [...prev];
+      const idx = pickerTarget.index;
+      n[idx] = { ...n[idx], [pickerTarget.field]: d };
+      return n;
+    });
+  };
+
+  const setClosedState = (i: number, closed: boolean) => {
+    setHours((prev) => {
+      const n = [...prev];
+      n[i] = { ...n[i], closed };
+      return n;
+    });
+  };
+
+  const currentValue =
+    pickerTarget && hours[pickerTarget.index]
+      ? hours[pickerTarget.index][pickerTarget.field]
+      : mkTime(9, 0);
+
+  // ------------------------------
   // Load categories
   // ------------------------------
-
   React.useEffect(() => {
     const load = async () => {
       try {
         const data = await getCategories();
-        const mapped = data.map(
-          (c: any): FoodType => ({
-            id: String(c.id),
-            label: c.name,
-          })
-        );
-        setCategories(mapped);
+        const mapped = data.map((c: any) => ({
+          id: String(c.id),
+          label: c.name,
+        }));
 
-        if (!foodType && mapped.length > 0) {
-          setFoodType(mapped[0]);
-        }
+        setCategories(mapped);
+        if (!foodType) setFoodType(mapped[0]);
       } catch (err) {
         console.error("Category fetch failed:", err);
       } finally {
@@ -104,40 +180,44 @@ export default function StoreInfo() {
   // ------------------------------
   // File pickers
   // ------------------------------
-
-  const pickOne = async (
-    type: DocumentPicker.DocumentPickerOptions["type"]
-  ): Promise<DocFile | null> => {
+  const pickOne = async (type: DocumentPicker.DocumentPickerOptions["type"]) => {
     const res = await DocumentPicker.getDocumentAsync({ type });
     if (res.canceled) return null;
 
-    const file = res.assets[0];
-
+    const f = res.assets[0];
     return {
-      uri: file.uri,
-      name: file.name ?? "file",
-      mimeType: file.mimeType ?? null,
-      size: file.size ?? null,
+      uri: f.uri,
+      name: f.name ?? "file",
+      mimeType: f.mimeType ?? null,
+      size: f.size ?? null,
     };
   };
 
   const pickManyImages = async () => {
-    const res = await DocumentPicker.getDocumentAsync({
-      type: ["image/*"],
-      multiple: true,
+
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      alert("Permission to access gallery is required.");
+      return;
+    }
+
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,  // ✅ FIX: compatible with your version
+      allowsMultipleSelection: true,
+      selectionLimit: 5,
+      quality: 0.8,
     });
 
-    if (!res.canceled) {
-      const imgs = res.assets.map(
-        (a): DocFile => ({
-          uri: a.uri,
-          name: a.name ?? "image.jpg",
-          mimeType: a.mimeType ?? "image/jpeg",
-          size: a.size ?? null,
-        })
-      );
-      setStoreImages((prev) => [...prev, ...imgs].slice(0, 5));
-    }
+    if (res.canceled) return;
+
+    const imgs = res.assets.map((f) => ({
+      uri: f.uri,
+      name: f.fileName ?? "image.jpg",
+      mimeType: f.mimeType ?? "image/jpeg",
+      size: f.fileSize ?? null,
+    }));
+
+    setStoreImages((prev) => [...prev, ...imgs].slice(0, 5));
   };
 
   // ------------------------------
@@ -146,16 +226,12 @@ export default function StoreInfo() {
 
   const isBrandNameValid =
     brandName.trim().length >= 2 && brandName.trim().length <= 250;
-
   const isValidPostal = /^\d{5}$/.test(postalCode);
+
   const isValidLat = lat !== "" && !isNaN(Number(lat));
   const isValidLng = lng !== "" && !isNaN(Number(lng));
 
-  const hasUploads =
-    !!commercialReg &&
-    !!ownerIdDoc &&
-    storeImages.length > 0 &&
-    !!foodType;
+  const hasUploads = commercialReg && ownerIdDoc && storeImages.length > 0;
 
   const canSave =
     isBrandNameValid &&
@@ -166,24 +242,23 @@ export default function StoreInfo() {
     isValidPostal &&
     isValidLat &&
     isValidLng &&
+    foodType &&
     hasUploads;
 
   // ------------------------------
-  // Save Handler
+  // Save Handler (UPDATED: includes openHours)
   // ------------------------------
 
   const onSave = async () => {
     if (!canSave || saving || submittingRef.current) return;
-
     submittingRef.current = true;
     setSaving(true);
 
     try {
-      if (!commercialReg || !ownerIdDoc) {
+      if (!commercialReg || !ownerIdDoc)
         throw new Error("Missing required documents.");
-      }
 
-      // Upload main documents
+      // Upload docs
       const commercial = await uploadFile(
         {
           uri: commercialReg.uri,
@@ -202,7 +277,6 @@ export default function StoreInfo() {
         "merchant-docs"
       );
 
-      // Upload store images
       const imgs = await Promise.all(
         storeImages.map((img) =>
           uploadFile(
@@ -217,7 +291,19 @@ export default function StoreInfo() {
       );
 
       // ------------------------------
-      // Build final payload (type-safe)
+      // Build OpenHours (UPDATED)
+      // ------------------------------
+
+      const weekly: Record<string, any[]> = {};
+      hours.forEach((item, i) => {
+        const key = DAY_META[i].key;
+        weekly[key] = item.closed
+          ? []
+          : [{ open: fmtTime(item.open), close: fmtTime(item.close) }];
+      });
+
+      // ------------------------------
+      // Payload
       // ------------------------------
 
       const payload: CreateMerchantBody = {
@@ -236,32 +322,31 @@ export default function StoreInfo() {
           lat: Number(lat),
           lng: Number(lng),
         },
-        openHours: null,
+
+        openHours: {
+          weekly,
+          timezone: "Asia/Bangkok",
+          exceptions: [],
+        },
+
         listImageUrl: imgs[0]?.url ?? null,
         storeImageUrl: imgs[0]?.url ?? null,
+
         files: [
-          {
-            kind: "COMMERCIAL_REG",
-            url: commercial.url,
-            label: commercialReg.name,
-          },
-          {
-            kind: "OWNER_ID",
-            url: idDoc.url,
-            label: ownerIdDoc.name,
-          },
+          { kind: "COMMERCIAL_REG", url: commercial.url, label: commercialReg.name },
+          { kind: "OWNER_ID", url: idDoc.url, label: ownerIdDoc.name },
           ...imgs.map((u, i) => ({
             kind: "STORE_IMAGE" as const,
             url: u.url,
-            label: storeImages[i]?.name ?? "Store image",
+            label: storeImages[i]?.name,
           })),
         ],
       };
+
       const res = await createMerchantInfo(payload);
 
-      if (!res || !("merchant" in res)) {
+      if (!res || !("merchant" in res))
         throw new Error("Failed to save merchant info.");
-      }
 
       Alert.alert("Success", "Store information saved.", [
         {
@@ -271,7 +356,7 @@ export default function StoreInfo() {
       ]);
     } catch (err: any) {
       console.error("Save error:", err);
-      Alert.alert("Save failed", err?.message ?? "Something went wrong.");
+      Alert.alert("Save failed", err.message ?? "Unknown error.");
     } finally {
       submittingRef.current = false;
       setSaving(false);
@@ -288,7 +373,6 @@ export default function StoreInfo() {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ padding: 28, paddingBottom: 40 }}
       >
-        {/* Title */}
         <Text style={{ fontSize: 24, fontWeight: "700", textAlign: "center" }}>
           Tell us about your store
         </Text>
@@ -304,7 +388,6 @@ export default function StoreInfo() {
           Fill your store details to display to customers
         </Text>
 
-        {/* Form Fields */}
         <InputBox
           label="Brand name *"
           value={brandName}
@@ -313,21 +396,24 @@ export default function StoreInfo() {
           errorText={!isBrandNameValid ? "Brand name must be 2–250 characters." : undefined}
         />
 
+        {/* LOCATION */}
         <View style={{ marginTop: 15, marginBottom: -15 }}>
           <LocationPicker
             lat={lat}
             lng={lng}
-            onChange={(newLat, newLng) => {
-              setLat(newLat);
-              setLng(newLng);
+            onChange={(a, b) => {
+              setLat(a);
+              setLng(b);
             }}
           />
         </View>
 
+        {/* ADDRESS */}
         <InputBox label="Address *" value={address} onChangeText={setAddress} />
         <InputBox label="City *" value={city} onChangeText={setCity} />
         <InputBox label="District *" value={district} onChangeText={setDistrict} />
         <InputBox label="Subdistrict *" value={subdistrict} onChangeText={setSubdistrict} />
+
         <InputBox
           label="Postal Code *"
           value={postalCode}
@@ -336,31 +422,34 @@ export default function StoreInfo() {
           errorText={!isValidPostal ? "Postal code must be exactly 5 digits." : undefined}
         />
 
+        {/* CATEGORY PICKER */}
         {loadingCategories ? (
           <Text style={{ color: "#6B7280", marginBottom: 10 }}>Loading food types…</Text>
         ) : (
-          <FoodTypePicker
-            value={foodType}
-            onChange={setFoodType}
-            options={categories}
-            required
-            errorText={!foodType ? "Please select a food type." : undefined}
-          />
+          <FoodTypePicker value={foodType} onChange={setFoodType} options={categories} required />
         )}
 
-        {/* Uploads */}
+        {/* BUSINESS HOURS */}
+        <View style={{ marginTop: 5, marginBottom: -45 }}>
+          <Text style={{ marginBottom: -10, fontSize: 15, fontWeight: "500", color: "#11181C" }}>
+            Business Hours *
+          </Text>
+
+          <AuthBusinessHoursForm
+            hours={hours}
+            error={null}
+            openPicker={openPicker}
+            setClosedState={setClosedState}
+            bottomPadding={20}
+            fmtTime={fmtTime}
+          />
+
+        </View>
+
+        {/* UPLOADS */}
         <UploadFile
           label="Commercial Registration *"
-          file={
-            commercialReg
-              ? {
-                  name: commercialReg.name,
-                  uri: commercialReg.uri,
-                  mimeType: commercialReg.mimeType,
-                  size: commercialReg.size ?? undefined,
-                }
-              : undefined
-          }
+          file={commercialReg ?? undefined}
           onPick={async () => {
             const f = await pickOne(["application/pdf"]);
             if (f) setCommercialReg(f);
@@ -371,16 +460,7 @@ export default function StoreInfo() {
 
         <UploadFile
           label="Owner National ID Card *"
-          file={
-            ownerIdDoc
-              ? {
-                  name: ownerIdDoc.name,
-                  uri: ownerIdDoc.uri,
-                  mimeType: ownerIdDoc.mimeType,
-                  size: ownerIdDoc.size ?? undefined,
-                }
-              : undefined
-          }
+          file={ownerIdDoc ?? undefined}
           onPick={async () => {
             const f = await pickOne(["application/pdf", "image/*"]);
             if (f) setOwnerIdDoc(f);
@@ -393,9 +473,7 @@ export default function StoreInfo() {
           files={storeImages.map((f) => ({ name: f.name, uri: f.uri }))}
           max={5}
           onAdd={pickManyImages}
-          onRemove={(i) =>
-            setStoreImages((prev) => prev.filter((_, idx) => idx !== i))
-          }
+          onRemove={(i) => setStoreImages((prev) => prev.filter((_, idx) => idx !== i))}
         />
 
         {/* Save Button */}
@@ -406,14 +484,29 @@ export default function StoreInfo() {
             disabled={!canSave || saving}
           />
         </View>
-          <ProcessingScreen
-            visible={saving}
-            title="Setting up your store"
-            description="We’re uploading your documents and saving your merchant profile."
-            helperText="This may take a few moments, especially with large images. Please keep this screen open."
-            cancellable={false}
-          />
+
+        <ProcessingScreen
+          visible={saving}
+          title="Setting up your store"
+          description="We’re uploading your documents and saving your merchant profile."
+          helperText="This may take a few moments, especially with large images. Please keep this screen open."
+          cancellable={false}
+        />
       </ScrollView>
+
+      {/* TIME PICKER MODAL */}
+      <TimePickerModal
+        visible={pickerOpen}
+        value={currentValue}
+        onChange={setTime}
+        onClose={closePicker}
+        title={
+          pickerTarget
+            ? `${DAY_META[pickerTarget.index].ui} - ${pickerTarget.field === "open" ? "Open" : "Close"
+            } time`
+            : "Select time"
+        }
+      />
     </SafeAreaView>
   );
 }

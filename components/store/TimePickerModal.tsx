@@ -1,4 +1,5 @@
 // components/store/TimePickerModal.tsx
+import DateTimePicker from "@react-native-community/datetimepicker";
 import React from "react";
 import {
   Modal,
@@ -7,7 +8,6 @@ import {
   Text,
   View,
 } from "react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
 
 type Props = {
   visible: boolean;
