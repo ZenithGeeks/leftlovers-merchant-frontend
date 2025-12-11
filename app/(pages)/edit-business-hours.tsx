@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
-import { ChevronLeftIcon, XMarkIcon } from "react-native-heroicons/outline";
+import { ChevronLeftIcon } from "react-native-heroicons/outline";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedView } from "@/components/themed-view";
@@ -207,7 +207,10 @@ export default function EditBusinessHours() {
     };
   }, []);
 
-  const canSave = useMemo(() => !saving && hours.length === DAY_META.length, [saving, hours.length]);
+  const canSave = useMemo(
+    () => !saving && hours.length === DAY_META.length,
+    [saving, hours.length]
+  );
 
   const openPicker = (index: number, field: "open" | "close") => {
     setPickerTarget({ index, field });
@@ -227,10 +230,10 @@ export default function EditBusinessHours() {
     });
   };
 
-  const toggleClosed = (index: number) => {
+  const setClosedState = (index: number, closed: boolean) => {
     setHours((prev) => {
       const next = [...prev];
-      next[index] = { ...next[index], closed: !next[index].closed };
+      next[index] = { ...next[index], closed };
       return next;
     });
   };
@@ -249,7 +252,7 @@ export default function EditBusinessHours() {
         } else {
           weekly[key] = [
             {
-              open: fmtTime(item.open),  // "08:00"
+              open: fmtTime(item.open), // "08:00"
               close: fmtTime(item.close), // "18:00"
             },
           ];
@@ -310,65 +313,109 @@ export default function EditBusinessHours() {
         <Text className="text-2xl font-bold text-[#11181C]">
           Edit Business Hours
         </Text>
-        <Pressable onPress={() => router.back()}>
-          <XMarkIcon size={22} color="#11181C" />
-        </Pressable>
+        {/* spacer to keep title centered */}
+        <View className="w-9 h-9" />
       </View>
 
-      <ScrollView className="flex-1 px-5" contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
+      <ScrollView
+        className="flex-1 px-5 mt-5"
+        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+        showsVerticalScrollIndicator={false}
+      >
         {error && (
           <View className="mb-4 rounded-xl bg-red-50 px-3 py-2">
             <Text className="text-red-600 text-[14px]">{error}</Text>
           </View>
         )}
 
-        {hours.map((item, i) => (
-          <View
-            key={DAY_META[i].key}
-            className="flex-row items-center justify-between py-3"
-          >
-            <Text className="text-[16px] font-semibold text-[#11181C] w-28">
-              {item.day}
-            </Text>
+        {/* 🔲 One frame around all days */}
+        <View className="mb-4 rounded-2xl border border-gray-200 bg-[#FFFDF7] px-4 py-6 shadow-[0px_2px_6px_rgba(15,23,42,0.04)]">
+          {hours.map((item, i) => (
+            <View
+              key={DAY_META[i].key}
+              className={i === 0 ? "" : "mt-5"} // just spacing, no per-day border
+            >
+              {/* Top row: day + OPEN/CLOSED toggle */}
+              <View className="flex-row items-center justify-between mb-3">
+                <Text className="text-[16px] font-semibold text-[#11181C]">
+                  {item.day}
+                </Text>
 
-            {item.closed ? (
-              <View className="flex-1 items-center">
-                <Text className="text-gray-500 italic">Closed</Text>
+                {/* Open/Closed segmented buttons */}
+                <View className="flex-row rounded-full bg-[#FFF5D1] p-1">
+                  <Pressable
+                    onPress={() => setClosedState(i, false)}
+                    className={`px-3 py-1.5 rounded-full ${
+                      !item.closed ? "bg-[#FECD4C]" : "bg-transparent"
+                    }`}
+                  >
+                    <Text
+                      className={`text-xs font-semibold ${
+                        !item.closed ? "text-[#11181C]" : "text-[#6B7280]"
+                      }`}
+                    >
+                      OPEN
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setClosedState(i, true)}
+                    className={`px-3 py-1.5 rounded-full ${
+                      item.closed ? "bg-[#FECD4C]" : "bg-transparent"
+                    }`}
+                  >
+                    <Text
+                      className={`text-xs font-semibold ${
+                        item.closed ? "text-[#11181C]" : "text-[#6B7280]"
+                      }`}
+                    >
+                      CLOSED
+                    </Text>
+                  </Pressable>
+                </View>
               </View>
-            ) : (
-              <View className="flex-row gap-2 flex-1 justify-center">
-                <Pressable
-                  onPress={() => openPicker(i, "open")}
-                  className="min-w-[84px] border border-gray-300 rounded-xl px-3 py-2 items-center justify-center active:bg-gray-50"
-                >
-                  <Text className="text-[16px] text-[#11181C]">
-                    {fmtTime(item.open)}
-                  </Text>
-                </Pressable>
-                <Text className="text-[#11181C] self-center">–</Text>
-                <Pressable
-                  onPress={() => openPicker(i, "close")}
-                  className="min-w-[84px] border border-gray-300 rounded-xl px-3 py-2 items-center justify-center active:bg-gray-50"
-                >
-                  <Text className="text-[16px] text-[#11181C]">
-                    {fmtTime(item.close)}
-                  </Text>
-                </Pressable>
-              </View>
-            )}
 
-            <Pressable onPress={() => toggleClosed(i)}>
-              <Text className="text-sm text-[#26BD68] font-semibold">
-                {item.closed ? "Open" : "Close"}
-              </Text>
-            </Pressable>
-          </View>
-        ))}
+              {/* Time row */}
+              {item.closed ? (
+                <View className="py-2 items-center">
+                  <Text className="text-[14px] text-gray-500 italic">
+                    This day is closed.
+                  </Text>
+                </View>
+              ) : (
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-1 mr-2">
+                    <Pressable
+                      onPress={() => openPicker(i, "open")}
+                      className="h-11 border border-gray-300 rounded-xl px-3 flex-row items-center justify-center active:bg-gray-50"
+                    >
+                      <Text className="text-[15px] text-[#11181C]">
+                        {fmtTime(item.open)}
+                      </Text>
+                    </Pressable>
+                  </View>
+
+                  <Text className="text-[#11181C] mx-1">-</Text>
+
+                  <View className="flex-1 ml-2">
+                    <Pressable
+                      onPress={() => openPicker(i, "close")}
+                      className="h-11 border border-gray-300 rounded-xl px-3 flex-row items-center justify-center active:bg-gray-50"
+                    >
+                      <Text className="text-[15px] text-[#11181C]">
+                        {fmtTime(item.close)}
+                      </Text>
+                    </Pressable>
+                  </View>
+                </View>
+              )}
+            </View>
+          ))}
+        </View>
 
         <Pressable
           onPress={onSave}
           disabled={!canSave}
-          className={`mt-8 w-full rounded-2xl py-4 items-center justify-center ${
+          className={`mt-4 w-full rounded-2xl py-4 items-center justify-center ${
             canSave ? "bg-[#26BD68]" : "bg-gray-300"
           }`}
         >
@@ -386,7 +433,7 @@ export default function EditBusinessHours() {
         onClose={closePicker}
         title={
           pickerTarget
-            ? `${hours[pickerTarget.index].day} — ${
+            ? `${hours[pickerTarget.index].day} - ${
                 pickerTarget.field === "open" ? "Open" : "Close"
               } time`
             : "Select time"

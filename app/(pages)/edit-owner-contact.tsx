@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ChevronLeftIcon, XMarkIcon } from "react-native-heroicons/outline";
+import { ChevronLeftIcon } from "react-native-heroicons/outline";
 
 import { ThemedView } from "@/components/themed-view";
 import FieldLabel from "@/components/add-item/FieldLabel";
@@ -100,6 +100,7 @@ export default function EditOwnerContact() {
 
     setSaving(true);
     try {
+      // Only update OWNER contact
       await updateStoreSettings(MERCHANT_ID, {
         ownerPhone: phone.trim(),
         ownerEmail: email.trim(),
@@ -147,9 +148,8 @@ export default function EditOwnerContact() {
         <Text className="text-2xl font-bold text-[#11181C]">
           Edit Owner’s Contact
         </Text>
-        <Pressable onPress={() => router.back()}>
-          <XMarkIcon size={22} color="#11181C" />
-        </Pressable>
+        {/* spacer to keep title centered */}
+        <View className="w-9 h-9" />
       </View>
 
       <ScrollView
@@ -177,7 +177,7 @@ export default function EditOwnerContact() {
           className="w-full rounded-xl border border-gray-300 px-4 py-3 text-[16px]"
         />
 
-        <FieldLabel label="Owner’s Email" className="pb-2 pt-6" required />
+        <FieldLabel label="Owner Email" className="pb-2 pt-6" required />
         <TextInput
           value={email}
           onChangeText={setEmail}

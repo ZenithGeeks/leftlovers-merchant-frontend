@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedView } from "@/components/themed-view";
 import FieldLabel from "@/components/add-item/FieldLabel";
-import { ChevronLeftIcon, XMarkIcon } from "react-native-heroicons/outline";
+import { ChevronLeftIcon } from "react-native-heroicons/outline";
 
 import {
   fetchStoreSettings,
@@ -149,9 +149,8 @@ export default function EditCuisineCertification() {
         <Text className="text-2xl font-bold text-[#11181C]">
           Edit Cuisine & Certification
         </Text>
-        <Pressable onPress={() => router.back()}>
-          <XMarkIcon size={22} color="#11181C" />
-        </Pressable>
+        {/* spacer to keep title centered */}
+        <View className="w-9 h-9" />
       </View>
 
       <ScrollView
@@ -174,12 +173,11 @@ export default function EditCuisineCertification() {
           </Text>
         ) : (
           <View className="mb-4">
-            {/* Display-style selected box (like ShopStatusDropdown trigger) */}
+            {/* Display-style selected box */}
             <Pressable
               className="w-full rounded-xl border border-gray-300 px-4 py-3 flex-row justify-between items-center"
-              // no modal; selection happens in the list below
               onPress={() => {
-                // no-op; list below is clickable
+                // selection happens in the list below
               }}
             >
               <Text className="text-[16px] text-[#11181C]">
@@ -222,9 +220,6 @@ export default function EditCuisineCertification() {
           <View>
             <Text className="text-[14px] text-emerald-700 font-semibold">
               Certification status
-            </Text>
-            <Text className="text-[13px] text-emerald-700 mt-1">
-              Verified
             </Text>
           </View>
           <View className="px-3 py-1 rounded-full bg-emerald-600">

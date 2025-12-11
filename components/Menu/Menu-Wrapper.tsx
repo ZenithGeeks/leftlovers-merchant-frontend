@@ -1,13 +1,16 @@
-import React, { useState } from "react";
+import type { MenuItemAPI } from "@/types/types";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Easing, Pressable, Text, View } from "react-native";
 import { ChevronUpIcon } from "react-native-heroicons/solid";
-import MenuList, { MenuItem } from "./Menu-List";
+import MenuList from "./Menu-List";
 
 type Props = {
   title?: string;
-  items: MenuItem[];
+  items: MenuItemAPI[];
   defaultExpanded?: boolean;
+  merchantId: string;
   onToggleItem?: (id: string, value: boolean) => void;
+  onAfterChange?: () => void;
 };
 
 export default function MenuWrapper({
@@ -15,29 +18,35 @@ export default function MenuWrapper({
   items,
   defaultExpanded = true,
   onToggleItem,
+  onAfterChange,
+  merchantId,
 }: Props) {
   const [expanded, setExpanded] = useState(defaultExpanded);
-  const rotation = new Animated.Value(expanded ? 0 : 1);
 
-  const toggle = () => {
-    const next = !expanded;
-    setExpanded(next);
+  const rotation = useRef(new Animated.Value(defaultExpanded ? 0 : 1)).current;
+
+  useEffect(() => {
     Animated.timing(rotation, {
-      toValue: next ? 0 : 1,
+      toValue: expanded ? 0 : 1,
       duration: 160,
       easing: Easing.out(Easing.quad),
       useNativeDriver: true,
     }).start();
-  };
+  }, [expanded, rotation]);
 
-  const rotate = rotation.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["0deg", "180deg"],
-  });
+  const rotate = useMemo(
+    () =>
+      rotation.interpolate({
+        inputRange: [0, 1],
+        outputRange: ["0deg", "180deg"],
+      }),
+    [rotation]
+  );
+
+  const toggle = () => setExpanded((p) => !p);
 
   return (
     <View className="w-full">
-      {/* Header */}
       <View className="flex-row items-center mb-2.5">
         <Text className="flex-1 text-2xl font-bold text-[#11181C]">
           {title}
@@ -54,10 +63,19 @@ export default function MenuWrapper({
         </Pressable>
       </View>
 
-      {/* Collapsible Body */}
       {expanded && (
         <View className="bg-white border border-gray-200 rounded-2xl p-2">
-          <MenuList items={items} onToggle={onToggleItem} />
+          <MenuList
+            items={items}
+            merchantId={merchantId}
+            onToggle={(id, value) => {
+              onToggleItem?.(id, value);
+              onAfterChange?.();
+            }}
+            onDelete={() => {
+              onAfterChange?.();
+            }}
+          />
         </View>
       )}
     </View>

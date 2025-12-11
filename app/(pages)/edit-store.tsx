@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import * as Clipboard from "expo-clipboard";
 
 import { Fonts } from "@/constants/theme";
@@ -19,8 +20,8 @@ import { DEV_MERCHANT_ID } from "@/utils/env";
 
 import {
   ChevronRightIcon,
+  ChevronLeftIcon,
   MapPinIcon,
-  PhoneIcon,
   UserIcon,
   ClockIcon,
   AdjustmentsHorizontalIcon,
@@ -76,7 +77,10 @@ function Row({
   );
 }
 
-const DAY_LABELS: { key: string; label: string }[] = [
+const DAY_LABELS: {
+  key: keyof NonNullable<NonNullable<StoreSettings["businessHours"]>["weekly"]>;
+  label: string;
+}[] = [
   { key: "mon", label: "Mon" },
   { key: "tue", label: "Tue" },
   { key: "wed", label: "Wed" },
@@ -94,36 +98,42 @@ export default function EditStoreScreen() {
   const [loading, setLoading] = React.useState(true);
   const [err, setErr] = React.useState<string | null>(null);
 
-  React.useEffect(() => {
-    let cancelled = false;
+  // 🔁 Refetch whenever screen gains focus
+  useFocusEffect(
+    React.useCallback(() => {
+      let cancelled = false;
 
-    async function load() {
-      setLoading(true);
-      setErr(null);
-      try {
-        if (!MERCHANT_ID) {
-          throw new Error("Missing merchant id");
-        }
-        const data = await fetchStoreSettings(MERCHANT_ID);
-        if (!cancelled) {
-          setStore(data);
-        }
-      } catch (e: any) {
-        if (!cancelled) {
-          setErr(e?.message ?? "Failed to load store settings");
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
+      async function load() {
+        setLoading(true);
+        setErr(null);
+
+        try {
+          if (!MERCHANT_ID) {
+            throw new Error("Missing merchant id");
+          }
+          const data = await fetchStoreSettings(MERCHANT_ID);
+          if (!cancelled) {
+            setStore(data);
+          }
+        } catch (e: any) {
+          if (!cancelled) {
+            console.error("Failed to load store settings:", e);
+            setErr(e?.message ?? "Failed to load store settings");
+          }
+        } finally {
+          if (!cancelled) {
+            setLoading(false);
+          }
         }
       }
-    }
 
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+      load();
+
+      return () => {
+        cancelled = true;
+      };
+    }, [])
+  );
 
   const addressLine = [
     store?.address?.line1,
@@ -135,7 +145,7 @@ export default function EditStoreScreen() {
     .filter(Boolean)
     .join(", ");
 
-  const weekly = (store?.businessHours as any)?.weekly;
+  const weekly = store?.businessHours?.weekly;
 
   const handleCopyStoreId = async () => {
     if (!store?.storeId) return;
@@ -182,15 +192,28 @@ export default function EditStoreScreen() {
     >
       <View
         className="bg-white"
-        style={{ paddingTop: insets.top + 16, paddingHorizontal: 20 }}
+        style={{ paddingTop: insets.top + 8, paddingHorizontal: 20 }}
       >
-        <Text
-          className="text-[28px] font-extrabold text-[#0B1220] mb-6"
-          style={{ fontFamily: Fonts.bold }}
-        >
-          Edit store
-        </Text>
+        {/* Header with back button */}
+        <View className="flex-row items-center justify-between mb-4">
+          <Pressable
+            onPress={() => router.back()}
+            className="w-9 h-9 rounded-full bg-gray-100 items-center justify-center"
+            accessibilityLabel="back"
+          >
+            <ChevronLeftIcon size={18} color="#11181C" />
+          </Pressable>
+          <Text
+            className="text-[24px] font-extrabold text-[#0B1220]"
+            style={{ fontFamily: Fonts.bold }}
+          >
+            Edit store
+          </Text>
+          {/* spacer to balance layout */}
+          <View className="w-9 h-9" />
+        </View>
 
+        {/* Store name + edit detail button */}
         <View className="flex-row items-center justify-between mb-4">
           <Text className="text-[22px] font-extrabold text-[#0B1220]">
             {store.name ?? "Unnamed store"}
@@ -272,36 +295,38 @@ export default function EditStoreScreen() {
 
         <Divider />
 
-        {/* Business hours preview */}
+        {/* Business hours preview – compact like the screenshot */}
         <View className="w-full">
           <Row
             icon={<ClockIcon size={18} color="#22C55E" />}
             title="Business hours"
             onPress={() => router.push("/edit-business-hours")}
           />
-          <View className="mt-2 pl-12">
+
+          <View className="mt-1 pl-12">
             {weekly ? (
               DAY_LABELS.map(({ key, label }) => {
-                const slots = (weekly as any)[key] as
-                  | { open: string; close: string }[]
-                  | undefined;
+                const slots = (weekly?.[key] ?? []) as {
+                  open: string;
+                  close: string;
+                }[];
+                const isClosed = !slots || slots.length === 0;
 
-                const text =
-                  !slots || slots.length === 0
-                    ? "Closed"
-                    : slots
-                        .map((s) => `${s.open}–${s.close}`)
-                        .join(", ");
+                const text = isClosed
+                  ? "Closed"
+                  : slots
+                      .map(
+                        (s: { open: string; close: string }) =>
+                          `${s.open}-${s.close}`
+                      )
+                      .join(", ");
 
                 return (
-                  <View
-                    key={key}
-                    className="flex-row items-center justify-between pr-2 py-1"
-                  >
-                    <Text className="text-[15px] text-[#11181C]">
+                  <View key={String(key)} className="flex-row py-0.5">
+                    <Text className="w-10 text-[13px] text-gray-500">
                       {label}
                     </Text>
-                    <Text className="text-[15px] text-[#11181C]">
+                    <Text className="ml-4 text-[13px] text-gray-500">
                       {text}
                     </Text>
                   </View>
@@ -320,19 +345,11 @@ export default function EditStoreScreen() {
         {/* Owner contact */}
         <Row
           icon={<UserIcon size={18} color="#22C55E" />}
-          title="Owner’s contact"
-          subtitle={`${store.owner?.phone ?? "-"}\n${store.owner?.email ?? "-"}`}
+          title="Owner contact"
+          subtitle={`${store.owner?.phone ?? "-"}\n${
+            store.owner?.email ?? "-"
+          }`}
           onPress={() => router.push("/edit-owner-contact")}
-        />
-
-        <Divider />
-
-        {/* Store contact */}
-        <Row
-          icon={<PhoneIcon size={18} color="#22C55E" />}
-          title="Store contact number"
-          subtitle={store.contact?.storePhone ?? "-"}
-          onPress={() => router.push("/edit-store-contact")}
         />
 
         <Divider />

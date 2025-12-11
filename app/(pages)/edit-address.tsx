@@ -15,6 +15,8 @@ import { ChevronLeftIcon } from "react-native-heroicons/outline";
 
 import { ThemedView } from "@/components/themed-view";
 import { Fonts } from "@/constants/theme";
+import LocationPicker from "@/components/Authen/LocationPicker.native";
+
 import {
   fetchStoreSettings,
   updateStoreSettings,
@@ -24,6 +26,12 @@ import { DEV_MERCHANT_ID } from "@/utils/env";
 
 const MERCHANT_ID =
   DEV_MERCHANT_ID || process.env.EXPO_PUBLIC_MERCHANT_ID || "";
+
+// same helpers as LocationPicker uses
+const isValidLat = (v: string) =>
+  v !== "" && !isNaN(Number(v)) && Math.abs(Number(v)) <= 90;
+const isValidLng = (v: string) =>
+  v !== "" && !isNaN(Number(v)) && Math.abs(Number(v)) <= 180;
 
 export default function EditAddressScreen() {
   const router = useRouter();
@@ -40,12 +48,19 @@ export default function EditAddressScreen() {
   const [province, setProvince] = useState("");
   const [postalCode, setPostalCode] = useState("");
 
+  // 🔹 location state (string for UI)
+  const [lat, setLat] = useState("");
+  const [lng, setLng] = useState("");
+
   // ---- initial values for change detection ----
   const [initialLine1, setInitialLine1] = useState("");
   const [initialLine2, setInitialLine2] = useState("");
   const [initialCity, setInitialCity] = useState("");
   const [initialProvince, setInitialProvince] = useState("");
   const [initialPostalCode, setInitialPostalCode] = useState("");
+
+  const [initialLat, setInitialLat] = useState("");
+  const [initialLng, setInitialLng] = useState("");
 
   // -------- Load address from backend via /merchant/:id/editstore --------
   useEffect(() => {
@@ -65,13 +80,16 @@ export default function EditAddressScreen() {
         const data: StoreSettings = await fetchStoreSettings(MERCHANT_ID);
         if (cancelled) return;
 
-        const addr = data.address ?? {
-          line1: "",
-          line2: "",
-          city: "",
-          province: "",
-          postalCode: "",
-        };
+        const addr =
+          data.address ?? ({
+            line1: "",
+            line2: "",
+            city: "",
+            province: "",
+            postalCode: "",
+            lat: null,
+            lng: null,
+          } as any);
 
         const l1 = addr.line1 ?? "";
         const l2 = addr.line2 ?? "";
@@ -79,17 +97,31 @@ export default function EditAddressScreen() {
         const p = addr.province ?? "";
         const pc = addr.postalCode ?? "";
 
+        // 🔹 numbers from backend → strings for UI
+        const latVal =
+          addr.lat !== null && addr.lat !== undefined
+            ? String(addr.lat)
+            : "";
+        const lngVal =
+          addr.lng !== null && addr.lng !== undefined
+            ? String(addr.lng)
+            : "";
+
         setLine1(l1);
         setLine2(l2);
         setCity(c);
         setProvince(p);
         setPostalCode(pc);
+        setLat(latVal);
+        setLng(lngVal);
 
         setInitialLine1(l1);
         setInitialLine2(l2);
         setInitialCity(c);
         setInitialProvince(p);
         setInitialPostalCode(pc);
+        setInitialLat(latVal);
+        setInitialLng(lngVal);
       } catch (e: any) {
         if (cancelled) return;
         console.error("Failed to load address:", e);
@@ -112,11 +144,18 @@ export default function EditAddressScreen() {
     line2.trim() !== initialLine2.trim() ||
     city.trim() !== initialCity.trim() ||
     province.trim() !== initialProvince.trim() ||
-    postalCode.trim() !== initialPostalCode.trim();
+    postalCode.trim() !== initialPostalCode.trim() ||
+    lat.trim() !== initialLat.trim() ||
+    lng.trim() !== initialLng.trim();
 
   const canSave = useMemo(
-    () => line1.trim().length > 0 && hasChanges && !saving,
-    [line1, hasChanges, saving]
+    () =>
+      line1.trim().length > 0 &&
+      hasChanges &&
+      !saving &&
+      isValidLat(lat) &&
+      isValidLng(lng),
+    [line1, hasChanges, saving, lat, lng]
   );
 
   const onSave = async () => {
@@ -131,6 +170,9 @@ export default function EditAddressScreen() {
           city: city.trim() || undefined,
           province: province.trim() || undefined,
           postalCode: postalCode.trim() || undefined,
+          // 🔹 strings → numbers for backend (Decimal)
+          lat: lat.trim() ? Number(lat.trim()) : undefined,
+          lng: lng.trim() ? Number(lng.trim()) : undefined,
         },
       });
 
@@ -139,6 +181,8 @@ export default function EditAddressScreen() {
       setInitialCity(city.trim());
       setInitialProvince(province.trim());
       setInitialPostalCode(postalCode.trim());
+      setInitialLat(lat.trim());
+      setInitialLng(lng.trim());
 
       Alert.alert("Success", "Address updated.", [
         { text: "OK", onPress: () => router.back() },
@@ -196,6 +240,18 @@ export default function EditAddressScreen() {
             <Text className="text-red-600 text-[14px]">{error}</Text>
           </View>
         )}
+
+        {/* 🔹 Location picker (lat,lng) */}
+        <View className="mt-4">
+          <LocationPicker
+            lat={lat}
+            lng={lng}
+            onChange={(newLat, newLng) => {
+              setLat(newLat);
+              setLng(newLng);
+            }}
+          />
+        </View>
 
         {/* Line 1 (required) */}
         <View className="mt-5">
