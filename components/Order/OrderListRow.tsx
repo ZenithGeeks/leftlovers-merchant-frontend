@@ -5,7 +5,8 @@ import { Alert, Pressable, Text, View } from "react-native";
 import CardItem from "@/components/Order/CardItem";
 import ToggleButton from "@/components/Order/ToggleButton";
 import { updateMerchantOrderStatus } from "@/services/order";
-import type { Order, OrderStatus } from "@/types/types";
+import type { Order, OrderPreference, OrderStatus, PaymentStatus } from "@/types/types";
+import { parseOrderDates, parseOrderMoney } from "@/types/types";
 
 type OrderListRowProps = {
   item: Order;
@@ -47,7 +48,7 @@ const statusPillClass = (s: OrderStatus) => {
   }
 };
 
-const paymentPillClass = (p?: string) => {
+const paymentPillClass = (p: PaymentStatus) => {
   switch (p) {
     case "PAID":
       return "bg-green-50 text-green-700 border-green-200";
@@ -59,12 +60,19 @@ const paymentPillClass = (p?: string) => {
   }
 };
 
-function formatDateTime(d?: string | null) {
-  if (!d) return "-";
-  const date = new Date(d);
-  if (Number.isNaN(date.getTime())) return "-";
-  return date.toLocaleString();
-}
+const preferenceLabel = (p: OrderPreference) => {
+  switch (p) {
+    case "CONTACT":
+      return "CONTACT";
+    case "REMOVE":
+      return "No contact";
+    case "CANCELLED":
+      return "Cancelled by customer";
+    default:
+      return p;
+  }
+};
+
 
 function getTimeLeft(deadline?: string | null) {
   if (!deadline) return null;
@@ -83,17 +91,26 @@ function getTimeLeft(deadline?: string | null) {
   return `${rem}m left`;
 }
 
-export default function OrderListRow({ item, onUpdated , merchantId}: OrderListRowProps) {
+export default function OrderListRow({ item, onUpdated, merchantId }: OrderListRowProps) {
   const [expanded, setExpanded] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  const shortId = useMemo(() => item.id?.slice(0, 6)?.toUpperCase() ?? "ORDER", [item.id]);
-  const timeLeft = useMemo(() => getTimeLeft(item.pickupDeadline), [item.pickupDeadline]);
+  const shortId = useMemo(
+    () => item.id?.slice(0, 6)?.toUpperCase() ?? "ORDER",
+    [item.id]
+  );
+  const timeLeft = useMemo(
+    () => getTimeLeft(item.pickupDeadline),
+    [item.pickupDeadline]
+  );
 
   const itemsCount = useMemo(
     () => (item.items ?? []).reduce((sum, it) => sum + (it.quantity ?? 0), 0),
     [item.items]
   );
+
+  const money = useMemo(() => parseOrderMoney(item), [item]);
+  const dates = useMemo(() => parseOrderDates(item), [item]);
 
   const primaryAction = useMemo(() => {
     if (item.status === "PENDING" || item.status === "CONFIRMED") {
@@ -107,9 +124,6 @@ export default function OrderListRow({ item, onUpdated , merchantId}: OrderListR
 
   const handleUpdateStatus = useCallback(async () => {
     if (!primaryAction) return;
-    if (!merchantId) {
-      return;
-    }
 
     setBusy(true);
     try {
@@ -118,7 +132,6 @@ export default function OrderListRow({ item, onUpdated , merchantId}: OrderListR
         item.id,
         primaryAction.next
       );
-
       onUpdated?.(updated);
     } catch (e: any) {
       Alert.alert("Update failed", e?.message ?? "Unable to update order.");
@@ -129,10 +142,9 @@ export default function OrderListRow({ item, onUpdated , merchantId}: OrderListR
 
   return (
     <View className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-      {/* ================= HEADER ================= */}
+      {/* HEADER */}
       <View className="px-4 pt-4 pb-3">
         <View className="flex-row items-center justify-between">
-          {/* Left: Order ID */}
           <View className="flex-row items-center">
             <Text className="text-xl font-semibold text-gray-900">
               Order #{shortId}
@@ -144,34 +156,40 @@ export default function OrderListRow({ item, onUpdated , merchantId}: OrderListR
             )}
           </View>
 
-          {/* Right: Toggle */}
-          <ToggleButton expanded={expanded} onToggle={() => setExpanded((s) => !s)} />
+          <ToggleButton
+            expanded={expanded}
+            onToggle={() => setExpanded((s) => !s)}
+          />
         </View>
 
         {/* Pills row */}
         <View className="flex-row flex-wrap items-center mt-3">
-          {/* Status */}
-          <View className={`border rounded-full px-2.5 py-1 mr-2 ${statusPillClass(item.status)}`}>
+          <View
+            className={`border rounded-full px-2.5 py-1 mr-2 ${statusPillClass(
+              item.status
+            )}`}
+          >
             <Text className="text-[10px] font-semibold">
               {statusLabel(item.status)}
             </Text>
           </View>
 
-          {/* Payment */}
-          <View className={`border rounded-full px-2.5 py-1 mr-2 ${paymentPillClass(item.paymentStatus)}`}>
+          <View
+            className={`border rounded-full px-2.5 py-1 mr-2 ${paymentPillClass(
+              item.paymentStatus
+            )}`}
+          >
             <Text className="text-[10px] font-semibold">
-              {item.paymentStatus ?? "UNPAID"}
+              {item.paymentStatus}
             </Text>
           </View>
 
-          {/* Preference */}
           <View className="border border-gray-200 rounded-full px-2.5 py-1 mr-2 bg-gray-50">
             <Text className="text-[10px] font-medium text-gray-700">
-              {item.preference ?? "CONTACT"}
+              {preferenceLabel(item.preference)}
             </Text>
           </View>
 
-          {/* Cutlery */}
           <View className="border border-gray-200 rounded-full px-2.5 py-1 bg-gray-50">
             <Text className="text-[10px] font-medium text-gray-700">
               {item.cutlery ? "Cutlery: Yes" : "Cutlery: No"}
@@ -179,7 +197,7 @@ export default function OrderListRow({ item, onUpdated , merchantId}: OrderListR
           </View>
         </View>
 
-        {/* Timer pill (if have deadline) */}
+        {/* Timer pill */}
         {!!timeLeft && (
           <View className="mt-3 self-start bg-amber-200/70 rounded-full px-4 py-2">
             <Text className="text-[11px] font-semibold text-gray-900">
@@ -188,23 +206,25 @@ export default function OrderListRow({ item, onUpdated , merchantId}: OrderListR
           </View>
         )}
 
-        {/* Summary line */}
-        <View className="mt-3 flex-row items-center justify-between">
+        {/* Money summary */}
+        <View className="mt-3">
           <Text className="text-[11px] text-gray-500">
             Items: {itemsCount || 0}
           </Text>
           <Text className="text-[11px] text-gray-500">
-            Total: ฿{item.totalAmount ?? "0"}
+            Subtotal: ฿{money.subtotal.toFixed(0)}  •  Discount: ฿
+            {money.discountTotal.toFixed(0)}
+          </Text>
+          <Text className="text-[11px] text-gray-700 font-semibold">
+            Total: ฿{money.totalAmount.toFixed(0)}
           </Text>
         </View>
       </View>
 
-      {/* Divider */}
       <View className="h-[1px] bg-gray-100" />
 
-      {/* ================= BODY ================= */}
+      {/* BODY */}
       <View className="px-4 py-4">
-        {/* Customer block */}
         <Text className="text-lg font-semibold text-gray-900">
           {item.customer?.name ?? "Customer"}
         </Text>
@@ -213,14 +233,17 @@ export default function OrderListRow({ item, onUpdated , merchantId}: OrderListR
           <View className="flex-row items-center">
             <Ionicons name="time-outline" size={14} color="#6B7280" />
             <Text className="ml-2 text-xs text-gray-600">
-              Pickup deadline: {formatDateTime(item.pickupDeadline)}
+              Pickup deadline:{" "}
+              {dates.pickupDeadline
+                ? dates.pickupDeadline.toLocaleString()
+                : "-"}
             </Text>
           </View>
 
           <View className="flex-row items-center mt-1">
             <Ionicons name="calendar-outline" size={14} color="#6B7280" />
             <Text className="ml-2 text-xs text-gray-600">
-              Created: {formatDateTime(item.createdAt)}
+              Created: {dates.createdAt.toLocaleString()}
             </Text>
           </View>
 
@@ -232,7 +255,7 @@ export default function OrderListRow({ item, onUpdated , merchantId}: OrderListR
           </View>
         </View>
 
-        {/* Items preview when collapsed */}
+        {/* Items preview (collapsed) */}
         {!expanded && (
           <View className="mt-4">
             {(item.items ?? []).slice(0, 2).map((it) => (
@@ -256,7 +279,7 @@ export default function OrderListRow({ item, onUpdated , merchantId}: OrderListR
           </View>
         )}
 
-        {/* Expanded full items */}
+        {/* Full items (expanded) */}
         {expanded && (
           <View className="mt-4">
             <Text className="text-xs font-semibold text-gray-900 mb-2">
@@ -279,7 +302,7 @@ export default function OrderListRow({ item, onUpdated , merchantId}: OrderListR
         )}
       </View>
 
-      {/* ================= FOOTER ACTION ================= */}
+      {/* FOOTER ACTION */}
       {!!primaryAction && (
         <View className="px-4 pb-4">
           <Pressable
