@@ -1,4 +1,3 @@
-import { useRouter } from "expo-router";
 import React, { useMemo } from "react";
 import CustomerFeedbackCard from "./CustomerFeedbackCard";
 
@@ -19,7 +18,6 @@ export default function FeedbackWrapper({
   reviews,
   warnings,
 }: FeedbackWrapperProps) {
-  const router = useRouter();
   const safeReviews = reviews ?? [];
   const safeWarnings = warnings ?? [];
 
