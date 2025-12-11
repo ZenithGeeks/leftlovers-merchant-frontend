@@ -4,7 +4,11 @@ import ContentSwitcher from "@/components/Menu/Content-Switcher";
 import MenuWrapper from "@/components/Menu/Menu-Wrapper";
 import OptionWrapper from "@/components/Menu/Option-Wrapper";
 import { ThemedView } from "@/components/themed-view";
-import { fetchMerchantOptionGroups, type OptionGroupAPI } from "@/services/group";
+import { useMerchant } from "@/context/MerchantContext";
+import {
+  fetchMerchantOptionGroups,
+  type OptionGroupAPI,
+} from "@/services/group";
 import { getMenuItems } from "@/services/menu";
 import type { MenuItemAPI } from "@/types/types";
 import { useFocusEffect } from "@react-navigation/native";
@@ -21,14 +25,21 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const MERCHANT_ID = process.env.EXPO_PUBLIC_MERCHANT_ID;
-
 type TabKey = "items" | "options";
 type Section = { id: string; title: string; items: MenuItemAPI[] };
 
 const groupByCategory = (items: MenuItemAPI[]): Section[] => [
   { id: "List", title: "List", items },
 ];
+
+const isNoDataError = (msg: string) => {
+  const lower = msg.toLowerCase();
+  return (
+    lower.includes("no groups found") ||
+    lower.includes("no menu") ||
+    lower.includes("no items found")
+  );
+};
 
 export default function MenuScreen() {
   const router = useRouter();
@@ -43,15 +54,15 @@ export default function MenuScreen() {
   const [menu, setMenu] = useState<MenuItemAPI[]>([]);
   const [groups, setGroups] = useState<OptionGroupAPI[]>([]);
   const [error, setError] = useState<string | null>(null);
-
+  const { merchantId } = useMerchant();
   const horizontalPadding = useMemo(
     () => Math.max(16, Math.min(width * 0.05, 28)),
     [width]
   );
 
   const fetchAll = useCallback(async () => {
-    if (!MERCHANT_ID) {
-      setError("Missing merchant id.");
+    if (!merchantId) {
+      router.replace("/(auth)/signin");
       setMenu([]);
       setGroups([]);
       setLoading(false);
@@ -62,40 +73,79 @@ export default function MenuScreen() {
     setLoading(true);
 
     try {
-      const [menuRes, groupRes] = await Promise.all([
-        getMenuItems(MERCHANT_ID),
-        fetchMerchantOptionGroups(MERCHANT_ID),
+      const [menuResult, groupResult] = await Promise.allSettled([
+        getMenuItems(merchantId),
+        fetchMerchantOptionGroups(merchantId),
       ]);
+      if (menuResult.status === "fulfilled") {
+        setMenu(menuResult.value ?? []);
+      } else {
+        const msg =
+          menuResult.reason?.message ?? String(menuResult.reason ?? "");
+        if (isNoDataError(msg)) {
+          setMenu([]); // just empty, not an error
+        } else {
+          setError(msg || "Failed to load menu.");
+        }
+      }
 
-      setMenu(menuRes ?? []);
-      setGroups(groupRes ?? []);
-    } catch (e: any) {
-      setError(e?.message ?? "Failed to load data");
+      // Groups
+      if (groupResult.status === "fulfilled") {
+        setGroups(groupResult.value ?? []);
+      } else {
+        const msg =
+          groupResult.reason?.message ?? String(groupResult.reason ?? "");
+        if (isNoDataError(msg)) {
+          setGroups([]); // no groups yet, normal
+        } else if (!error) {
+          // only set error if we don't have one already
+          setError(msg || "Failed to load option groups.");
+        }
+      }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [merchantId, router, error]);
 
   const onRefresh = useCallback(async () => {
-    if (!MERCHANT_ID) return;
 
     setRefreshing(true);
     setError(null);
 
     try {
-      const [menuRes, groupRes] = await Promise.all([
-        getMenuItems(MERCHANT_ID),
-        fetchMerchantOptionGroups(MERCHANT_ID),
+
+      const [menuResult, groupResult] = await Promise.allSettled([
+        getMenuItems(merchantId!),
+        fetchMerchantOptionGroups(merchantId!),
       ]);
 
-      setMenu(menuRes ?? []);
-      setGroups(groupRes ?? []);
-    } catch (e: any) {
-      setError(e?.message ?? "Failed to refresh");
+      if (menuResult.status === "fulfilled") {
+        setMenu(menuResult.value ?? []);
+      } else {
+        const msg =
+          menuResult.reason?.message ?? String(menuResult.reason ?? "");
+        if (isNoDataError(msg)) {
+          setMenu([]);
+        } else {
+          setError(msg || "Failed to refresh menu.");
+        }
+      }
+
+      if (groupResult.status === "fulfilled") {
+        setGroups(groupResult.value ?? []);
+      } else {
+        const msg =
+          groupResult.reason?.message ?? String(groupResult.reason ?? "");
+        if (isNoDataError(msg)) {
+          setGroups([]);
+        } else if (!error) {
+          setError(msg || "Failed to refresh option groups.");
+        }
+      }
     } finally {
       setRefreshing(false);
     }
-  }, []);
+  }, [merchantId, error]);
 
   useFocusEffect(
     useCallback(() => {
@@ -105,10 +155,16 @@ export default function MenuScreen() {
 
   const sections = useMemo(() => groupByCategory(menu), [menu]);
 
-  const handleAddItem = () => router.push("/add-item");
-  const handleAddOption = () => router.push("/add-option");
+  const handleAddItem = () => router.push({
+    pathname: "/add-item",
+    params: { merchantId },
+  });
+  const handleAddOption = () =>   router.push({
+    pathname: "/add-option",
+    params: { merchantId },
+  });
 
-  if (!MERCHANT_ID) {
+  if (!merchantId) {
     return (
       <ThemedView className="flex-1 bg-[#F7F8FA] justify-center items-center px-6">
         <Text className="text-base text-gray-700">Missing merchant id</Text>
@@ -161,9 +217,7 @@ export default function MenuScreen() {
             <Text className="font-semibold text-red-700">Error</Text>
             <Text className="mt-1 text-red-700">{error}</Text>
             <Pressable onPress={fetchAll} className="mt-3">
-              <Text className="font-semibold text-[#26BD68]">
-                Tap to retry
-              </Text>
+              <Text className="font-semibold text-[#26BD68]">Tap to retry</Text>
             </Pressable>
           </View>
         ) : (
@@ -177,7 +231,7 @@ export default function MenuScreen() {
                   <View key={section.id} className="mb-10">
                     <MenuWrapper
                       title={section.title}
-                      merchantId={MERCHANT_ID}
+                      merchantId={merchantId}
                       items={section.items}
                       defaultExpanded
                       onToggleItem={onRefresh}
@@ -196,7 +250,7 @@ export default function MenuScreen() {
                 {groups.map((group) => (
                   <OptionWrapper
                     key={group.id}
-                    merchantId={MERCHANT_ID}
+                    merchantId={merchantId}
                     groupId={group.id}
                     title={group.name}
                     options={group.options}

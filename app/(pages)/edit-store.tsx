@@ -32,6 +32,8 @@ import Divider from "@/components/store/Divider";
 import Row from "@/components/store/Row";
 import StoreImagesSection from "@/components/store/StoreImagesSection";
 import BusinessHoursPreview from "@/components/store/BusinessHoursPreview";
+import LogoutConfirmModal from "@/components/store/LogoutConfirmModal";
+import { logoutFirebase } from "@/services/auth";
 
 const MERCHANT_ID =
   DEV_MERCHANT_ID || process.env.EXPO_PUBLIC_MERCHANT_ID || "";
@@ -43,6 +45,9 @@ export default function EditStoreScreen() {
   const [store, setStore] = React.useState<StoreSettings | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [err, setErr] = React.useState<string | null>(null);
+
+  const [logoutVisible, setLogoutVisible] = React.useState(false);
+  const [loggingOut, setLoggingOut] = React.useState(false);
 
   // 🔁 Refetch whenever screen gains focus
   useFocusEffect(
@@ -100,6 +105,22 @@ export default function EditStoreScreen() {
       Alert.alert("Copied", "Store ID copied to clipboard.");
     } catch (e) {
       console.error("Copy store ID failed:", e);
+    }
+  };
+
+  const handleConfirmLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+
+    try {
+      await logoutFirebase();
+      setLogoutVisible(false);
+      router.replace("/(landing)");
+    } catch (e: any) {
+      console.error("Logout failed:", e);
+      Alert.alert("Logout failed", e?.message ?? "Please try again.");
+    } finally {
+      setLoggingOut(false);
     }
   };
 
@@ -244,8 +265,29 @@ export default function EditStoreScreen() {
               </Pressable>
             }
           />
+
+          {/* 🔴 Logout button */}
+          <View className="mt-8">
+            <Pressable
+              onPress={() => setLogoutVisible(true)}
+              accessibilityLabel="logout-button"
+              className="w-full rounded-2xl py-3.5 items-center justify-center bg-red-50 border border-red-200"
+            >
+              <Text className="text-[15px] font-semibold text-red-600">
+                Log out
+              </Text>
+            </Pressable>
+          </View>
         </View>
       </ScrollView>
+
+      {/* Logout confirmation modal */}
+      <LogoutConfirmModal
+        visible={logoutVisible}
+        onCancel={() => setLogoutVisible(false)}
+        onConfirm={handleConfirmLogout}
+        loading={loggingOut}
+      />
     </ThemedView>
   );
 }

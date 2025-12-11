@@ -3,25 +3,23 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Dimensions, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import Tabs from "@/components/finance/Tabs";
-import { SummaryTab } from "@/components/finance/SummaryTab";
-import { TransactionTab } from "@/components/finance/TransactionTab";
 import { PayoutTab } from "@/components/finance/PayoutTab";
+import { SummaryTab } from "@/components/finance/SummaryTab";
+import Tabs from "@/components/finance/Tabs";
+import { TransactionTab } from "@/components/finance/TransactionTab";
 import { ThemedView } from "@/components/themed-view";
 
-import type { DateKey, Payout, Summary, TabKey, Transaction } from "@/types/finance";
-import { DEV_MERCHANT_ID } from "@/utils/env";
+import { useMerchant } from "@/context/MerchantContext";
 import {
   fetchFinancePayouts,
   fetchFinanceSummary,
   fetchFinanceTransactions,
 } from "@/services/finance";
+import type { DateKey, Payout, Summary, TabKey, Transaction } from "@/types/finance";
+import { router } from "expo-router";
 
 const DEFAULT_RANGE: DateKey = "Today";
 const DEFAULT_TAB: TabKey = "Summary";
-
-
-const MERCHANT_ID = DEV_MERCHANT_ID || "REPLACE_ME_MERCHANT_ID";
 
 export default function FinanceScreen() {
   const insets = useSafeAreaInsets();
@@ -48,7 +46,10 @@ export default function FinanceScreen() {
   const [err, setErr] = useState<string | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
-
+  const { merchantId } = useMerchant()
+  if(!merchantId){
+    router.replace('/(auth)/signin')
+  }
   useEffect(() => {
     if (abortRef.current) abortRef.current.abort();
     const ctrl = new AbortController();
@@ -57,11 +58,13 @@ export default function FinanceScreen() {
     async function load() {
       setLoading(true);
       setErr(null);
+      if(!merchantId)
+        return;
       try {
         const [tx, po, su] = await Promise.all([
-          fetchFinanceTransactions(MERCHANT_ID, selectedDate, ctrl.signal),
-          fetchFinancePayouts(MERCHANT_ID, selectedDate, ctrl.signal),
-          fetchFinanceSummary(MERCHANT_ID, selectedDate, ctrl.signal),
+          fetchFinanceTransactions(merchantId, selectedDate, ctrl.signal),
+          fetchFinancePayouts(merchantId, selectedDate, ctrl.signal),
+          fetchFinanceSummary(merchantId, selectedDate, ctrl.signal),
         ]);
         setTransactions(tx);
         setPayouts(po);
@@ -79,7 +82,7 @@ export default function FinanceScreen() {
     return () => {
       ctrl.abort();
     };
-  }, [selectedDate]);
+  }, [merchantId, selectedDate]);
 
   return (
     <ThemedView className="flex-1 bg-white">

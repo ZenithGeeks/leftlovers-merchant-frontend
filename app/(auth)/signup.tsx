@@ -59,11 +59,8 @@ export default function SignUpPage() {
   const [name, setName] = useState("");
   const [dob, setDob] = useState("");
   const [pendingVerification, setPendingVerification] = useState(false);
-
-  // Resend control
   const [resendCooldown, setResendCooldown] = useState(0);
   const [localPhone, setLocalPhone] = useState("");
-
   const mountedRef = useRef(true);
 
   useEffect(() => {

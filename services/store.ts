@@ -100,8 +100,8 @@ export type UpdateStoreSettingsBody = {
   };
 };
 
-export async function fetchMerchant(merchantId: string): Promise<Merchant> {
-  return httpGet<Merchant>(`/api/merchant/${merchantId}`);
+export async function fetchMerchant(ownerUserId: string): Promise<Merchant> {
+  return httpGet<Merchant>(`/api/merchant/merchant/${ownerUserId}/LandingDashboard`);
 }
 
 export async function updateStoreSettings(

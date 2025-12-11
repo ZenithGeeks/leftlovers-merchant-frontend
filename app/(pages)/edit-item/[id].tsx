@@ -16,13 +16,10 @@ import { fetchMerchantOptionGroups } from "@/services/group";
 import { fetchMenuItem, updateMenuItem } from "@/services/menu";
 import type { GroupTemplate, MenuItemAPI, UpdateMenuItemForm } from "@/types/types";
 
-const EXPO_PUBLIC_MERCHANT_ID = process.env.EXPO_PUBLIC_MERCHANT_ID || "";
-
 export default function EditItemScreen() {
-  const { id } = useLocalSearchParams<{ id?: string }>(); // ✅ allow undefined
+  const { id, merchantId } = useLocalSearchParams<{ id?: string, merchantId?: string }>();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -97,14 +94,14 @@ export default function EditItemScreen() {
 
     (async () => {
       try {
-        if (!id || !EXPO_PUBLIC_MERCHANT_ID) return;
+        if (!id || !merchantId) return;
 
         const item = (await fetchMenuItem(
-          EXPO_PUBLIC_MERCHANT_ID,
+          merchantId,
           id,
         )) as MenuItemAPI;
 
-        const groups = await fetchMerchantOptionGroups(EXPO_PUBLIC_MERCHANT_ID);
+        const groups = await fetchMerchantOptionGroups(merchantId);
 
         if (!mounted) return;
 
@@ -132,12 +129,12 @@ export default function EditItemScreen() {
     return () => {
       mounted = false;
     };
-  }, [id]);
+  }, [id, merchantId]);
 
   const onBack = useCallback(() => router.back(), [router]);
 
    const onSubmit = useCallback(async () => {
-  if (!canSubmit || !id || !EXPO_PUBLIC_MERCHANT_ID) return;
+  if (!canSubmit || !id || !merchantId) return;
 
   setSubmitting(true);
   try {
@@ -155,7 +152,7 @@ export default function EditItemScreen() {
     };
     await updateMenuItem(
       { id, ...apiBody } as unknown as UpdateMenuItemForm,
-      EXPO_PUBLIC_MERCHANT_ID,
+      merchantId,
     );
 
     router.back();
@@ -163,21 +160,7 @@ export default function EditItemScreen() {
     console.error("Update menu item failed:", e);
     setSubmitting(false);
   }
-}, [
-  canSubmit,
-  id,
-  name,
-  desc,
-  status,
-  basePriceNum,
-  origPriceNum,
-  qty,
-  expireAt,
-  photoUri,
-  expireLabelUrl,
-  selectedGroupIds,
-  router,
-]);
+}, [canSubmit, id, merchantId, name, basePriceNum, desc, origPriceNum, qty, status, expireAt, selectedGroupIds, photoUri, expireLabelUrl, router]);
 
   if (loading) {
     return (
