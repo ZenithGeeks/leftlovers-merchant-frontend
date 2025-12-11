@@ -13,16 +13,16 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedView } from "@/components/themed-view";
-import FieldLabel from "@/components/add-item/FieldLabel";
-import ImagePickerField from "@/components/ImagePickerField";
-import { ChevronLeftIcon } from "react-native-heroicons/outline"; // ⬅️ removed XMarkIcon
-
 import { DEV_MERCHANT_ID } from "@/utils/env";
 import {
   fetchStoreSettings,
   updateStoreSettings,
   type StoreSettings,
 } from "@/services/store";
+
+import StoreHeader from "@/components/store/StoreHeader";
+import StoreNameField from "@/components/store/StoreNameField";
+import StoreImagePickerSection from "@/components/store/StoreImagePickerSection";
 
 const MERCHANT_ID =
   DEV_MERCHANT_ID || process.env.EXPO_PUBLIC_MERCHANT_ID || "";
@@ -74,7 +74,9 @@ export default function EditStoreDetail() {
   const [listImage, setListImage] = useState<string | null>(null);
 
   const [initialName, setInitialName] = useState("");
-  const [initialStoreImage, setInitialStoreImage] = useState<string | null>(null);
+  const [initialStoreImage, setInitialStoreImage] = useState<string | null>(
+    null
+  );
   const [initialListImage, setInitialListImage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -187,20 +189,10 @@ export default function EditStoreDetail() {
       style={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 8 }}
     >
       {/* Header */}
-      <View className="px-5 pb-2 flex-row items-center justify-between">
-        <Pressable
-          onPress={() => router.back()}
-          accessibilityLabel="back"
-          className="w-9 h-9 rounded-full items-center justify-center bg-gray-100"
-        >
-          <ChevronLeftIcon size={18} color="#11181C" />
-        </Pressable>
-        <Text className="text-2xl font-bold text-[#11181C]">
-          Edit Store Details
-        </Text>
-        {/* spacer to keep title centered */}
-        <View className="w-9 h-9" />
-      </View>
+      <StoreHeader
+        title="Edit Store Details"
+        onBack={() => router.back()}
+      />
 
       {/* Content */}
       <ScrollView
@@ -213,67 +205,26 @@ export default function EditStoreDetail() {
         showsVerticalScrollIndicator={false}
       >
         {/* Store Name */}
-        <FieldLabel className="pb-2 pt-4" label="Store Name" required />
-        <TextInput
-          placeholder="Your store name"
-          value={storeName}
-          onChangeText={setStoreName}
-          placeholderTextColor="#9AA0A6"
-          className="w-full rounded-xl border border-gray-300 px-4 py-3 text-[16px] text-[#11181C]"
+        <StoreNameField
+          storeName={storeName}
+          setStoreName={setStoreName}
         />
 
         {/* Store Image */}
-        <View className="mt-8">
-          <Text className="text-[18px] font-bold text-[#11181C] mb-2">
-            Store image
-          </Text>
-          <Text className="text-[14px] text-[#6B7280] mb-3">
-            This is the image for the top of your store menu.
-          </Text>
-          <ImagePickerField
-            value={storeImage ?? undefined}
-            onChange={(val: any) => {
-              if (!val) {
-                setStoreImage(null);
-                return;
-              }
-              if (typeof val === "string") {
-                setStoreImage(val);
-              } else if (typeof val === "object" && val.uri) {
-                setStoreImage(val.uri);
-              } else {
-                setStoreImage(null);
-              }
-            }}
-          />
-        </View>
+        <StoreImagePickerSection
+          title="Store image"
+          description="This is the image for the top of your store menu."
+          value={storeImage}
+          onChange={setStoreImage}
+        />
 
         {/* List Image */}
-        <View className="mt-8">
-          <Text className="text-[18px] font-bold text-[#11181C] mb-2">
-            List image
-          </Text>
-          <Text className="text-[14px] text-[#6B7280] mb-3">
-            This image will appear alongside other businesses when customers
-            browse the restaurant list.
-          </Text>
-          <ImagePickerField
-            value={listImage ?? undefined}
-            onChange={(val: any) => {
-              if (!val) {
-                setListImage(null);
-                return;
-              }
-              if (typeof val === "string") {
-                setListImage(val);
-              } else if (typeof val === "object" && val.uri) {
-                setListImage(val.uri);
-              } else {
-                setListImage(null);
-              }
-            }}
-          />
-        </View>
+        <StoreImagePickerSection
+          title="List image"
+          description="This image will appear alongside other businesses when customers browse the restaurant list."
+          value={listImage}
+          onChange={setListImage}
+        />
 
         {/* Save button */}
         <Pressable

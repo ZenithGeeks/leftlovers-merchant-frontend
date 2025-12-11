@@ -1,26 +1,19 @@
 // app/(pages)/edit-owner-contact.tsx
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { ActivityIndicator, Alert, Text } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ChevronLeftIcon } from "react-native-heroicons/outline";
 
 import { ThemedView } from "@/components/themed-view";
-import FieldLabel from "@/components/add-item/FieldLabel";
 import {
   fetchStoreSettings,
   updateStoreSettings,
   type StoreSettings,
 } from "@/services/store";
 import { DEV_MERCHANT_ID } from "@/utils/env";
+
+import StoreHeader from "@/components/store/StoreHeader";
+import OwnerContactForm from "@/components/store/OwnerContactForm";
 
 const MERCHANT_ID =
   DEV_MERCHANT_ID || process.env.EXPO_PUBLIC_MERCHANT_ID || "";
@@ -103,11 +96,11 @@ export default function EditOwnerContact() {
       // Only update OWNER contact
       await updateStoreSettings(MERCHANT_ID, {
         ownerPhone: phone.trim(),
-        ownerEmail: email.trim(),
+        ownerEmail: email.trim().toLowerCase(),
       });
 
       setInitialPhone(phone.trim());
-      setInitialEmail(email.trim());
+      setInitialEmail(email.trim().toLowerCase());
 
       Alert.alert("Success", "Owner contact updated.", [
         { text: "OK", onPress: () => router.back() },
@@ -138,69 +131,23 @@ export default function EditOwnerContact() {
       style={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 8 }}
     >
       {/* Header */}
-      <View className="px-5 pb-2 flex-row items-center justify-between">
-        <Pressable
-          onPress={() => router.back()}
-          className="w-9 h-9 rounded-full bg-gray-100 items-center justify-center"
-        >
-          <ChevronLeftIcon size={18} color="#11181C" />
-        </Pressable>
-        <Text className="text-2xl font-bold text-[#11181C]">
-          Edit Owner’s Contact
-        </Text>
-        {/* spacer to keep title centered */}
-        <View className="w-9 h-9" />
-      </View>
+      <StoreHeader
+        title="Edit Owner’s Contact"
+        onBack={() => router.back()}
+      />
 
-      <ScrollView
-        className="flex-1 px-5"
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingBottom: 24 }}
-      >
-        {error && (
-          <View className="mb-4 rounded-xl bg-red-50 px-3 py-2">
-            <Text className="text-red-600 text-[14px]">{error}</Text>
-          </View>
-        )}
-
-        <FieldLabel
-          label="Owner’s Mobile Number"
-          className="pb-2 pt-4"
-          required
-        />
-        <TextInput
-          value={phone}
-          onChangeText={setPhone}
-          keyboardType="phone-pad"
-          placeholder="Enter owner mobile number"
-          className="w-full rounded-xl border border-gray-300 px-4 py-3 text-[16px]"
-        />
-
-        <FieldLabel label="Owner Email" className="pb-2 pt-6" required />
-        <TextInput
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          placeholder="Enter owner email"
-          className="w-full rounded-xl border border-gray-300 px-4 py-3 text-[16px]"
-        />
-
-        <Pressable
-          onPress={onSave}
-          disabled={!canSave}
-          accessibilityLabel="save-owner-contact"
-          accessibilityState={{ disabled: !canSave }}
-          className={`mt-10 w-full rounded-2xl py-4 items-center ${
-            canSave ? "bg-[#26BD68]" : "bg-gray-300"
-          }`}
-        >
-          <Text className="text-white text-[16px] font-semibold">
-            {saving ? "Saving..." : "Save"}
-          </Text>
-        </Pressable>
-      </ScrollView>
+      {/* Form */}
+      <OwnerContactForm
+        phone={phone}
+        setPhone={setPhone}
+        email={email}
+        setEmail={setEmail}
+        canSave={canSave}
+        saving={saving}
+        onSave={onSave}
+        error={error}
+        bottomPadding={insets.bottom}
+      />
     </ThemedView>
   );
 }
