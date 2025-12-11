@@ -1,5 +1,4 @@
 export type MenuStatus = "DRAFT" | "LIVE" | "SOLD_OUT" | "EXPIRED";
-export type MenuItemStatus = "DRAFT" | "LIVE" | "SOLD_OUT" | "EXPIRED";
 
 export type MenuItemAPI = {
   groupTemplateIds: any;
@@ -72,7 +71,7 @@ export type CreateMenuItemForm = {
   originalPrice: number | null;
   leftoverQty: number;
   expiresAt: Date | null;
-  status: MenuItemStatus;
+  status: MenuStatus;
   photoUri: string | null;
   expireLabelUrl: string | null;
   groupTemplates: GroupTemplate[];
@@ -146,7 +145,7 @@ export type OrderMenuItem = {
   originalPrice?: string | null;
   leftoverQty: number;
   expiresAt: string;
-  status: MenuItemStatus;
+  status: MenuStatus;
   createdAt: string;
   photoUrl?: string | null;
   expireLabelUrl: string;

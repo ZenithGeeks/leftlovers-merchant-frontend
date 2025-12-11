@@ -1,5 +1,6 @@
 import { Fonts } from "@/constants/theme";
-import { DeleteMenuItem } from "@/services/menu";
+import { DeleteMenuItem, updateMenuStatus } from "@/services/menu";
+import type { MenuItemAPI, MenuStatus } from "@/types/types";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -13,37 +14,44 @@ import {
 } from "react-native";
 import { PencilSquareIcon, TrashIcon } from "react-native-heroicons/outline";
 
-export type MenuItem = {
-  id: string;
-  name: string;
-  price: number;
-  leftoverQty: number;
-  imageUrl: string;
-  inStock: boolean;
-};
-
 type Props = {
-  items: MenuItem[];
+  items: MenuItemAPI[];
   onToggle?: (id: string, value: boolean) => void;
   onDelete?: (id: string) => void;
-  merchantId?: string;
+  merchantId: string;
 };
-const EXPO_PUBLIC_MERCHANT_ID = process.env.EXPO_PUBLIC_MERCHANT_ID;
+
 export default function MenuList({
   items,
   onToggle,
   onDelete,
-  merchantId = EXPO_PUBLIC_MERCHANT_ID,
+  merchantId,
 }: Props) {
-  const [localItems, setLocalItems] = useState<MenuItem[]>(items);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const router = useRouter();
+  const [localItems, setLocalItems] = useState<MenuItemAPI[]>(items);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   useEffect(() => setLocalItems(items), [items]);
-  const toggleItem = (id: string, value: boolean) => {
+
+  const toggleItem = async (id: string, value: boolean) => {
+    const nextStatus: MenuStatus = value ? "LIVE" : "DRAFT";
     setLocalItems((prev) =>
-      prev.map((it) => (it.id === id ? { ...it, inStock: value } : it))
+      prev.map((it) => (it.id === id ? { ...it, status: nextStatus } : it))
     );
-    onToggle?.(id, value);
+
+    try {
+      await updateMenuStatus(merchantId, id, nextStatus);
+      onToggle?.(id, value);
+    } catch (err: any) {
+      setLocalItems((prev) =>
+        prev.map((it) =>
+          it.id === id
+            ? { ...it, status: value ? "DRAFT" : "LIVE" }
+            : it
+        )
+      );
+      Alert.alert("Error", err?.message ?? "Failed to update menu status.");
+    }
   };
 
   const handleDelete = (menuId: string) => {
@@ -59,15 +67,13 @@ export default function MenuList({
             setDeletingId(menuId);
             const prev = localItems;
             setLocalItems((p) => p.filter((i) => i.id !== menuId));
+
             try {
-              await DeleteMenuItem(merchantId!, menuId);
+              await DeleteMenuItem(merchantId, menuId);
               onDelete?.(menuId);
             } catch (err: any) {
               setLocalItems(prev);
-              Alert.alert(
-                "Error",
-                err?.message ?? "Failed to delete menu item."
-              );
+              Alert.alert("Error", err?.message ?? "Failed to delete menu item.");
             } finally {
               setDeletingId(null);
             }
@@ -91,6 +97,9 @@ export default function MenuList({
         const isLast = idx === localItems.length - 1;
         const isDeleting = deletingId === item.id;
 
+        const isLive = item.status === "LIVE";
+        const priceNumber = Number(item.basePrice ?? 0);
+
         return (
           <View
             key={item.id}
@@ -99,7 +108,7 @@ export default function MenuList({
             }`}
           >
             <Image
-              source={{ uri: item.imageUrl }}
+              source={{ uri: item.photoUrl || "" }}
               className="bg-neutral-100"
               style={{ width: 100, height: 100, borderRadius: 14 }}
               contentFit="cover"
@@ -114,50 +123,47 @@ export default function MenuList({
               >
                 {item.name}
               </Text>
+
               <Text
                 className="mt-0.5 text-sm text-gray-600"
                 style={{ fontFamily: Fonts.regular }}
               >
-                {item.price.toLocaleString("th-TH")} THB
+                {priceNumber.toLocaleString("th-TH")} THB
               </Text>
 
               <View
                 className={`self-start mt-1 px-2.5 py-1 rounded-full ${
-                  item.inStock ? "bg-green-100" : "bg-gray-200"
+                  (item.leftoverQty ?? 0) > 0 ? "bg-green-100" : "bg-gray-200"
                 }`}
               >
                 <Text
                   className={`text-xs ${
-                    item.inStock ? "text-green-700" : "text-gray-500"
+                    (item.leftoverQty ?? 0) > 0 ? "text-green-700" : "text-gray-500"
                   }`}
                   style={{ fontFamily: Fonts.medium }}
                 >
-                  {item.inStock ? "In-Stock:" : "Out of Stock:"}{" "}
-                  {item.leftoverQty}
+                  In-Stock: {item.leftoverQty ?? 0}
                 </Text>
               </View>
             </View>
 
             <View className="items-center justify-between py-2 h-[100px]">
               <Switch
-                accessibilityRole="switch"
-                accessibilityLabel={`${item.name}-switch`}
-                accessibilityState={{
-                  checked: item.inStock,
-                  disabled: isDeleting,
-                }}
-                value={item.inStock}
-                disabled={isDeleting}
-                onValueChange={(val) => {
-                  if (val && item.leftoverQty === 0) {
-                    Alert.alert("Cannot enable", "No stock left.");
-                  } else {
+                  accessibilityRole="switch"
+                  accessibilityLabel={`${item.name}-switch`}
+                  accessibilityState={{ checked: isLive, disabled: isDeleting }}
+                  value={isLive}
+                  disabled={isDeleting}
+                  onValueChange={(val) => {
+                    if (val && (item.leftoverQty ?? 0) === 0) {
+                      Alert.alert("Cannot enable", "No stock left.");
+                      return;
+                    }
                     toggleItem(item.id, val);
-                  }
-                }}
-                trackColor={{ false: "#D1D5DB", true: "#86EFAC" }}
-                thumbColor={item.inStock ? "#16A34A" : "#F4F4F5"}
-              />
+                  }}
+                  trackColor={{ false: "#D1D5DB", true: "#86EFAC" }}
+                  thumbColor={isLive ? "#16A34A" : "#F4F4F5"}
+                />
 
               <View className="flex-row items-center justify-end">
                 <Pressable
