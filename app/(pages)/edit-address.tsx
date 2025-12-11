@@ -1,21 +1,15 @@
-// app/(pages)/edit-address.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Pressable,
-  ScrollView,
   Text,
-  TextInput,
-  View,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ChevronLeftIcon } from "react-native-heroicons/outline";
 
 import { ThemedView } from "@/components/themed-view";
-import { Fonts } from "@/constants/theme";
-import LocationPicker from "@/components/Authen/LocationPicker.native";
+import StoreHeader from "@/components/store/StoreHeader";
+import AddressForm from "@/components/store/AddressForm";
 
 import {
   fetchStoreSettings,
@@ -99,13 +93,9 @@ export default function EditAddressScreen() {
 
         // 🔹 numbers from backend → strings for UI
         const latVal =
-          addr.lat !== null && addr.lat !== undefined
-            ? String(addr.lat)
-            : "";
+          addr.lat !== null && addr.lat !== undefined ? String(addr.lat) : "";
         const lngVal =
-          addr.lng !== null && addr.lng !== undefined
-            ? String(addr.lng)
-            : "";
+          addr.lng !== null && addr.lng !== undefined ? String(addr.lng) : "";
 
         setLine1(l1);
         setLine2(l2);
@@ -212,133 +202,29 @@ export default function EditAddressScreen() {
       className="flex-1 bg-white"
       style={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 8 }}
     >
-      {/* Header */}
-      <View className="px-5 pb-2 flex-row items-center">
-        <Pressable
-          onPress={() => router.back()}
-          accessibilityLabel="back"
-          className="w-9 h-9 rounded-full items-center justify-center bg-gray-100"
-        >
-          <ChevronLeftIcon size={18} color="#11181C" />
-        </Pressable>
-        <Text
-          className="ml-3 text-2xl font-bold text-[#11181C]"
-          style={{ fontFamily: Fonts.bold }}
-        >
-          Edit Address
-        </Text>
-      </View>
+      <StoreHeader title="Edit Address" onBack={() => router.back()} />
 
-      <ScrollView
-        className="flex-1 px-5"
-        contentContainerStyle={{ paddingBottom: 32 }}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        {error && (
-          <View className="mb-4 rounded-xl bg-red-50 px-3 py-2">
-            <Text className="text-red-600 text-[14px]">{error}</Text>
-          </View>
-        )}
-
-        {/* 🔹 Location picker (lat,lng) */}
-        <View className="mt-4">
-          <LocationPicker
-            lat={lat}
-            lng={lng}
-            onChange={(newLat, newLng) => {
-              setLat(newLat);
-              setLng(newLng);
-            }}
-          />
-        </View>
-
-        {/* Line 1 (required) */}
-        <View className="mt-5">
-          <Text className="text-[16px] font-semibold text-[#11181C]">
-            Address Line 1 <Text className="text-[#EF4444]">*</Text>
-          </Text>
-          <TextInput
-            value={line1}
-            onChangeText={setLine1}
-            placeholder="Street, building, house no."
-            placeholderTextColor="#9AA0A6"
-            className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-[16px] text-[#11181C]"
-          />
-        </View>
-
-        {/* Line 2 (optional) */}
-        <View className="mt-5">
-          <Text className="text-[16px] font-semibold text-[#11181C]">
-            Address Line 2 (optional)
-          </Text>
-          <TextInput
-            value={line2}
-            onChangeText={setLine2}
-            placeholder="Apartment, floor, unit"
-            placeholderTextColor="#9AA0A6"
-            className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-[16px] text-[#11181C]"
-          />
-        </View>
-
-        {/* City & Province */}
-        <View className="mt-5 flex-row gap-3">
-          <View className="flex-1">
-            <Text className="text-[16px] font-semibold text-[#11181C]">
-              City
-            </Text>
-            <TextInput
-              value={city}
-              onChangeText={setCity}
-              placeholder="e.g., Bangkok"
-              placeholderTextColor="#9AA0A6"
-              className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-[16px] text-[#11181C]"
-            />
-          </View>
-          <View className="flex-1">
-            <Text className="text-[16px] font-semibold text-[#11181C]">
-              Province
-            </Text>
-            <TextInput
-              value={province}
-              onChangeText={setProvince}
-              placeholder="e.g., Bangkok"
-              placeholderTextColor="#9AA0A6"
-              className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-[16px] text-[#11181C]"
-            />
-          </View>
-        </View>
-
-        {/* Postal code */}
-        <View className="mt-5">
-          <Text className="text-[16px] font-semibold text-[#11181C]">
-            Postal Code
-          </Text>
-          <TextInput
-            value={postalCode}
-            onChangeText={setPostalCode}
-            keyboardType="number-pad"
-            placeholder="e.g., 10140"
-            placeholderTextColor="#9AA0A6"
-            className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-[16px] text-[#11181C]"
-          />
-        </View>
-
-        {/* Save */}
-        <Pressable
-          onPress={onSave}
-          disabled={!canSave}
-          accessibilityLabel="save-address"
-          accessibilityState={{ disabled: !canSave }}
-          className={`mt-8 w-full rounded-2xl py-4 items-center justify-center ${
-            canSave ? "bg-[#26BD68]" : "bg-gray-300"
-          }`}
-        >
-          <Text className="text-white text-[16px] font-semibold">
-            {saving ? "Saving..." : "Save"}
-          </Text>
-        </Pressable>
-      </ScrollView>
+      <AddressForm
+        error={error}
+        line1={line1}
+        setLine1={setLine1}
+        line2={line2}
+        setLine2={setLine2}
+        city={city}
+        setCity={setCity}
+        province={province}
+        setProvince={setProvince}
+        postalCode={postalCode}
+        setPostalCode={setPostalCode}
+        lat={lat}
+        lng={lng}
+        setLat={setLat}
+        setLng={setLng}
+        canSave={canSave}
+        saving={saving}
+        onSave={onSave}
+        bottomPadding={insets.bottom}
+      />
     </ThemedView>
   );
 }
