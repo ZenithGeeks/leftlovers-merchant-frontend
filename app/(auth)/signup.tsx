@@ -199,15 +199,6 @@ export default function SignUpPage() {
         );
         return;
       }
-      console.log(
-        user.uid,
-        name,
-        emailLower,
-        localPhone,
-        null,
-        "MERCHANT",
-        isoDob
-      );
       try {
         await createMerchant({
           id: user.uid,

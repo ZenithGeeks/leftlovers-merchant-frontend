@@ -1,23 +1,26 @@
 // app/(auth)/storeInfo.tsx
 
-import * as DocumentPicker from "expo-document-picker";
-import React from "react";
-import { Alert, ScrollView, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-
 import { ClickButton } from "@/components/Authen/ClickButton";
 import { InputBox } from "@/components/Authen/InputBox";
 import LocationPicker from "@/components/Authen/LocationPicker.native";
 import FoodTypePicker, { FoodType } from "@/components/Authen/menuType";
 import UploadFile from "@/components/Authen/UploadFile";
 import UploadImagesGrid from "@/components/Authen/UploadImages";
+import * as DocumentPicker from "expo-document-picker";
+import {
+  type User as FirebaseUser,
+} from "firebase/auth";
+import React from "react";
+import { Alert, ScrollView, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { getCategories } from "@/app/api/getCategories";
 import { createMerchantInfo } from "@/app/api/merchant";
+import { ProcessingScreen } from "@/components/common/processingScreen";
+import { auth } from "@/lib/firebase";
 import { uploadFile } from "@/services/upload";
 import { CreateMerchantBody } from "@/types/types";
 import { useRouter } from "expo-router";
-
 // ------------------------------
 // Strict Types
 // ------------------------------
@@ -34,10 +37,16 @@ const DEV = __DEV__;
 
 export default function StoreInfo() {
   const router = useRouter();
-
-  // Hardcoded user until signup flow passes dynamic ID
-  const ownerUserId = "459a7781-3d61-4783-95b4-72d97fe6ce91";
-
+  const user = auth.currentUser as FirebaseUser | null;
+  let ownerUserId = ""
+  if(user){
+    if(user.uid){
+      ownerUserId = user.uid
+    }
+    else{
+      router.replace('/(auth)/signup')
+    }
+  }
   // ------------------------------
   // State
   // ------------------------------
@@ -248,7 +257,6 @@ export default function StoreInfo() {
           })),
         ],
       };
-      console.log("Payload:", payload);
       const res = await createMerchantInfo(payload);
 
       if (!res || !("merchant" in res)) {
@@ -398,6 +406,13 @@ export default function StoreInfo() {
             disabled={!canSave || saving}
           />
         </View>
+          <ProcessingScreen
+            visible={saving}
+            title="Setting up your store"
+            description="We’re uploading your documents and saving your merchant profile."
+            helperText="This may take a few moments, especially with large images. Please keep this screen open."
+            cancellable={false}
+          />
       </ScrollView>
     </SafeAreaView>
   );
