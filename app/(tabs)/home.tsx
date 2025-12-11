@@ -1,3 +1,9 @@
+import {
+  buildPopularMenuFromOrders,
+  extractReviewsFromOrders,
+  getPreparingCount,
+  getRevenueTotal,
+} from "@/components/Home/Dashboard/calculate";
 import PopularMenuItem from "@/components/Home/Dashboard/PopularMenuItem";
 import PopularMenuSection from "@/components/Home/Dashboard/PopularMenuSection";
 import FeedbackWrapper from "@/components/Home/Feedback/FeedbackWrapper";
@@ -5,19 +11,16 @@ import InformationCard from "@/components/Home/InformationCard";
 import ShopStatusDropdown from "@/components/Home/Status-Dropdown";
 import { ThemedView } from "@/components/themed-view";
 import { Colors, Fonts } from "@/constants/theme";
+import { useMerchant } from "@/context/MerchantContext";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
+import { auth } from "@/lib/firebase";
 import { fetchMerchant, updateOpenStatus } from "@/services/store";
-import type {
-  Merchant,
-  MerchantOrderLite,
-  OpenStatus,
-  Order,
-  OrderItem,
-  OrderMenuItem,
-} from "@/types/types";
+
+import type { Merchant, OpenStatus, Order } from "@/types/types";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import React, { useCallback, useMemo, useState } from "react";
+import { type User as FirebaseUser } from "firebase/auth";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -30,73 +33,16 @@ import { MapPinIcon } from "react-native-heroicons/outline";
 import { ChartBarIcon, HandRaisedIcon } from "react-native-heroicons/solid";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const MERCHANT_ID = process.env.EXPO_PUBLIC_MERCHANT_ID;
-
-export function getPreparingCount(orders: Order[]): number {
-  return orders.filter((o) => o.status === "PENDING").length;
-}
-
-export function getRevenueTotal(orders: Order[]): number {
-  return orders.reduce((sum, o) => {
-    if (o.paymentStatus !== "PAID") return sum;
-    return sum + Number(o.totalAmount ?? 0);
-  }, 0);
-}
-
-type PopularMenuRow = {
-  id: string;
-  imageUrl: string;
-  title: string;
-  price: number;
-  orders: number;
-  leftOverQty: number;
-};
-
-export function buildPopularMenuFromOrders(
-  orders: Order[],
-  limit = 3
-): PopularMenuRow[] {
-  const map = new Map<string, { menu: OrderMenuItem; totalQty: number }>();
-
-  for (const order of orders) {
-    const items = order.items ?? [];
-    for (const item of items as OrderItem[]) {
-      const menu = item.menu;
-      if (!menu) continue;
-
-      const prev = map.get(menu.id);
-      const qty = Number(item.quantity ?? 0);
-
-      if (prev) {
-        prev.totalQty += qty;
-      } else {
-        map.set(menu.id, { menu, totalQty: qty });
-      }
-    }
-  }
-
-  return Array.from(map.values())
-    .sort((a, b) => b.totalQty - a.totalQty)
-    .slice(0, limit)
-    .map(({ menu, totalQty }) => ({
-      id: menu.id,
-      imageUrl: menu.photoUrl ?? "",
-      title: menu.name ?? "Menu",
-      price: Number(menu.basePrice ?? 0),
-      orders: totalQty,
-      leftOverQty: menu.leftoverQty ?? 0,
-    }));
-}
-
-export function extractReviewsFromOrders(orders: MerchantOrderLite[]) {
-  return orders.map((o) => o.review).filter(Boolean);
-}
-
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { setMerchantId } = useMerchant();
+
   const { width } = useWindowDimensions();
   const { isLoaded: authLoaded, isSignedIn } = useFirebaseAuth();
+
+  const user = auth.currentUser as FirebaseUser | null;
+  const ownerUserId = user?.uid ?? null;
 
   const [merchant, setMerchant] = useState<Merchant | null>(null);
   const [status, setStatus] = useState<OpenStatus>("CLOSED");
@@ -109,17 +55,15 @@ export default function HomeScreen() {
   }, [width]);
 
   const loadMerchant = useCallback(async () => {
-    if (!MERCHANT_ID) {
+    if (!ownerUserId) {
       setMerchant(null);
-      setErrorMsg("Missing merchantId.");
       return;
     }
 
     setLoading(true);
     setErrorMsg(null);
-
     try {
-      const m = await fetchMerchant(MERCHANT_ID);
+      const m = await fetchMerchant(ownerUserId);
       setMerchant(m ?? null);
       setStatus(m?.openStatus ?? "CLOSED");
     } catch (err: any) {
@@ -128,7 +72,7 @@ export default function HomeScreen() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [ownerUserId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -136,20 +80,26 @@ export default function HomeScreen() {
     }, [loadMerchant])
   );
 
+  useEffect(() => {
+    if (authLoaded && !isSignedIn) {
+      router.replace("/(landing)");
+    }
+  }, [authLoaded, isSignedIn, router]);
+
+  useEffect(() => {
+    if (merchant?.id) {
+      setMerchantId(merchant.id);
+    }
+  }, [merchant?.id, setMerchantId]);
+
   const orders = useMemo<Order[]>(
     () => merchant?.orders ?? [],
     [merchant?.orders]
   );
 
-  const preparingCount = useMemo(
-    () => getPreparingCount(orders),
-    [orders]
-  );
+  const preparingCount = useMemo(() => getPreparingCount(orders), [orders]);
 
-  const revenueTotal = useMemo(
-    () => getRevenueTotal(orders),
-    [orders]
-  );
+  const revenueTotal = useMemo(() => getRevenueTotal(orders), [orders]);
 
   const popularMenu = useMemo(
     () => buildPopularMenuFromOrders(orders, 3),
@@ -163,13 +113,13 @@ export default function HomeScreen() {
 
   const handleUpdateStatus = useCallback(
     async (next: OpenStatus) => {
-      if (!MERCHANT_ID) return;
+      if (!merchant) return;
 
       setStatus(next);
       setMerchant((prev) => (prev ? { ...prev, openStatus: next } : prev));
 
       try {
-        const updated = await updateOpenStatus(MERCHANT_ID, next);
+        const updated = await updateOpenStatus(merchant.id, next);
 
         setStatus(updated.openStatus);
         setMerchant((prev) =>
@@ -179,20 +129,15 @@ export default function HomeScreen() {
         loadMerchant();
       }
     },
-    [loadMerchant]
+    [loadMerchant, merchant]
   );
 
-  if (!authLoaded) {
+  if (!authLoaded || !isSignedIn) {
     return (
       <View className="flex-1 items-center justify-center">
         <ActivityIndicator />
       </View>
     );
-  }
-
-  if (!isSignedIn) {
-    router.replace("/(landing)");
-    return null;
   }
 
   if (loading && !merchant) {
@@ -331,10 +276,7 @@ export default function HomeScreen() {
         </View>
 
         <View className="mb-10">
-          <FeedbackWrapper
-            reviews={reviewsFromOrders as any}
-            warnings={[]}
-          />
+          <FeedbackWrapper reviews={reviewsFromOrders as any} warnings={[]} />
         </View>
       </ScrollView>
     </ThemedView>

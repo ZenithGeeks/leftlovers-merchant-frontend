@@ -1,7 +1,7 @@
+import { ThemedView } from '@/components/themed-view';
 import React, { useMemo, useState } from 'react';
 import { Dimensions, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ThemedView } from '@/components/themed-view';
 
 import {
   AddEmployeeModal,
@@ -13,8 +13,9 @@ import {
   type Employee,
   type Role,
 } from '@/components/employees';
-
+import { useMerchant } from '@/context/MerchantContext';
 import { useEmployees } from '@/hooks/useEmployees';
+import { router } from 'expo-router';
 
 export default function EmployeesScreen() {
   const insets = useSafeAreaInsets();
@@ -24,8 +25,12 @@ export default function EmployeesScreen() {
     const pct = screenWidth * 0.05; 
     return Math.max(16, Math.min(pct, 28));
   }, [screenWidth]);
+  const { merchantId } = useMerchant();
 
-  const { employees, owner, addEmployee, removeEmployee } = useEmployees();
+  if(!merchantId) {
+    router.replace('/(auth)/signin')
+  }
+  const { employees, owner, addEmployee, removeEmployee } = useEmployees(merchantId!);
 
   const [selected, setSelected] = useState<Employee | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);

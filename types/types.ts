@@ -331,3 +331,12 @@ export interface CreateMerchantBody  {
     label?: string | null;
   }[];
 };
+
+export type PopularMenuRow = {
+  id: string;
+  imageUrl: string;
+  title: string;
+  price: number;
+  orders: number;
+  leftOverQty: number;
+};

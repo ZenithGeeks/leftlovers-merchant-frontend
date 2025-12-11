@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Dimensions,
   FlatList,
   Text,
   View,
+  useWindowDimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -12,10 +12,10 @@ import ContentSwitcher from "@/components/Menu/Content-Switcher";
 import OrderListRow from "@/components/Order/OrderListRow";
 import { ThemedView } from "@/components/themed-view";
 import { SPACING } from "@/constants/theme";
+import { useMerchant } from "@/context/MerchantContext";
 import { fetchMerchantOrders } from "@/services/order";
 import type { Order, OrderStatus } from "@/types/types";
 
-// ✅ UI Tab type (NOT the same as API enum)
 type OrderTab = "PENDING" | "READY" | "HISTORY";
 
 const tabForStatus = (status: OrderStatus): OrderTab => {
@@ -32,27 +32,47 @@ const tabForStatus = (status: OrderStatus): OrderTab => {
   }
 };
 
+const filterOrdersByTab = (orders: Order[], tab: OrderTab): Order[] =>
+  orders.filter((o) => tabForStatus(o.status) === tab);
+
+const isNoOrdersError = (err: unknown): boolean => {
+  const anyErr = err as any;
+  const status = anyErr?.status ?? anyErr?.response?.status;
+  const msg = String(anyErr?.message ?? "").toLowerCase();
+  if (status === 404) return true;
+  if (msg.includes("404")) return true;
+  if (msg.includes("not found")) return true;
+  return false;
+};
+
 export default function OrderPage() {
   const insets = useSafeAreaInsets();
-  const merchantId = process.env.EXPO_PUBLIC_MERCHANT_ID;
+  const { width } = useWindowDimensions();
+  const { merchantId } = useMerchant();
 
-  const [orderListFilter, setOrderListFilter] = useState<OrderTab>("PENDING");
-
-  const screenWidth = Dimensions.get("window").width;
-  const horizontalPadding = useMemo(() => {
-    const pct = screenWidth * 0.05;
-    return Math.max(14, Math.min(pct, 10));
-  }, [screenWidth]);
-
+  const [orderListFilter, setOrderListFilter] =
+    useState<OrderTab>("PENDING");
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const horizontalPadding = useMemo(() => {
+    const pct = width * 0.05;
+    return Math.max(14, Math.min(pct, 24));
+  }, [width]);
+
+  const visibleOrders = useMemo(
+    () => filterOrdersByTab(orders, orderListFilter),
+    [orders, orderListFilter]
+  );
+
   const loadOrders = useCallback(async () => {
     if (!merchantId) {
       setOrders([]);
+      setErrorMsg(null);
       return;
     }
+
     setLoading(true);
     setErrorMsg(null);
 
@@ -60,37 +80,35 @@ export default function OrderPage() {
       const data = await fetchMerchantOrders(merchantId);
       setOrders(data ?? []);
     } catch (err: any) {
-      setErrorMsg(err?.message ?? "Failed to load orders.");
-      setOrders([]);
+      if (isNoOrdersError(err)) {
+        setOrders([]);
+        setErrorMsg(null);
+      } else {
+        setOrders([]);
+        setErrorMsg(err?.message ?? "Failed to load orders.");
+      }
     } finally {
       setLoading(false);
     }
   }, [merchantId]);
 
   useEffect(() => {
-    let alive = true;
-    const run = async () => {
-      if (!alive) return;
-      await loadOrders();
-    };
-
-    run();
-
-    return () => {
-      alive = false;
-    };
+    loadOrders();
   }, [loadOrders]);
 
-  // ✅ When child updates an order status, patch local list
   const handleOrderUpdated = useCallback((next: Order) => {
     setOrders((prev) =>
       prev.map((o) => (o.id === next.id ? { ...o, ...next } : o))
     );
   }, []);
-  const onTabChange = (k: OrderTab) => {
-    loadOrders();
-    setOrderListFilter(k);
+
+  const handleTabChange = (tab: OrderTab) => {
+    setOrderListFilter(tab);
   };
+
+  const showEmptyState =
+    !loading && !errorMsg && visibleOrders.length === 0;
+
   return (
     <ThemedView
       className="flex-1"
@@ -100,7 +118,9 @@ export default function OrderPage() {
       }}
     >
       <View className="mb-6 gap-3">
-        <Text className="text-[36px] font-extrabold text-[#0B1220]">Order</Text>
+        <Text className="text-[36px] font-extrabold text-[#0B1220]">
+          Order
+        </Text>
 
         <ContentSwitcher
           tabs={[
@@ -109,21 +129,23 @@ export default function OrderPage() {
             { key: "HISTORY", label: "History" },
           ]}
           value={orderListFilter}
-          onChange={(k) => onTabChange(k as OrderTab)}
+          onChange={(k) => handleTabChange(k as OrderTab)}
         />
       </View>
 
       {loading && (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator />
-          <Text className="mt-3 text-xs text-gray-500">Loading orders...</Text>
+          <Text className="mt-3 text-xs text-gray-500">
+            Loading orders...
+          </Text>
         </View>
       )}
 
-      {!loading && !!errorMsg && (
+      {!loading && errorMsg && (
         <View className="flex-1 items-center justify-center px-6">
           <Text className="text-sm font-semibold text-gray-900">
-            Couldn&apos;t load orders
+            Something went wrong
           </Text>
           <Text className="mt-1 text-xs text-gray-500 text-center">
             {errorMsg}
@@ -132,35 +154,29 @@ export default function OrderPage() {
       )}
 
       {!loading && !errorMsg && (
-        <FlatList
-          data={orders}
-          extraData={orderListFilter} // ✅ ensures UI refresh on tab switch
-          keyExtractor={(o) => o.id}
-          contentContainerStyle={{
-            paddingBottom: insets.bottom + SPACING.xl,
-          }}
-          renderItem={({ item }) => {
-            if (tabForStatus(item.status) !== orderListFilter) return null;
-
-            return (
-              <View
-                className="w-full mb-4"
-                style={{ paddingHorizontal: horizontalPadding }}
-              >
-                {/* ✅ pass callback so row can update parent */}
-                <OrderListRow item={item} onUpdated={handleOrderUpdated} />
-              </View>
-            );
-          }}
-          ListEmptyComponent={
-            <View className="items-center justify-center mt-10">
+        <>
+          {showEmptyState ? (
+            <View className="flex-1 items-center justify-center">
               <Text className="text-sm text-gray-500">
                 No orders in this tab yet.
               </Text>
             </View>
-          }
-          showsVerticalScrollIndicator={false}
-        />
+          ) : (
+            <FlatList
+              data={visibleOrders}
+              keyExtractor={(o) => o.id}
+              contentContainerStyle={{
+                paddingBottom: insets.bottom + SPACING.xl,
+              }}
+              renderItem={({ item }) => (
+                <View className="w-full mb-4">
+                  <OrderListRow item={item} onUpdated={handleOrderUpdated} merchantId={merchantId!} />
+                </View>
+              )}
+              showsVerticalScrollIndicator={false}
+            />
+          )}
+        </>
       )}
     </ThemedView>
   );

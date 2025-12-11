@@ -10,6 +10,7 @@ import type { Order, OrderStatus } from "@/types/types";
 type OrderListRowProps = {
   item: Order;
   onUpdated?: (next: Order) => void;
+  merchantId: string;
 };
 
 const statusLabel = (s: OrderStatus) => {
@@ -82,11 +83,9 @@ function getTimeLeft(deadline?: string | null) {
   return `${rem}m left`;
 }
 
-export default function OrderListRow({ item, onUpdated }: OrderListRowProps) {
+export default function OrderListRow({ item, onUpdated , merchantId}: OrderListRowProps) {
   const [expanded, setExpanded] = useState(false);
   const [busy, setBusy] = useState(false);
-
-  const merchantId = process.env.EXPO_PUBLIC_MERCHANT_ID ?? "";
 
   const shortId = useMemo(() => item.id?.slice(0, 6)?.toUpperCase() ?? "ORDER", [item.id]);
   const timeLeft = useMemo(() => getTimeLeft(item.pickupDeadline), [item.pickupDeadline]);
@@ -109,7 +108,6 @@ export default function OrderListRow({ item, onUpdated }: OrderListRowProps) {
   const handleUpdateStatus = useCallback(async () => {
     if (!primaryAction) return;
     if (!merchantId) {
-      Alert.alert("Missing merchantId", "Please set EXPO_PUBLIC_MERCHANT_ID.");
       return;
     }
 
