@@ -71,7 +71,6 @@ export default async function createMerchant(
   body: CreateUserBody,
   opts?: { token?: string }
 ) {
-  console.log(body)
   return apiFetch<ApiOk<any>>(PATHS.user, {
     method: "POST",
     body: JSON.stringify(body),
