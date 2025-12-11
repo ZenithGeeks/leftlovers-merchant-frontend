@@ -1,16 +1,8 @@
-import { apiFetch } from "./users"; // re-use the exported apiFetch
-// types
-export type CreateMerchantBody = {
-  ownerUserId: string;
-  displayName: string;
-  branchName?: string | null;
-  description?: string | null;
-  categoryId: string;
-  addressId: string;
-  openHours?: any;
-  listImageUrl?: string | null;
-  StoreImageUrl?: string | null;
-};
+import { postJSON } from "@/lib/api";
+import { CreateMerchantBody } from "@/types/types";
+import { apiFetch } from "./users"; // re-use the exported apiFetch 
+
+
 
 const PATHS = {
   createMerchantInfo: "/api/merchant/setup",
@@ -18,12 +10,13 @@ const PATHS = {
   updateMerchant: (id: string) => `/api/merchant/user/${id}`,
 };
 
-export default async function createMerchantInfo(body: CreateMerchantBody, opts?: { token?: string }) {
-  return apiFetch<{ message?: string; merchant?: any }>(PATHS.createMerchantInfo, {
-    method: "POST",
-    body: JSON.stringify(body),
-    token: opts?.token,
-  });
+export async function createMerchantInfo(
+  payload: CreateMerchantBody
+) {
+  return postJSON<{ message?: string; merchant?: any }>(
+    "/api/merchant/setup",
+    payload
+  );
 }
 
 export async function getMerchant(merchantId: string, opts?: { token?: string }) {

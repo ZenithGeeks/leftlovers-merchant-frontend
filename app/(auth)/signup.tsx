@@ -45,8 +45,8 @@ const isValidEmail = (v: string) =>
 export default function SignUpPage() {
   const router = useRouter();
 
-  const [email, setEmail] = useState(DEV ? "test@example.com" : "");
-  const [password, setPassword] = useState(DEV ? "12345678" : "");
+  const [email, setEmail] = useState(DEV ? "tester01@gmail.com" : "");
+  const [password, setPassword] = useState(DEV ? "Test000000!" : "");
   const [passwordValid, setPasswordValid] = useState(false);
   const [loading, setLoading] = useState(false);
 

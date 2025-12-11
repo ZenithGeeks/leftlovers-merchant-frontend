@@ -1,5 +1,5 @@
 const PATHS = {
-  upload: "/api/uploads",
+  upload: "/api/minio/upload",
 };
 
 export type UploadResult = {
@@ -13,7 +13,7 @@ export default async function uploadFile(formData: FormData, opts?: { token?: st
     process.env.EXPO_PUBLIC_API_BASE ??
     (global as any).__API_BASE__ ??
     "https://backend-leftlovers-production.up.railway.app";
-
+  console.log("Uploading to", `${BASE}${PATHS.upload}`);
   const headers: Record<string, string> = {};
   if (opts?.token) headers.Authorization = `Bearer ${opts.token}`;
 
