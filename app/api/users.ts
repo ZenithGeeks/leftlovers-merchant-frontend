@@ -7,6 +7,7 @@ export type Role = "CUSTOMER" | "MERCHANT" | "ADMIN" | "STAFF";
 export type UserStatus = "ACTIVE" | "SUSPENDED" | "DELETED";
 
 export type CreateUserBody = {
+  id: string;
   email: string;
   role: Role;
   name?: string;
@@ -63,13 +64,14 @@ async function apiFetch<T>(path: string, init: FetchOpts = {}): Promise<T> {
 
 
 const PATHS = {
-  user: "/api/merchant/user",
+  user: "/api/customer",
 };
 
 export default async function createMerchant(
   body: CreateUserBody,
   opts?: { token?: string }
 ) {
+  console.log(body)
   return apiFetch<ApiOk<any>>(PATHS.user, {
     method: "POST",
     body: JSON.stringify(body),

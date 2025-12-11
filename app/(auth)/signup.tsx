@@ -27,6 +27,9 @@ import {
   type User as FirebaseUser,
 } from "firebase/auth";
 
+import { AuthHeader } from "@/components/Authen/AuthHeader";
+import { AuthScreenWrapper } from "@/components/Authen/AuthScreenWrapper";
+import { DobPickerHybrid } from "@/components/Authen/DateInput";
 import { type OnboardingStep } from "@/src/lib/onboarding";
 
 const BRAND = { green: "#26BD68", text: "#0B0F10" };
@@ -42,20 +45,29 @@ async function saveOnboardingStep(uid: string, step: OnboardingStep) {
 const isValidEmail = (v: string) =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim().toLowerCase());
 
+const parseDobToISO = (d: string): string | null => {
+  const m = d.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/);
+  if (!m) return null;
+  const [, dd, mm, yyyy] = m;
+  const iso = `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}T00:00:00.000Z`;
+  return iso;
+};
+
 export default function SignUpPage() {
   const router = useRouter();
 
-  const [email, setEmail] = useState(DEV ? "test@example.com" : "");
-  const [password, setPassword] = useState(DEV ? "12345678" : "");
+  const [email, setEmail] = useState(DEV ? "wttwkitipatthavorn@gmail.com" : "");
+  const [password, setPassword] = useState(DEV ? "_Earth29872987" : "");
   const [passwordValid, setPasswordValid] = useState(false);
   const [loading, setLoading] = useState(false);
-
+  const [name, setName] = useState("Vitawat");
+  const [dob, setDob] = useState("");
   // Email verification UI state
   const [pendingVerification, setPendingVerification] = useState(false);
 
   // Resend control
   const [resendCooldown, setResendCooldown] = useState(0);
-  const [localPhone, setLocalPhone] = useState("");
+  const [localPhone, setLocalPhone] = useState("0863981093");
 
   const mountedRef = useRef(true);
 
@@ -94,7 +106,11 @@ export default function SignUpPage() {
 
     setLoading(true);
     try {
-      const cred = await createUserWithEmailAndPassword(auth, normEmail, password);
+      const cred = await createUserWithEmailAndPassword(
+        auth,
+        normEmail,
+        password
+      );
 
       // Send Firebase verification email
       await sendEmailVerification(cred.user);
@@ -176,17 +192,37 @@ export default function SignUpPage() {
         return;
       }
 
-      const emailLower = user.email?.toLowerCase() ?? email.trim().toLowerCase();
+      const emailLower =
+        user.email?.toLowerCase() ?? email.trim().toLowerCase();
       const name = emailLower.split("@")[0] || "Merchant";
+      const isoDob = parseDobToISO(dob);
 
-      // Create merchant row in backend (same signature you used before)
+      if (!name || !isoDob) {
+        Alert.alert(
+          "Missing information",
+          "Please fill name and date of birth."
+        );
+        return;
+      }
+      console.log(
+        user.uid,
+        name,
+        emailLower,
+        localPhone,
+        null,
+        "MERCHANT",
+        isoDob
+      );
       try {
         await createMerchant({
-          name,
+          id: user.uid,
+          name: name || undefined,
           email: emailLower,
           phone: localPhone || undefined,
-          avatarUrl: null,
+          dob: isoDob || undefined,
+          avatarUrl: "",
           role: "MERCHANT",
+          status: "ACTIVE",
         });
       } catch (e: any) {
         Alert.alert(
@@ -207,72 +243,101 @@ export default function SignUpPage() {
 
   /* ================================ Renders ================================ */
 
-  if (pendingVerification) {
-    const displayEmail = email.trim().toLowerCase();
-
+ if (pendingVerification) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: "#FFF", padding: 28 }}>
-        <Stack.Screen options={{ headerShown: false }} />
-
-        <Text
-          style={{
-            fontSize: 24,
-            fontFamily: "Poppins_700Bold",
-            textAlign: "center",
-          }}
-        >
-          Verify your email
-        </Text>
-
-        <Text
-          style={{
-            marginTop: 8,
-            fontSize: 12,
-            textAlign: "center",
-            color: "#6B7280",
-            fontFamily: "Poppins_400Regular",
-          }}
-        >
-          We sent a verification email to {displayEmail}
-        </Text>
-
-        <ClickButton
-          label={loading ? "Checking..." : "I’ve verified my email"}
-          onPress={handleIVerified}
-          loading={loading}
-          style={{ marginTop: 30 }}
+      <AuthScreenWrapper>
+        <AuthHeader
+          title="Verify your email"
+          subtitle="We sent a verification link to your inbox."
         />
 
-        <View style={{ marginTop: 20, alignItems: "center" }}>
-          <Text style={{ fontFamily: "Poppins_400Regular" }}>
-            Didn’t receive email?
+        <View style={{ marginTop: 12, alignItems: "center" }}>
+          <Text
+            style={{
+              fontSize: 14,
+              fontFamily: "Poppins_600SemiBold",
+              textAlign: "center",
+            }}
+          >
+            {email}
           </Text>
-          <TouchableOpacity onPress={handleResend} disabled={resendCooldown > 0}>
+
+          <Text
+            style={{
+              marginTop: 8,
+              fontSize: 12,
+              textAlign: "center",
+              color: "#6B7280",
+              fontFamily: "Poppins_400Regular",
+            }}
+          >
+            Check your inbox (and spam) and tap the link to verify your
+            account.
+          </Text>
+        </View>
+
+        <View style={{ marginTop: "auto" }}>
+          <ClickButton
+            label={loading ? "Checking..." : "I’ve verified my email"}
+            onPress={handleIVerified}
+            loading={loading}
+            style={{ width: "100%" }}
+          />
+
+          <View style={{ marginTop: 20, alignItems: "center" }}>
             <Text
               style={{
-                textDecorationLine: "underline",
-                color: resendCooldown > 0 ? "#9CA3AF" : "#26BD68",
-                marginTop: 8,
+                fontFamily: "Poppins_400Regular",
+                fontSize: 12,
+                color: "#4B5563",
+              }}
+            >
+              Didn’t receive an email?
+            </Text>
+
+            <TouchableOpacity
+              onPress={handleResend}
+              disabled={resendCooldown > 0 || loading}
+            >
+              <Text
+                style={{
+                  textDecorationLine: "underline",
+                  color: resendCooldown > 0 ? "#9CA3AF" : BRAND.green,
+                  marginTop: 8,
+                  fontFamily: "Poppins_500Medium",
+                  fontSize: 13,
+                }}
+              >
+                {resendCooldown > 0
+                  ? `Resend in ${resendCooldown}s`
+                  : "Resend email"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity
+            onPress={() => setPendingVerification(false)}
+            style={{ marginTop: 18, alignItems: "center" }}
+            disabled={loading}
+          >
+            <Text
+              style={{
+                color: "#6B7280",
+                fontSize: 12,
                 fontFamily: "Poppins_400Regular",
               }}
             >
-              {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend email"}
+              Back to sign up
             </Text>
           </TouchableOpacity>
         </View>
-
-        <TouchableOpacity
-          onPress={() => setPendingVerification(false)}
-          style={{ marginTop: 24, alignItems: "center" }}
-        >
-          <Text style={{ color: "#6B7280" }}>Back</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
+      </AuthScreenWrapper>
     );
   }
 
   // ---------------- Sign-up form UI ----------------
   return (
+    
     <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
       <Stack.Screen options={{ headerShown: false }} />
 
@@ -309,6 +374,13 @@ export default function SignUpPage() {
             keyboardType="email-address"
             autoCapitalize="none"
           />
+          <InputBox
+            label="Full Name"
+            placeholder="Enter your full name"
+            value={name}
+            onChangeText={setName}
+          />
+          <DobPickerHybrid dob={dob} setDob={setDob} minAge={15} />
 
           <Text
             style={{
