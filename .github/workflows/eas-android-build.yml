@@ -1,34 +1,28 @@
-name: EAS Android Build
-
 on:
-  workflow_dispatch:
   push:
     branches:
-      - main
-
+      - master
 jobs:
-  android-build:
+  build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: 🏗 Setup repo
+        uses: actions/checkout@v3
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: 🏗 Setup Node
+        uses: actions/setup-node@v3
         with:
-          node-version: 20
-          cache: npm
+          node-version: 18.x
+          cache: yarn
 
-      - name: Install dependencies
-        run: npm ci
+      - name: 🏗 Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: Install EAS CLI
-        run: npm install -g eas-cli
+      - name: 📦 Install dependencies
+        run: yarn install
 
-      - name: Run EAS Android build
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: |
-          eas --version
-          eas build --platform android --profile android-preview --non-interactive
+      - name: 🚀 Build app
+        run: eas build --non-interactive
