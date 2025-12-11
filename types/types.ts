@@ -304,3 +304,31 @@ export interface Merchant {
   orders?: MerchantOrderLite[] | null;
 }
 
+export interface CreateMerchantBody  {
+  ownerUserId: string;              // required by backend
+  displayName: string;         // required
+  branchName?: string | null;
+  description?: string | null;
+  categoryId: string;          // required
+
+  address: {
+    label?: string | null;
+    line1: string;
+    line2?: string | null;
+    city?: string | null;
+    province?: string | null;
+    postalCode?: string | null;
+    lat?: number | null;
+    lng?: number | null;
+  };
+  openHours?: any;
+
+  listImageUrl?: string | null;
+  storeImageUrl?: string | null;
+
+  files?: {
+    kind: "COMMERCIAL_REG" | "OWNER_ID" | "STORE_IMAGE" | "OTHER";
+    url: string;
+    label?: string | null;
+  }[];
+};
