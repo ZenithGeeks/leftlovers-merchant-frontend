@@ -1,140 +1,65 @@
-import { Tabs } from "expo-router";
-import React from "react";
+import { useMerchant } from "@/context/MerchantContext";
+import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
+import { Stack, useRouter, useSegments } from "expo-router";
+import * as React from "react";
 
-import { HapticTab } from "@/components/haptic-tab";
-import { Colors } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+const PUBLIC_ROUTES = new Set(["signin", "signup", "forgotPassword"]);
 
-import {
-  BanknotesIcon as BankOutline,
-  DocumentIcon as DocumentOutline,
-  HandRaisedIcon as HandOutline,
-  HomeIcon as HomeOutline,
-  UserGroupIcon as UserOutline,
-} from "react-native-heroicons/outline";
+function getSubRoute(segments: string[]) {
+  return segments.length >= 2 ? segments[1] : undefined;
+}
 
-import {
-  BanknotesIcon as BankSolid,
-  DocumentIcon as DocumentSolid,
-  HandRaisedIcon as HandSolid,
-  HomeIcon as HomeSolid,
-  UserGroupIcon as UserSolid,
-} from "react-native-heroicons/solid";
+export default function AuthLayout() {
+  const router = useRouter();
+  const segments = useSegments();
+  const sub = getSubRoute(segments as string[]);
+  const { isLoaded, isSignedIn, user } = useFirebaseAuth();
+  const { merchantId, merchantStatus } = useMerchant();
 
-import { MerchantProvider } from "@/context/MerchantContext";
+  React.useEffect(() => {
+    if (!isLoaded) return;
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
-  const insets = useSafeAreaInsets();
+    /* NOT SIGNED IN */
+    if (!isSignedIn) {
+      if (!sub || !PUBLIC_ROUTES.has(sub)) {
+        router.replace("/(auth)/signin");
+      }
+      return;
+    }
+
+    /* EMAIL NOT VERIFIED */
+    if (!user?.emailVerified) {
+      if (sub !== "signup") {
+        router.replace("/(auth)/signup");
+      }
+      return;
+    }
+
+    /* NO MERCHANT */
+    if (!merchantId) {
+      router.replace("/(auth)/storeInfo");
+      return;
+    }
+
+    /* MERCHANT PENDING */
+    if (merchantStatus === "PENDING") {
+      router.replace("/(auth)/notifyPage");
+      return;
+    }
+
+    /* MERCHANT APPROVED */
+    router.replace("/(tabs)/home");
+  }, [
+    isLoaded,
+    isSignedIn,
+    user,
+    sub,
+    merchantId,
+    merchantStatus,
+    router,
+  ]);
 
   return (
-
-      <Tabs
-        screenOptions={{
-          headerShown: false,
-          tabBarButton: HapticTab,
-          tabBarActiveTintColor:
-            Colors[colorScheme ?? "light"].tabIconSelected,
-          tabBarInactiveTintColor:
-            Colors[colorScheme ?? "light"].tabIconDefault,
-          tabBarStyle: {
-            backgroundColor: Colors[colorScheme ?? "light"].background,
-            borderTopColor: Colors[colorScheme ?? "light"].border,
-            height: 75,
-            paddingTop: 3,
-            paddingBottom: Math.max(3, insets.bottom),
-            paddingHorizontal: 6,
-            paddingVertical: 4,
-          },
-
-          tabBarIconStyle: { marginBottom: -2 },
-          tabBarLabelStyle: {
-            fontSize: 10,
-            fontFamily: "Poppins_500Medium",
-            fontWeight: "800",
-          },
-          tabBarItemStyle: {
-            paddingVertical: 0,
-            paddingHorizontal: 0,
-          },
-        }}
-      >
-        <Tabs.Screen
-          name="home"
-          options={{
-            title: "Home",
-            tabBarIcon: ({ color, focused }) =>
-              focused ? (
-                <HomeSolid
-                  size={25}
-                  color={Colors[colorScheme ?? "light"].accent}
-                />
-              ) : (
-                <HomeOutline size={25} color={color} />
-              ),
-          }}
-        />
-        <Tabs.Screen
-          name="order"
-          options={{
-            title: "Order",
-            tabBarIcon: ({ color, focused }) =>
-              focused ? (
-                <HandSolid
-                  size={25}
-                  color={Colors[colorScheme ?? "light"].accent}
-                />
-              ) : (
-                <HandOutline size={25} color={color} />
-              ),
-          }}
-        />
-        <Tabs.Screen
-          name="menu"
-          options={{
-            title: "Menu",
-            tabBarIcon: ({ color, focused }) =>
-              focused ? (
-                <DocumentSolid
-                  size={25}
-                  color={Colors[colorScheme ?? "light"].accent}
-                />
-              ) : (
-                <DocumentOutline size={25} color={color} />
-              ),
-          }}
-        />
-        <Tabs.Screen
-          name="finance"
-          options={{
-            title: "Finance",
-            tabBarIcon: ({ color, focused }) =>
-              focused ? (
-                <BankSolid
-                  size={25}
-                  color={Colors[colorScheme ?? "light"].accent}
-                />
-              ) : (
-                <BankOutline size={25} color={color} />
-              ),
-          }}
-        />
-        <Tabs.Screen
-          name="employees"
-          options={{
-            title: "Employees",
-            tabBarIcon: ({ color, focused }) =>
-              focused ? (
-                <UserSolid
-                  size={25}
-                  color={Colors[colorScheme ?? "light"].accent}
-                />
-              ) : (
-                <UserOutline size={25} color={color} />
-              ),
-          }}
-        />
-      </Tabs>
+    <Stack screenOptions={{ headerShown: false }} />
   );
 }

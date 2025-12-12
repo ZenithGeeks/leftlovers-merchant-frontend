@@ -1,4 +1,3 @@
-// app/(tabs)/home.tsx  
 import {
   buildPopularMenuFromOrders,
   extractReviewsFromOrders,
@@ -37,15 +36,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { setMerchantId } = useMerchant();
-
+  const { setMerchant } = useMerchant();
   const { width } = useWindowDimensions();
-  const { isLoaded: authLoaded, isSignedIn } = useFirebaseAuth();
+  const { isLoaded, isSignedIn } = useFirebaseAuth();
 
   const user = auth.currentUser as FirebaseUser | null;
   const ownerUserId = user?.uid ?? null;
 
-  const [merchant, setMerchant] = useState<Merchant | null>(null);
+  const [merchant, setMerchantState] = useState<Merchant | null>(null);
   const [status, setStatus] = useState<OpenStatus>("CLOSED");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -56,19 +54,16 @@ export default function HomeScreen() {
   }, [width]);
 
   const loadMerchant = useCallback(async () => {
-    if (!ownerUserId) {
-      setMerchant(null);
-      return;
-    }
+    if (!ownerUserId) return;
 
     setLoading(true);
     setErrorMsg(null);
     try {
       const m = await fetchMerchant(ownerUserId);
-      setMerchant(m ?? null);
+      setMerchantState(m ?? null);
       setStatus(m?.openStatus ?? "CLOSED");
     } catch (err: any) {
-      setMerchant(null);
+      setMerchantState(null);
       setErrorMsg(err?.message ?? "Failed to load merchant.");
     } finally {
       setLoading(false);
@@ -82,31 +77,28 @@ export default function HomeScreen() {
   );
 
   useEffect(() => {
-    if (authLoaded && !isSignedIn) {
+    if (!isLoaded) return;
+    if (!isSignedIn) {
       router.replace("/(landing)");
     }
-  }, [authLoaded, isSignedIn, router]);
+  }, [isLoaded, isSignedIn, router]);
 
   useEffect(() => {
-    if (merchant?.id) {
-      setMerchantId(merchant.id);
+    if (!merchant) return;
+    setMerchant(merchant.id, merchant.status);
+
+    if (merchant.status === "PENDING") {
+      router.replace("/(auth)/notifyPage");
     }
-  }, [merchant?.id, setMerchantId]);
+  }, [merchant, setMerchant, router]);
 
-  const orders = useMemo<Order[]>(
-    () => merchant?.orders ?? [],
-    [merchant?.orders]
-  );
-
+  const orders = useMemo<Order[]>(() => merchant?.orders ?? [], [merchant]);
   const preparingCount = useMemo(() => getPreparingCount(orders), [orders]);
-
   const revenueTotal = useMemo(() => getRevenueTotal(orders), [orders]);
-
   const popularMenu = useMemo(
     () => buildPopularMenuFromOrders(orders, 3),
     [orders]
   );
-
   const reviewsFromOrders = useMemo(
     () => extractReviewsFromOrders(orders),
     [orders]
@@ -117,23 +109,24 @@ export default function HomeScreen() {
       if (!merchant) return;
 
       setStatus(next);
-      setMerchant((prev) => (prev ? { ...prev, openStatus: next } : prev));
+      setMerchantState((prev) =>
+        prev ? { ...prev, openStatus: next } : prev
+      );
 
       try {
         const updated = await updateOpenStatus(merchant.id, next);
-
         setStatus(updated.openStatus);
-        setMerchant((prev) =>
+        setMerchantState((prev) =>
           prev ? { ...prev, openStatus: updated.openStatus } : prev
         );
       } catch {
         loadMerchant();
       }
     },
-    [loadMerchant, merchant]
+    [merchant, loadMerchant]
   );
 
-  if (!authLoaded || !isSignedIn) {
+  if (!isLoaded || !isSignedIn) {
     return (
       <View className="flex-1 items-center justify-center">
         <ActivityIndicator />
@@ -145,7 +138,7 @@ export default function HomeScreen() {
     return (
       <View className="flex-1 items-center justify-center">
         <ActivityIndicator />
-        <Text className="mt-2 text-xs text-gray-500">Loading store...</Text>
+        <Text className="mt-2 text-xs text-gray-500">Loading store…</Text>
       </View>
     );
   }
@@ -159,7 +152,6 @@ export default function HomeScreen() {
         <Text className="mt-1 text-xs text-gray-500 text-center">
           {errorMsg ?? "Please try again."}
         </Text>
-
         <Pressable
           onPress={loadMerchant}
           className="mt-4 px-4 py-2 rounded-xl border border-gray-300 bg-white"
@@ -170,16 +162,26 @@ export default function HomeScreen() {
     );
   }
 
+  if (merchant.status === "PENDING") {
+    return (
+      <View className="flex-1 items-center justify-center">
+        <ActivityIndicator />
+        <Text className="mt-2 text-gray-500">
+          Waiting for store approval…
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <ThemedView
       className="flex-1"
       style={{
         paddingTop: insets.top + 16,
         paddingHorizontal: 16,
-        backgroundColor: "#26BD68", // ✅ primary green
+        backgroundColor: "#26BD68",
       }}
     >
-      {/* Floating white card */}
       <View
         style={{
           backgroundColor: "#FFFFFF",
@@ -194,7 +196,6 @@ export default function HomeScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
         >
-          {/* HEADER */}
           <View className="mb-6">
             <View className="flex-row items-center gap-2 pb-2">
               <MapPinIcon size={22} color="#11181C" />
@@ -214,12 +215,8 @@ export default function HomeScreen() {
               >
                 Hello, {merchant.owner?.name ?? "Owner"}
               </Text>
-
               {!!merchant.owner?.role && (
-                <View
-                  className="rounded-full px-3 py-1"
-                  style={{ backgroundColor: "#FECD4C" }} // ✅ yellow badge
-                >
+                <View className="rounded-full px-3 py-1 bg-[#FECD4C]">
                   <Text
                     className="text-xs text-[#11181C]"
                     style={{ fontFamily: Fonts.bold }}
@@ -239,16 +236,13 @@ export default function HomeScreen() {
               </View>
 
               <Pressable
-                onPress={() => router.push({
+                onPress={() =>
+                  router.push({
                     pathname: "/edit-store",
-                    params: { merchantId: merchant.id }
-                  })}
-                className="min-h-[40px] rounded-2xl px-4 py-2 justify-center items-center"
-                style={{
-                  backgroundColor: "#FFFFFF",
-                  borderWidth: 1,
-                  borderColor: "#E5E7EB",
-                }}
+                    params: { merchantId: merchant.id },
+                  })
+                }
+                className="min-h-[40px] rounded-2xl px-4 py-2 justify-center items-center border border-gray-200 bg-white"
               >
                 <Text
                   className="text-[16px] text-[#11181C]"
@@ -272,8 +266,6 @@ export default function HomeScreen() {
                       preparingCount > 1 ? "s" : ""
                     } in progress`
               }
-              backgroundColor="#FFFFFF"
-              textColor="#11181C"
               iconBackground="#ECFDF5"
               iconColor="#26BD68"
               onPress={() => router.push("/order")}
@@ -284,11 +276,9 @@ export default function HomeScreen() {
               count={`฿${revenueTotal}`}
               label="Today's revenue"
               footer={revenueTotal === 0 ? "No sales yet" : "Great work today"}
-              textColor="#11181C"
               iconBackground="#FECD4C"
               iconColor="#26BD68"
-              
-              onPress={() => router.push("/finance")} // ✅ makes it feel like a finance app
+              onPress={() => router.push("/finance")}
             />
           </View>
 
@@ -299,34 +289,24 @@ export default function HomeScreen() {
                   {[1, 2, 3].map((i) => (
                     <View
                       key={i}
-                      className="h-16 rounded-xl"
-                      style={{ backgroundColor: "#ECFDF5" }}
+                      className="h-16 rounded-xl bg-[#ECFDF5]"
                     />
                   ))}
                 </View>
-              ) : /* 2️⃣ EMPTY (loaded but no data) */
-              popularMenu.length === 0 ? (
-                <View
-                  className="items-center rounded-2xl p-6"
-                  style={{
-                    backgroundColor: "#FFFFFF",
-                  }}
-                >
+              ) : popularMenu.length === 0 ? (
+                <View className="items-center rounded-2xl p-6 bg-white">
                   <Text
                     className="text-sm text-[#11181C]"
                     style={{ fontFamily: Fonts.medium }}
                   >
                     No popular dishes yet
                   </Text>
-
                   <Text className="text-xs text-gray-500 mt-1 text-center">
                     Popular dishes will appear after customers place orders.
                   </Text>
-
                   <Pressable
                     onPress={() => router.push("/menu")}
-                    className="mt-4 rounded-full px-4 py-2"
-                    style={{ backgroundColor: "#FECD4C" }}
+                    className="mt-4 rounded-full px-4 py-2 bg-[#FECD4C]"
                   >
                     <Text
                       className="text-sm text-[#11181C]"
@@ -337,7 +317,6 @@ export default function HomeScreen() {
                   </Pressable>
                 </View>
               ) : (
-                /* 3️⃣ HAS DATA */
                 popularMenu.map((item) => (
                   <PopularMenuItem
                     key={item.id}
@@ -352,7 +331,6 @@ export default function HomeScreen() {
             </PopularMenuSection>
           </View>
 
-          {/* FEEDBACK */}
           <View className="mb-10">
             {reviewsFromOrders.length === 0 ? (
               <View className="items-center py-10">

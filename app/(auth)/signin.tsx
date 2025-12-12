@@ -1,6 +1,6 @@
-import { Link, Stack, useRouter } from "expo-router";
+import { Link, Stack } from "expo-router";
 import { FirebaseError } from "firebase/app";
-import { sendPasswordResetEmail, signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   Alert,
@@ -18,6 +18,7 @@ import { ClickButton } from "@/components/Authen/ClickButton";
 import { InputBox } from "@/components/Authen/InputBox";
 import { useMerchant } from "@/context/MerchantContext";
 import { auth } from "@/lib/firebase";
+import { fetchMerchant } from "@/services/store";
 
 const BRAND = { green: "#26BD68", text: "#0B0F10" };
 
@@ -25,78 +26,53 @@ const isValidEmail = (v: string) =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim().toLowerCase());
 
 export default function SignInPage() {
-  const router = useRouter();
-  const {setMerchantId} = useMerchant();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { setMerchant } = useMerchant();
   const inputsDisabled = loading;
   const canSubmit = useMemo(() => {
     const normEmail = email.trim().toLowerCase();
     return isValidEmail(normEmail) && password.length > 0 && !loading;
   }, [email, password, loading]);
 
-  const handleEmailPasswordSignIn = useCallback(async () => {
-    if (loading) return;
+ const handleEmailPasswordSignIn = useCallback(async () => {
+  if (loading) return;
 
-    const normEmail = email.trim().toLowerCase();
-    if (!isValidEmail(normEmail) || !password) {
-      Alert.alert("Missing info", "Please enter a valid email and password.");
-      return;
+  const normEmail = email.trim().toLowerCase();
+  if (!isValidEmail(normEmail) || !password) {
+    Alert.alert("Missing info", "Please enter a valid email and password.");
+    return;
+  }
+
+  setLoading(true);
+  try {
+    const cred = await signInWithEmailAndPassword(auth, normEmail, password);
+    const user = cred.user;
+
+    // ✅ FETCH MERCHANT AFTER SIGN IN
+    const merchant = await fetchMerchant(user.uid);
+
+    if (merchant) {
+      setMerchant(merchant.id, merchant.status);
+    } else {
+      setMerchant('', 'PENDING');
     }
 
-    setLoading(true);
-    try {
-      await signInWithEmailAndPassword(auth, normEmail, password);
-    } catch (err: unknown) {
-      let message = "Something went wrong. Please try again.";
-
-      if (err instanceof FirebaseError) {
-        switch (err.code) {
-          case "auth/user-not-found":
-            message = "This account does not exist.";
-            break;
-          case "auth/wrong-password":
-          case "auth/invalid-credential":
-            message = "Incorrect email or password.";
-            break;
-          case "auth/too-many-requests":
-            message = "Too many attempts. Please try again later.";
-            break;
-          case "auth/invalid-email":
-            message = "This email address is invalid.";
-            break;
-          default:
-            message = err.message || message;
-        }
-      }
-
-      Alert.alert("Sign-in failed", message);
-    } finally {
-      setLoading(false);
+    // ❌ อย่า router.replace ที่นี่
+    // ให้ AuthLayout จัดการ redirect
+  } catch (err: unknown) {
+    let message = "Something went wrong. Please try again.";
+    if (err instanceof FirebaseError) {
+      message = err.message || message;
     }
-  }, [email, password, loading]);
+    Alert.alert("Sign-in failed", message);
+  } finally {
+    setLoading(false);
+  }
+}, [loading, email, password, setMerchant]);
 
-  const handleForgotPassword = useCallback(async () => {
-    const normEmail = email.trim().toLowerCase();
-
-    if (!isValidEmail(normEmail)) {
-      Alert.alert("Invalid email", "Please enter your email first.");
-      return;
-    }
-
-    try {
-      await sendPasswordResetEmail(auth, normEmail);
-      Alert.alert("Email sent", "Check your inbox for a reset link.");
-    } catch (err: unknown) {
-      let message = "Unable to send reset email.";
-      if (err instanceof FirebaseError) {
-        message = err.message || message;
-      }
-      Alert.alert("Reset failed", message);
-    }
-  }, [email]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
@@ -167,7 +143,7 @@ export default function SignInPage() {
           </View>
 
           <TouchableOpacity
-            onPress={handleForgotPassword}
+            onPress={()=>null}
             disabled={inputsDisabled}
             style={{ marginTop: 12, alignSelf: "flex-end" }}
           >

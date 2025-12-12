@@ -75,13 +75,13 @@ const DEV = __DEV__;
 export default function StoreInfo() {
   const router = useRouter();
   const user = auth.currentUser as FirebaseUser | null;
+  const ownerUserId = user?.uid ?? "";
 
-  let ownerUserId = "";
-  if (user?.uid) {
-    ownerUserId = user.uid;
-  } else {
-    router.replace("/(auth)/signup");
-  }
+  React.useEffect(() => {
+    if (!user) {
+      router.replace("/(auth)/signin");
+    }
+  }, [user, router]);
 
   // ------------------------------
   // State
