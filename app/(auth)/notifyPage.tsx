@@ -148,9 +148,9 @@ export default function NotifyPage() {
           style={{
             alignSelf: "center",
             marginTop: 20,
-            width: 44,
-            height: 44,
-            borderRadius: 22,
+            width: 300,
+            height: 35,
+            borderRadius: 20,
             backgroundColor: submitting ? "#9CA3AF" : "#2EA44F",
             alignItems: "center",
             justifyContent: "center",
@@ -163,7 +163,7 @@ export default function NotifyPage() {
           {submitting ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={{ color: "#fff", fontSize: 24 }}>✓</Text>
+            <Text style={{ color: "#fff", fontSize: 15, fontWeight:600 }}>Finish</Text>
           )}
         </TouchableOpacity>
       </View>

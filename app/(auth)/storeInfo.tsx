@@ -87,14 +87,12 @@ export default function StoreInfo() {
   // ------------------------------
   // State
   // ------------------------------
-  const [brandName, setBrandName] = React.useState(DEV ? "WakeUp Cafe" : "");
-  const [address, setAddress] = React.useState(DEV ? "123 Sukhumvit 10" : "");
-  const [city, setCity] = React.useState(DEV ? "Bangkok" : "");
-  const [district, setDistrict] = React.useState(DEV ? "Khlong Toei" : "");
-  const [subdistrict, setSubdistrict] = React.useState(
-    DEV ? "Khlong Toei" : ""
-  );
-  const [postalCode, setPostalCode] = React.useState(DEV ? "10110" : "");
+  const [brandName, setBrandName] = React.useState("");
+  const [address, setAddress] = React.useState("");
+  const [city, setCity] = React.useState("");
+  const [district, setDistrict] = React.useState("");
+  const [subdistrict, setSubdistrict] = React.useState("");
+  const [postalCode, setPostalCode] = React.useState("");
 
   const [lat, setLat] = React.useState(DEV ? "13.736717" : "");
   const [lng, setLng] = React.useState(DEV ? "100.523186" : "");
