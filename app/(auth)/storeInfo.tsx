@@ -1,34 +1,43 @@
 // app/(auth)/storeInfo.tsx
 
+import { getCategories } from "@/app/api/getCategories";
+import { createMerchantInfo } from "@/app/api/merchant";
 import { ClickButton } from "@/components/Authen/ClickButton";
 import { InputBox } from "@/components/Authen/InputBox";
 import LocationPicker from "@/components/Authen/LocationPicker.native";
 import FoodTypePicker, { FoodType } from "@/components/Authen/menuType";
 import UploadFile from "@/components/Authen/UploadFile";
 import UploadImagesGrid from "@/components/Authen/UploadImages";
+import { ProcessingScreen } from "@/components/common/processingScreen";
+import { auth } from "@/lib/firebase";
+import { uploadFile } from "@/services/upload";
+import { CreateMerchantBody } from "@/types/types";
 import * as DocumentPicker from "expo-document-picker";
+import * as ImagePicker from "expo-image-picker";
+import { useRouter } from "expo-router";
 import { type User as FirebaseUser } from "firebase/auth";
 import React from "react";
 import { Alert, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { getCategories } from "@/app/api/getCategories";
-import { createMerchantInfo } from "@/app/api/merchant";
-import { ProcessingScreen } from "@/components/common/processingScreen";
-import { auth } from "@/lib/firebase";
-import { uploadFile } from "@/services/upload";
-import { CreateMerchantBody } from "@/types/types";
-import * as ImagePicker from "expo-image-picker";
-import { useRouter } from "expo-router";
-
 import AuthBusinessHoursForm, {
   DayHour,
 } from "@/components/Authen/AuthBusinessHoursForm";
 import TimePickerModal from "@/components/store/TimePickerModal";
+import { useMerchant } from "@/context/MerchantContext";
 
 // ------------------------------
 // Helpers for time
 // ------------------------------
+
+function minutesOfDay(d: Date) {
+  return d.getHours() * 60 + d.getMinutes();
+}
+
+function isValidDayHour(open: Date, close: Date) {
+  return minutesOfDay(close) > minutesOfDay(open);
+}
+
 function mkTime(h: number, m: number) {
   const d = new Date();
   d.setHours(h, m, 0, 0);
@@ -67,23 +76,23 @@ const DEV = __DEV__;
 export default function StoreInfo() {
   const router = useRouter();
   const user = auth.currentUser as FirebaseUser | null;
+  const ownerUserId = user?.uid ?? "";
 
-  let ownerUserId = "";
-  if (user?.uid) {
-    ownerUserId = user.uid;
-  } else {
-    router.replace("/(auth)/signup");
-  }
-
+  React.useEffect(() => {
+    if (!user) {
+      router.replace("/(auth)/signin");
+    }
+  }, [user, router]);
+  const { setMerchant } = useMerchant();
   // ------------------------------
   // State
   // ------------------------------
-  const [brandName, setBrandName] = React.useState(DEV ? "WakeUp Cafe" : "");
-  const [address, setAddress] = React.useState(DEV ? "123 Sukhumvit 10" : "");
-  const [city, setCity] = React.useState(DEV ? "Bangkok" : "");
-  const [district, setDistrict] = React.useState(DEV ? "Khlong Toei" : "");
-  const [subdistrict, setSubdistrict] = React.useState(DEV ? "Khlong Toei" : "");
-  const [postalCode, setPostalCode] = React.useState(DEV ? "10110" : "");
+  const [brandName, setBrandName] = React.useState("");
+  const [address, setAddress] = React.useState("");
+  const [city, setCity] = React.useState("");
+  const [district, setDistrict] = React.useState("");
+  const [subdistrict, setSubdistrict] = React.useState("");
+  const [postalCode, setPostalCode] = React.useState("");
 
   const [lat, setLat] = React.useState(DEV ? "13.736717" : "");
   const [lng, setLng] = React.useState(DEV ? "100.523186" : "");
@@ -92,7 +101,9 @@ export default function StoreInfo() {
   const [categories, setCategories] = React.useState<FoodType[]>([]);
   const [loadingCategories, setLoadingCategories] = React.useState(true);
 
-  const [commercialReg, setCommercialReg] = React.useState<DocFile | null>(null);
+  const [commercialReg, setCommercialReg] = React.useState<DocFile | null>(
+    null
+  );
   const [ownerIdDoc, setOwnerIdDoc] = React.useState<DocFile | null>(null);
   const [storeImages, setStoreImages] = React.useState<DocFile[]>([]);
 
@@ -122,7 +133,6 @@ export default function StoreInfo() {
     }
   }, [hours.length]);
 
-
   const openPicker = (i: number, field: "open" | "close") => {
     setPickerTarget({ index: i, field });
     setPickerOpen(true);
@@ -132,10 +142,25 @@ export default function StoreInfo() {
 
   const setTime = (d: Date) => {
     if (!pickerTarget) return;
+
     setHours((prev) => {
       const n = [...prev];
       const idx = pickerTarget.index;
-      n[idx] = { ...n[idx], [pickerTarget.field]: d };
+      const field = pickerTarget.field;
+
+      const updated = { ...n[idx], [field]: d };
+
+      if (
+        !updated.closed &&
+        minutesOfDay(updated.close) <= minutesOfDay(updated.open)
+      ) {
+        updated.close = mkTime(
+          updated.open.getHours() + 1,
+          updated.open.getMinutes()
+        );
+      }
+
+      n[idx] = updated;
       return n;
     });
   };
@@ -180,7 +205,9 @@ export default function StoreInfo() {
   // ------------------------------
   // File pickers
   // ------------------------------
-  const pickOne = async (type: DocumentPicker.DocumentPickerOptions["type"]) => {
+  const pickOne = async (
+    type: DocumentPicker.DocumentPickerOptions["type"]
+  ) => {
     const res = await DocumentPicker.getDocumentAsync({ type });
     if (res.canceled) return null;
 
@@ -194,7 +221,6 @@ export default function StoreInfo() {
   };
 
   const pickManyImages = async () => {
-
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       alert("Permission to access gallery is required.");
@@ -202,7 +228,7 @@ export default function StoreInfo() {
     }
 
     const res = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,  // ✅ FIX: compatible with your version
+      mediaTypes: ImagePicker.MediaTypeOptions.Images, // ✅ FIX: compatible with your version
       allowsMultipleSelection: true,
       selectionLimit: 5,
       quality: 0.8,
@@ -257,7 +283,16 @@ export default function StoreInfo() {
     try {
       if (!commercialReg || !ownerIdDoc)
         throw new Error("Missing required documents.");
-
+      for (let i = 0; i < hours.length; i++) {
+        const h = hours[i];
+        if (!h.closed && !isValidDayHour(h.open, h.close)) {
+          Alert.alert(
+            "Invalid business hours",
+            `${DAY_META[i].ui}: Close time must be later than open time`
+          );
+          return;
+        }
+      }
       // Upload docs
       const commercial = await uploadFile(
         {
@@ -333,7 +368,11 @@ export default function StoreInfo() {
         storeImageUrl: imgs[0]?.url ?? null,
 
         files: [
-          { kind: "COMMERCIAL_REG", url: commercial.url, label: commercialReg.name },
+          {
+            kind: "COMMERCIAL_REG",
+            url: commercial.url,
+            label: commercialReg.name,
+          },
           { kind: "OWNER_ID", url: idDoc.url, label: ownerIdDoc.name },
           ...imgs.map((u, i) => ({
             kind: "STORE_IMAGE" as const,
@@ -344,16 +383,11 @@ export default function StoreInfo() {
       };
 
       const res = await createMerchantInfo(payload);
-
       if (!res || !("merchant" in res))
         throw new Error("Failed to save merchant info.");
-
-      Alert.alert("Success", "Store information saved.", [
-        {
-          text: "OK",
-          onPress: () => router.replace("/(auth)/notifyPage"),
-        },
-      ]);
+      const merchant = res.merchant;
+      setMerchant(merchant.id, merchant.status);
+      router.replace("/(auth)/notifyPage");
     } catch (err: any) {
       console.error("Save error:", err);
       Alert.alert("Save failed", err.message ?? "Unknown error.");
@@ -393,7 +427,11 @@ export default function StoreInfo() {
           value={brandName}
           onChangeText={setBrandName}
           placeholder="e.g. WakeUp"
-          errorText={!isBrandNameValid ? "Brand name must be 2–250 characters." : undefined}
+          errorText={
+            !isBrandNameValid
+              ? "Brand name must be 2–250 characters."
+              : undefined
+          }
         />
 
         {/* LOCATION */}
@@ -411,27 +449,51 @@ export default function StoreInfo() {
         {/* ADDRESS */}
         <InputBox label="Address *" value={address} onChangeText={setAddress} />
         <InputBox label="City *" value={city} onChangeText={setCity} />
-        <InputBox label="District *" value={district} onChangeText={setDistrict} />
-        <InputBox label="Subdistrict *" value={subdistrict} onChangeText={setSubdistrict} />
+        <InputBox
+          label="District *"
+          value={district}
+          onChangeText={setDistrict}
+        />
+        <InputBox
+          label="Subdistrict *"
+          value={subdistrict}
+          onChangeText={setSubdistrict}
+        />
 
         <InputBox
           label="Postal Code *"
           value={postalCode}
           onChangeText={(t) => setPostalCode(t.replace(/\D/g, "").slice(0, 5))}
           keyboardType="number-pad"
-          errorText={!isValidPostal ? "Postal code must be exactly 5 digits." : undefined}
+          errorText={
+            !isValidPostal ? "Postal code must be exactly 5 digits." : undefined
+          }
         />
 
         {/* CATEGORY PICKER */}
         {loadingCategories ? (
-          <Text style={{ color: "#6B7280", marginBottom: 10 }}>Loading food types…</Text>
+          <Text style={{ color: "#6B7280", marginBottom: 10 }}>
+            Loading food types…
+          </Text>
         ) : (
-          <FoodTypePicker value={foodType} onChange={setFoodType} options={categories} required />
+          <FoodTypePicker
+            value={foodType}
+            onChange={setFoodType}
+            options={categories}
+            required
+          />
         )}
 
         {/* BUSINESS HOURS */}
         <View style={{ marginTop: 5, marginBottom: -45 }}>
-          <Text style={{ marginBottom: -10, fontSize: 15, fontWeight: "500", color: "#11181C" }}>
+          <Text
+            style={{
+              marginBottom: -10,
+              fontSize: 15,
+              fontWeight: "500",
+              color: "#11181C",
+            }}
+          >
             Business Hours *
           </Text>
 
@@ -443,7 +505,6 @@ export default function StoreInfo() {
             bottomPadding={20}
             fmtTime={fmtTime}
           />
-
         </View>
 
         {/* UPLOADS */}
@@ -473,7 +534,9 @@ export default function StoreInfo() {
           files={storeImages.map((f) => ({ name: f.name, uri: f.uri }))}
           max={5}
           onAdd={pickManyImages}
-          onRemove={(i) => setStoreImages((prev) => prev.filter((_, idx) => idx !== i))}
+          onRemove={(i) =>
+            setStoreImages((prev) => prev.filter((_, idx) => idx !== i))
+          }
         />
 
         {/* Save Button */}
@@ -502,8 +565,9 @@ export default function StoreInfo() {
         onClose={closePicker}
         title={
           pickerTarget
-            ? `${DAY_META[pickerTarget.index].ui} - ${pickerTarget.field === "open" ? "Open" : "Close"
-            } time`
+            ? `${DAY_META[pickerTarget.index].ui} - ${
+                pickerTarget.field === "open" ? "Open" : "Close"
+              } time`
             : "Select time"
         }
       />

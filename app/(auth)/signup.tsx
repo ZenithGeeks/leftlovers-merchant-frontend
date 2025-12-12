@@ -1,4 +1,3 @@
-// app/(authen)/signup.tsx
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Link, Stack, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
@@ -13,13 +12,19 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import createMerchant from "@/app/api/users";
+import { createMerchant } from "@/app/api/users";
+import { AuthHeader } from "@/components/Authen/AuthHeader";
+import { AuthScreenWrapper } from "@/components/Authen/AuthScreenWrapper";
 import { ClickButton } from "@/components/Authen/ClickButton";
+import { DobPickerHybrid } from "@/components/Authen/DateInput";
 import { InputBox } from "@/components/Authen/InputBox";
 import { PasswordInput } from "@/components/Authen/PasswordInput";
 import { PhoneInput } from "@/components/Authen/PhoneInput";
-
+import { ProcessingScreen } from "@/components/common/processingScreen";
+import { useMerchant } from "@/context/MerchantContext";
 import { auth } from "@/lib/firebase";
+import { getMerchantAccessByEmployeeEmail } from "@/services/employees";
+import { type OnboardingStep } from "@/src/lib/onboarding";
 import { FirebaseError } from "firebase/app";
 import {
   createUserWithEmailAndPassword,
@@ -27,17 +32,13 @@ import {
   type User as FirebaseUser,
 } from "firebase/auth";
 
-import { AuthHeader } from "@/components/Authen/AuthHeader";
-import { AuthScreenWrapper } from "@/components/Authen/AuthScreenWrapper";
-import { DobPickerHybrid } from "@/components/Authen/DateInput";
-import { type OnboardingStep } from "@/src/lib/onboarding";
-
 const BRAND = { green: "#26BD68", text: "#0B0F10" };
 
 const stepKey = (uid: string) => `onboarding:step:${uid}`;
 async function saveOnboardingStep(uid: string, step: OnboardingStep) {
   await AsyncStorage.setItem(stepKey(uid), step);
 }
+
 const isValidEmail = (v: string) =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim().toLowerCase());
 
@@ -45,22 +46,37 @@ const parseDobToISO = (d: string): string | null => {
   const m = d.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/);
   if (!m) return null;
   const [, dd, mm, yyyy] = m;
-  const iso = `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}T00:00:00.000Z`;
-  return iso;
+  return `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}T00:00:00.000Z`;
 };
+
+function isNotFoundError(err: any) {
+  const status =
+    err?.status ??
+    err?.response?.status ??
+    err?.data?.status ??
+    err?.cause?.status;
+  if (status === 404) return true;
+  const msg = String(err?.message ?? "");
+  return msg.includes("404") || msg.toLowerCase().includes("not found");
+}
 
 export default function SignUpPage() {
   const router = useRouter();
+  const { setMerchant } = useMerchant();
 
+  const [processing, setProcessing] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordValid, setPasswordValid] = useState(false);
   const [loading, setLoading] = useState(false);
+
   const [name, setName] = useState("");
   const [dob, setDob] = useState("");
+  const [localPhone, setLocalPhone] = useState("");
+
   const [pendingVerification, setPendingVerification] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
-  const [localPhone, setLocalPhone] = useState("");
+
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -70,7 +86,6 @@ export default function SignUpPage() {
     };
   }, []);
 
-  // Resend cooldown ticker
   useEffect(() => {
     if (resendCooldown <= 0) return;
     const t = setInterval(() => {
@@ -79,7 +94,6 @@ export default function SignUpPage() {
     return () => clearInterval(t);
   }, [resendCooldown]);
 
-  /* ======================== EMAIL/PASSWORD SIGN UP ======================== */
   const handleSignUp = async () => {
     const normEmail = email.trim().toLowerCase();
 
@@ -98,13 +112,7 @@ export default function SignUpPage() {
 
     setLoading(true);
     try {
-      const cred = await createUserWithEmailAndPassword(
-        auth,
-        normEmail,
-        password
-      );
-
-      // Send Firebase verification email
+      const cred = await createUserWithEmailAndPassword(auth, normEmail, password);
       await sendEmailVerification(cred.user);
 
       if (!mountedRef.current) return;
@@ -112,8 +120,6 @@ export default function SignUpPage() {
       setPendingVerification(true);
       setResendCooldown(60);
     } catch (err: unknown) {
-      console.error("SignUp error:", err);
-
       let message = "Try again.";
       if (err instanceof FirebaseError) {
         switch (err.code) {
@@ -130,14 +136,12 @@ export default function SignUpPage() {
             message = err.message || message;
         }
       }
-
       Alert.alert("Sign up failed", message);
     } finally {
       if (mountedRef.current) setLoading(false);
     }
   };
 
-  /* ================================ RESEND ================================ */
   const handleResend = async () => {
     if (resendCooldown > 0) return;
 
@@ -151,19 +155,18 @@ export default function SignUpPage() {
 
       await sendEmailVerification(user);
       setResendCooldown(30);
-
       Alert.alert("Code sent", "We sent the verification email again.");
-    } catch (err: unknown) {
-      console.warn("Resend failed:", err);
+    } catch {
       Alert.alert("Resend failed", "Unable to resend verification email.");
     }
   };
 
-  /* ======================= CHECK EMAIL VERIFIED ======================= */
   const handleIVerified = async () => {
     if (loading) return;
 
     setLoading(true);
+    setProcessing(true);
+
     try {
       const user = auth.currentUser as FirebaseUser | null;
 
@@ -173,33 +176,25 @@ export default function SignUpPage() {
         return;
       }
 
-      // Refresh Firebase user to get latest emailVerified
       await user.reload();
 
       if (!user.emailVerified) {
-        Alert.alert(
-          "Not verified yet",
-          "Please verify your email then try again."
-        );
+        Alert.alert("Not verified yet", "Please verify your email then try again.");
         return;
       }
 
-      const emailLower =
-        user.email?.toLowerCase() ?? email.trim().toLowerCase();
-      const name = emailLower.split("@")[0] || "Merchant";
+      const emailLower = (user.email ?? email).trim().toLowerCase();
       const isoDob = parseDobToISO(dob);
 
       if (!name || !isoDob) {
-        Alert.alert(
-          "Missing information",
-          "Please fill name and date of birth."
-        );
+        Alert.alert("Missing information", "Please fill name and date of birth.");
         return;
       }
+
       try {
         await createMerchant({
           id: user.uid,
-          name: name || undefined,
+          name: name,
           email: emailLower,
           phone: localPhone || undefined,
           dob: isoDob || undefined,
@@ -207,26 +202,45 @@ export default function SignUpPage() {
           role: "MERCHANT",
           status: "ACTIVE",
         });
+      } catch {}
+
+      let empAccess:
+        | { merchantId: string; merchantStatus: "PENDING" | "APPROVED" | "SUSPENDED" }
+        | null = null;
+
+      try {
+        empAccess = await getMerchantAccessByEmployeeEmail(emailLower);
       } catch (e: any) {
-        Alert.alert(
-          "Account note",
-          e?.message ??
-            "We couldn't finish account setup, but you can continue."
-        );
+        if (!isNotFoundError(e)) {
+          Alert.alert("Employee check failed", e?.message ?? "Please try again.");
+          return;
+        }
       }
+
+      if (empAccess?.merchantId) {
+        setMerchant(empAccess.merchantId, empAccess.merchantStatus);
+
+        if (empAccess.merchantStatus === "PENDING") {
+          router.replace("/(auth)/notifyPage");
+        } else {
+          router.replace("/(tabs)/home");
+        }
+        return;
+      }
+
       await saveOnboardingStep(user.uid, "store");
       router.replace("/(auth)/storeInfo");
     } catch (err: any) {
-      console.error("Verification check error:", err);
       Alert.alert("Verification failed", err?.message ?? "Try again.");
     } finally {
-      if (mountedRef.current) setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+        setProcessing(false);
+      }
     }
   };
 
-  /* ================================ Renders ================================ */
-
- if (pendingVerification) {
+  if (pendingVerification) {
     return (
       <AuthScreenWrapper>
         <AuthHeader
@@ -254,8 +268,7 @@ export default function SignUpPage() {
               fontFamily: "Poppins_400Regular",
             }}
           >
-            Check your inbox (and spam) and tap the link to verify your
-            account.
+            Check your inbox (and spam) and tap the link to verify your account.
           </Text>
         </View>
 
@@ -291,9 +304,7 @@ export default function SignUpPage() {
                   fontSize: 13,
                 }}
               >
-                {resendCooldown > 0
-                  ? `Resend in ${resendCooldown}s`
-                  : "Resend email"}
+                {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend email"}
               </Text>
             </TouchableOpacity>
           </View>
@@ -314,13 +325,18 @@ export default function SignUpPage() {
             </Text>
           </TouchableOpacity>
         </View>
+
+        <ProcessingScreen
+          visible={processing}
+          title="Checking verification"
+          description="We’re preparing your account"
+          helperText="Checking your store access and loading your dashboard"
+        />
       </AuthScreenWrapper>
     );
   }
 
-  // ---------------- Sign-up form UI ----------------
   return (
-    
     <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
       <Stack.Screen options={{ headerShown: false }} />
 
@@ -357,12 +373,14 @@ export default function SignUpPage() {
             keyboardType="email-address"
             autoCapitalize="none"
           />
+
           <InputBox
             label="Full Name"
             placeholder="Enter your full name"
             value={name}
             onChangeText={setName}
           />
+
           <DobPickerHybrid dob={dob} setDob={setDob} minAge={15} />
 
           <Text
@@ -433,6 +451,13 @@ export default function SignUpPage() {
               </Link>
             </Text>
           </View>
+
+          <ProcessingScreen
+            visible={processing}
+            title="Setting up your account"
+            description="We’re preparing your dashboard"
+            helperText="Checking your store access"
+          />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
