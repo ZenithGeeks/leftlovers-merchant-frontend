@@ -1,9 +1,11 @@
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
+import { fetchMerchant } from "@/services/store";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as React from "react";
 
 const PUBLIC_AUTH_ROUTES = new Set(["signin", "signup", "forgotPassword"]);
-const ONBOARDING_ROUTES = new Set(["storeInfo"]);
+const ONBOARDING_ROUTE = "storeInfo";
+const NOTIFY_ROUTE = "notifyPage";
 
 function getAuthSubRoute(segments: string[]): string | undefined {
   if (segments.length < 2) return undefined;
@@ -19,11 +21,15 @@ export default function AuthLayout() {
     [segments]
   );
 
-  const { isLoaded: authLoaded, isSignedIn, user } = useFirebaseAuth();
+  const { isLoaded, isSignedIn, user } = useFirebaseAuth();
+  const [checkingMerchant, setCheckingMerchant] = React.useState(false);
 
   React.useEffect(() => {
-    if (!authLoaded) return;
+    if (!isLoaded) return;
 
+    /* -------------------------
+     * 1️⃣ Not signed in
+     * ------------------------- */
     if (!isSignedIn) {
       if (!sub || !PUBLIC_AUTH_ROUTES.has(sub)) {
         router.replace("/(auth)/signin");
@@ -31,26 +37,66 @@ export default function AuthLayout() {
       return;
     }
 
-    const emailVerified = !!user?.emailVerified;
-
-    if (!emailVerified) {
+    /* -------------------------
+     * 2️⃣ Email not verified
+     * ------------------------- */
+    if (!user?.emailVerified) {
       if (sub !== "signup") {
         router.replace("/(auth)/signup");
       }
       return;
     }
 
-    if (sub && ONBOARDING_ROUTES.has(sub)) {
+    /* -------------------------
+     * 3️⃣ Check merchant (backend truth)
+     * ------------------------- */
+    if (!checkingMerchant) {
+      setCheckingMerchant(true);
+
+      fetchMerchant(user.uid)
+        .then((merchant) => {
+          // 🔴 No merchant → onboarding
+          if (!merchant) {
+            if (sub !== ONBOARDING_ROUTE) {
+              router.replace("/(auth)/storeInfo");
+            }
+            return;
+          }
+
+          // 🟡 Merchant exists but still pending
+          if (merchant.status === "PENDING") {
+            if (sub !== NOTIFY_ROUTE) {
+              router.replace("/(auth)/notifyPage");
+            }
+            return;
+          }
+
+          // 🟢 Merchant approved
+          if (merchant.status === "APPROVED") {
+            if (
+              sub === ONBOARDING_ROUTE ||
+              sub === NOTIFY_ROUTE ||
+              (sub && PUBLIC_AUTH_ROUTES.has(sub))
+            ) {
+              router.replace("/(tabs)/home");
+            }
+            return;
+          }
+
+          // ⚠️ Fallback (e.g. rejected / unknown)
+          router.replace("/(auth)/notifyPage");
+        })
+        .catch(() => {
+          // Safe fallback if API fails
+          router.replace("/(auth)/storeInfo");
+        })
+        .finally(() => {
+          setCheckingMerchant(false);
+        });
+
       return;
     }
-
-    if (sub && PUBLIC_AUTH_ROUTES.has(sub)) {
-      router.replace("/(auth)/storeInfo");
-      return;
-    }
-
-    router.replace("/(tabs)/home");
-  }, [authLoaded, isSignedIn, user, sub, router]);
+  }, [isLoaded, isSignedIn, user, sub, router, checkingMerchant]);
 
   return (
     <Stack

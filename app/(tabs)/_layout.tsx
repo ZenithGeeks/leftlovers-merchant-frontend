@@ -29,7 +29,7 @@ export default function TabLayout() {
   const insets = useSafeAreaInsets();
 
   return (
-    <MerchantProvider>
+
       <Tabs
         screenOptions={{
           headerShown: false,
@@ -136,6 +136,5 @@ export default function TabLayout() {
           }}
         />
       </Tabs>
-    </MerchantProvider>
   );
 }

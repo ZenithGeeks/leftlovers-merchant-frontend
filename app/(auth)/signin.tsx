@@ -16,6 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ClickButton } from "@/components/Authen/ClickButton";
 import { InputBox } from "@/components/Authen/InputBox";
+import { useMerchant } from "@/context/MerchantContext";
 import { auth } from "@/lib/firebase";
 
 const BRAND = { green: "#26BD68", text: "#0B0F10" };
@@ -25,14 +26,12 @@ const isValidEmail = (v: string) =>
 
 export default function SignInPage() {
   const router = useRouter();
-
+  const {setMerchantId} = useMerchant();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-
   const inputsDisabled = loading;
-
   const canSubmit = useMemo(() => {
     const normEmail = email.trim().toLowerCase();
     return isValidEmail(normEmail) && password.length > 0 && !loading;
@@ -50,7 +49,6 @@ export default function SignInPage() {
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, normEmail, password);
-      router.replace("/(tabs)/home");
     } catch (err: unknown) {
       let message = "Something went wrong. Please try again.";
 
@@ -78,7 +76,7 @@ export default function SignInPage() {
     } finally {
       setLoading(false);
     }
-  }, [email, password, loading, router]);
+  }, [email, password, loading]);
 
   const handleForgotPassword = useCallback(async () => {
     const normEmail = email.trim().toLowerCase();
