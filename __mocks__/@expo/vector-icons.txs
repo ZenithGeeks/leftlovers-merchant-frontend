@@ -1,0 +1,12 @@
+import React from "react";
+import { Text } from "react-native";
+
+type AnyIconProps = {
+  name?: string;
+  size?: number;
+  color?: string;
+};
+
+export const Ionicons = ({ name = "icon" }: AnyIconProps) => {
+  return <Text accessibilityLabel={`icon-${name}`} />;
+};
