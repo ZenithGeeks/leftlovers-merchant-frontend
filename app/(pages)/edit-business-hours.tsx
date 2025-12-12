@@ -11,10 +11,10 @@ import {
   type StoreSettings,
 } from "@/services/store";
 
-import StoreHeader from "@/components/store/StoreHeader";
 import BusinessHoursForm, {
   type DayHour,
 } from "@/components/store/BusinessHoursForm";
+import StoreHeader from "@/components/store/StoreHeader";
 import TimePickerModal from "@/components/store/TimePickerModal";
 
 type DaySlot = { open: string; close: string };
