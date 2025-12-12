@@ -58,7 +58,7 @@ export default function OptionList({
           return (
             <View
               key={item.id}
-              className={`flex-row items-center justify-between ${
+              className={`flex-row items-center justify-between pt-3 ${
                 idx < sorted.length - 1 ? "border-b border-gray-100 pb-3" : ""
               }`}
             >
