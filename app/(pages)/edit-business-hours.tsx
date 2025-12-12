@@ -1,10 +1,7 @@
+// app/(pages)/edit-business-hours.tsx
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Text,
-} from "react-native";
-import { useRouter } from "expo-router";
+import { ActivityIndicator, Alert, Text } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedView } from "@/components/themed-view";
@@ -13,7 +10,6 @@ import {
   updateStoreSettings,
   type StoreSettings,
 } from "@/services/store";
-import { DEV_MERCHANT_ID } from "@/utils/env";
 
 import StoreHeader from "@/components/store/StoreHeader";
 import BusinessHoursForm, {
@@ -21,10 +17,6 @@ import BusinessHoursForm, {
 } from "@/components/store/BusinessHoursForm";
 import TimePickerModal from "@/components/store/TimePickerModal";
 
-const MERCHANT_ID =
-  DEV_MERCHANT_ID || process.env.EXPO_PUBLIC_MERCHANT_ID || "";
-
-// Match what we expect from backend for businessHours
 type DaySlot = { open: string; close: string };
 
 export type WeeklySchedule = {
@@ -79,9 +71,13 @@ function timeStrToDate(str?: string | null) {
   return mkTime(isNaN(h) ? 9 : h, isNaN(m) ? 0 : m);
 }
 
+type EditBusinessHoursParams = { merchantId?: string };
+
 export default function EditBusinessHours() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams<EditBusinessHoursParams>();
+  const merchantId = params.merchantId ?? "";
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -103,7 +99,7 @@ export default function EditBusinessHours() {
     let cancelled = false;
 
     async function load() {
-      if (!MERCHANT_ID) {
+      if (!merchantId) {
         setError("Missing merchant id.");
         setLoading(false);
         return;
@@ -113,7 +109,7 @@ export default function EditBusinessHours() {
       setError(null);
 
       try {
-        const data: StoreSettings = await fetchStoreSettings(MERCHANT_ID);
+        const data: StoreSettings = await fetchStoreSettings(merchantId);
         if (cancelled) return;
 
         const bh = data.businessHours as BusinessHours | undefined | null;
@@ -170,11 +166,11 @@ export default function EditBusinessHours() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [merchantId]);
 
   const canSave = useMemo(
-    () => !saving && hours.length === DAY_META.length,
-    [saving, hours.length]
+    () => !!merchantId && !saving && hours.length === DAY_META.length,
+    [merchantId, saving, hours.length]
   );
 
   const openPicker = (index: number, field: "open" | "close") => {
@@ -204,7 +200,7 @@ export default function EditBusinessHours() {
   };
 
   const onSave = async () => {
-    if (!canSave || !MERCHANT_ID) return;
+    if (!canSave || !merchantId) return;
 
     setSaving(true);
     try {
@@ -217,8 +213,8 @@ export default function EditBusinessHours() {
         } else {
           weekly[key] = [
             {
-              open: fmtTime(item.open), // "08:00"
-              close: fmtTime(item.close), // "18:00"
+              open: fmtTime(item.open), 
+              close: fmtTime(item.close), 
             },
           ];
         }
@@ -230,7 +226,7 @@ export default function EditBusinessHours() {
         exceptions,
       };
 
-      await updateStoreSettings(MERCHANT_ID, {
+      await updateStoreSettings(merchantId, {
         businessHours: payload as any,
       });
 
@@ -249,6 +245,22 @@ export default function EditBusinessHours() {
     pickerTarget && hours[pickerTarget.index]
       ? hours[pickerTarget.index][pickerTarget.field]
       : mkTime(9, 0);
+
+  if (!merchantId) {
+    return (
+      <ThemedView
+        className="flex-1 bg-white items-center justify-center"
+        style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
+      >
+        <Text className="text-red-600 mb-2 font-semibold">
+          Missing merchant id
+        </Text>
+        <Text className="text-gray-500 text-center px-6">
+          This screen must be opened with a merchantId param.
+        </Text>
+      </ThemedView>
+    );
+  }
 
   if (loading) {
     return (

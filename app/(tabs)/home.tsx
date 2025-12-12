@@ -1,3 +1,4 @@
+// app/(tabs)/home.tsx  
 import {
   buildPopularMenuFromOrders,
   extractReviewsFromOrders,
@@ -227,9 +228,14 @@ export default function HomeScreen() {
                 onChange={(v) => handleUpdateStatus(v as OpenStatus)}
               />
             </View>
-
+            
             <Pressable
-              onPress={() => router.push("/edit-store")}
+              onPress={() =>
+                router.push({
+                  pathname: "/edit-store",
+                  params: { merchantId: merchant.id },
+                })
+              }
               className="min-h-[40px] border border-gray-300 bg-white rounded-2xl px-4 py-2 justify-center items-center"
             >
               <Text

@@ -1,3 +1,4 @@
+// app/(pages)/edit-store-detail.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -6,11 +7,10 @@ import {
   ScrollView,
   Text,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedView } from "@/components/themed-view";
-import { DEV_MERCHANT_ID } from "@/utils/env";
 import {
   fetchStoreSettings,
   updateStoreSettings,
@@ -20,13 +20,50 @@ import {
 import StoreHeader from "@/components/store/StoreHeader";
 import StoreNameField from "@/components/store/StoreNameField";
 import StoreImagePickerSection from "@/components/store/StoreImagePickerSection";
+import { ProcessingScreen } from "@/components/common/processingScreen";
 
-const MERCHANT_ID =
-  DEV_MERCHANT_ID || process.env.EXPO_PUBLIC_MERCHANT_ID || "";
+const RAW_API_URL =
+  process.env.EXPO_PUBLIC_API_URL ??
+  "https://backend-leftlovers-production.up.railway.app";
+
+// trim trailing slashes so we don’t get //api/...
+const API_BASE_URL = RAW_API_URL.replace(/\/+$/, "");
+
+async function uploadToMinio(uri: string, folder: string): Promise<string> {
+  const formData = new FormData();
+  formData.append("file", {
+    uri,
+    name: "store-image.jpg",
+    type: "image/jpeg",
+  } as any);
+
+  const res = await fetch(
+    `${API_BASE_URL}/api/minio/upload?folder=${encodeURIComponent(folder)}`,
+    {
+      method: "POST",
+      body: formData,
+      headers: {
+        Accept: "application/json",
+      },
+    }
+  );
+
+  if (!res.ok) {
+    const txt = await res.text().catch(() => "");
+    throw new Error(`Upload failed: ${res.status} ${txt}`);
+  }
+
+  const json = (await res.json()) as { url: string };
+  return json.url;
+}
+
+type EditStoreDetailParams = { merchantId?: string };
 
 export default function EditStoreDetail() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams<EditStoreDetailParams>();
+  const merchantId = params.merchantId ?? "";
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -41,21 +78,18 @@ export default function EditStoreDetail() {
   );
   const [initialListImage, setInitialListImage] = useState<string | null>(null);
 
-  // track upload states from children
-  const [storeImgUploading, setStoreImgUploading] = useState(false);
-  const [listImgUploading, setListImgUploading] = useState(false);
-
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
-      if (!MERCHANT_ID) {
+      if (!merchantId) {
         Alert.alert("Error", "Missing merchant id.");
+        setLoading(false);
         return;
       }
       try {
         setLoading(true);
-        const data: StoreSettings = await fetchStoreSettings(MERCHANT_ID);
+        const data: StoreSettings = await fetchStoreSettings(merchantId);
         if (cancelled) return;
 
         const name = data.name ?? "";
@@ -83,36 +117,52 @@ export default function EditStoreDetail() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [merchantId]);
 
   const canSave = useMemo(
-    () =>
-      storeName.trim().length > 0 &&
-      !submitting &&
-      !storeImgUploading &&
-      !listImgUploading,
-    [storeName, submitting, storeImgUploading, listImgUploading]
+    () => storeName.trim().length > 0 && !submitting && !!merchantId,
+    [storeName, submitting, merchantId]
   );
 
+  const isLocalFileUri = (uri: string | null): boolean =>
+    !!uri && uri.startsWith("file://");
+
   const onSave = async () => {
-    if (!canSave || !MERCHANT_ID) return;
+    if (!canSave || !merchantId) return;
 
     setSubmitting(true);
     try {
-      // images are already URLs (or null) because we uploaded on pick
-      await updateStoreSettings(MERCHANT_ID, {
+      let finalStoreImageUrl: string | null = initialStoreImage;
+      let finalListImageUrl: string | null = initialListImage;
+
+      if (storeImage === null) {
+        finalStoreImageUrl = null;
+      } else if (isLocalFileUri(storeImage)) {
+        finalStoreImageUrl = await uploadToMinio(storeImage, "store-images");
+      } else if (storeImage !== initialStoreImage) {
+        finalStoreImageUrl = storeImage;
+      }
+
+      if (listImage === null) {
+        finalListImageUrl = null;
+      } else if (isLocalFileUri(listImage)) {
+        finalListImageUrl = await uploadToMinio(listImage, "store-images");
+      } else if (listImage !== initialListImage) {
+        finalListImageUrl = listImage;
+      }
+
+      await updateStoreSettings(merchantId, {
         name: storeName.trim(),
-        storeImage,
-        listImage,
+        storeImage: finalStoreImageUrl,
+        listImage: finalListImageUrl,
       });
 
-      // update initial values (optional)
-      setInitialName(storeName.trim());
-      setInitialStoreImage(storeImage);
-      setInitialListImage(listImage);
-
       Alert.alert("Success", "Store details updated.", [
-        { text: "OK", onPress: () => router.back() },
+        {
+          text: "OK",
+          onPress: () =>
+            router.back(), // goes back to edit-store with same merchantId in URL
+        },
       ]);
     } catch (e: any) {
       console.error("Save store detail failed:", e);
@@ -121,6 +171,25 @@ export default function EditStoreDetail() {
       setSubmitting(false);
     }
   };
+
+  if (!merchantId) {
+    return (
+      <ThemedView
+        className="flex-1 bg-white items-center justify-center"
+        style={{
+          paddingTop: insets.top,
+          paddingBottom: insets.bottom,
+        }}
+      >
+        <Text className="text-red-600 mb-2 font-semibold">
+          Missing merchant id
+        </Text>
+        <Text className="text-gray-500 text-center px-6">
+          This screen must be opened with a merchantId param.
+        </Text>
+      </ThemedView>
+    );
+  }
 
   if (loading) {
     return (
@@ -143,7 +212,10 @@ export default function EditStoreDetail() {
       style={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 8 }}
     >
       {/* Header */}
-      <StoreHeader title="Edit Store Details" onBack={() => router.back()} />
+      <StoreHeader
+        title="Edit Store Details"
+        onBack={() => router.back()}
+      />
 
       {/* Content */}
       <ScrollView
@@ -156,7 +228,10 @@ export default function EditStoreDetail() {
         showsVerticalScrollIndicator={false}
       >
         {/* Store Name */}
-        <StoreNameField storeName={storeName} setStoreName={setStoreName} />
+        <StoreNameField
+          storeName={storeName}
+          setStoreName={setStoreName}
+        />
 
         {/* Store Image */}
         <StoreImagePickerSection
@@ -164,8 +239,6 @@ export default function EditStoreDetail() {
           description="This is the image for the top of your store menu."
           value={storeImage}
           onChange={setStoreImage}
-          folder="store-images"
-          onUploadingChange={setStoreImgUploading}
         />
 
         {/* List Image */}
@@ -174,8 +247,6 @@ export default function EditStoreDetail() {
           description="This image will appear alongside other businesses when customers browse the restaurant list."
           value={listImage}
           onChange={setListImage}
-          folder="store-images"
-          onUploadingChange={setListImgUploading}
         />
 
         {/* Save button */}
@@ -189,14 +260,18 @@ export default function EditStoreDetail() {
           }`}
         >
           <Text className="text-white text-[16px] font-semibold">
-            {submitting
-              ? "Saving..."
-              : storeImgUploading || listImgUploading
-              ? "Waiting for upload…"
-              : "Save"}
+            {submitting ? "Saving..." : "Save"}
           </Text>
         </Pressable>
       </ScrollView>
+
+      <ProcessingScreen
+        visible={submitting}
+        title="Saving your store's details"
+        description="We’re uploading your images and applying your changes."
+        helperText="This usually only takes a moment. Please keep this screen open until we’re done."
+        cancellable={false}
+      />
     </ThemedView>
   );
 }
