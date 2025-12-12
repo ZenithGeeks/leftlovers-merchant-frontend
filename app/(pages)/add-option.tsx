@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, Text, View } from "react-native";
 import { ChevronLeftIcon } from "react-native-heroicons/outline";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -18,38 +18,45 @@ export default function AddOptionScreen() {
 
   const insets = useSafeAreaInsets();
   const router = useRouter();
+
   const [submitting, setSubmitting] = useState(false);
+  const submitLockRef = useRef(false);
 
-  const handleSubmit = async (data: OptionGroupPayload) => {
-    if (!merchantId || submitting) return;
+  const handleSubmit = useCallback(
+    async (data: OptionGroupPayload) => {
+      if (!merchantId) return;
+      if (submitLockRef.current) return;
 
-    try {
+      submitLockRef.current = true;
       setSubmitting(true);
 
-      const payload = {
-        name: data.name,
-        merchantId,
-        minSelect: data.minSelect,
-        maxSelect: data.maxSelect,
-        options: data.options.map((o) => ({
-          name: o.name,
-          priceDelta: Number(o.priceDelta || 0),
-          active: o.active,
-          sortOrder: o.sortOrder,
-        })),
-      };
+      try {
+        const payload = {
+          name: data.name,
+          merchantId,
+          minSelect: data.minSelect,
+          maxSelect: data.maxSelect,
+          options: data.options.map((o) => ({
+            name: o.name,
+            priceDelta: Number(o.priceDelta || 0),
+            active: o.active,
+            sortOrder: o.sortOrder,
+          })),
+        };
 
-      await createMerchantOptionGroup(merchantId, payload);
+        await createMerchantOptionGroup(merchantId, payload);
 
-      Alert.alert("Success", "Option group created.", [
-        { text: "OK", onPress: () => router.back() },
-      ]);
-    } catch (err: any) {
-      console.error(err);
-      Alert.alert("Error", err?.message ?? "Failed to create option group.");
-      setSubmitting(false);
-    }
-  };
+        Alert.alert("Success", "Option group created.", [
+          { text: "OK", onPress: () => router.back() },
+        ]);
+      } catch (err: any) {
+        Alert.alert("Error", err?.message ?? "Failed to create option group.");
+        submitLockRef.current = false;
+        setSubmitting(false);
+      }
+    },
+    [merchantId, router]
+  );
 
   return (
     <ThemedView
