@@ -24,6 +24,7 @@ import AuthBusinessHoursForm, {
   DayHour,
 } from "@/components/Authen/AuthBusinessHoursForm";
 import TimePickerModal from "@/components/store/TimePickerModal";
+import { useMerchant } from "@/context/MerchantContext";
 
 // ------------------------------
 // Helpers for time
@@ -82,7 +83,7 @@ export default function StoreInfo() {
       router.replace("/(auth)/signin");
     }
   }, [user, router]);
-
+  const { setMerchant } = useMerchant();
   // ------------------------------
   // State
   // ------------------------------
@@ -384,16 +385,11 @@ export default function StoreInfo() {
       };
 
       const res = await createMerchantInfo(payload);
-
       if (!res || !("merchant" in res))
         throw new Error("Failed to save merchant info.");
-
-      Alert.alert("Success", "Store information saved.", [
-        {
-          text: "OK",
-          onPress: () => router.replace("/(auth)/notifyPage"),
-        },
-      ]);
+      const merchant = res.merchant;
+      setMerchant(merchant.id, merchant.status);
+      router.replace("/(auth)/notifyPage");
     } catch (err: any) {
       console.error("Save error:", err);
       Alert.alert("Save failed", err.message ?? "Unknown error.");
