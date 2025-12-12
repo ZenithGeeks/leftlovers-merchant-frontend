@@ -1,4 +1,4 @@
-// components/employee/AddEmployeeModal.tsx
+// components/employees/AddEmployeeModal.tsx
 import React, { useMemo } from 'react';
 import {
   Modal,
