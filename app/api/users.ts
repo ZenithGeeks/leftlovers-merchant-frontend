@@ -1,3 +1,5 @@
+import { postJSON } from "@/lib/api";
+
 const BASE =
   process.env.EXPO_PUBLIC_API_BASE ??
   (global as any).__API_BASE__ ??
@@ -17,12 +19,11 @@ export type CreateUserBody = {
   status?: UserStatus;
 };
 
-type ApiOk<T> = { ok?: boolean; message?: string; user?: T; data?: T } & Record<string, any>;
 type ApiErr = { message?: string; error?: string } & Record<string, any>;
 
 type FetchOpts = RequestInit & { token?: string };
 
-async function apiFetch<T>(path: string, init: FetchOpts = {}): Promise<T> {
+export async function apiFetch<T>(path: string, init: FetchOpts = {}): Promise<T> {
   // Merge headers but be careful about FormData
   const providedHeaders = (init.headers as Record<string,string> | undefined) ?? {};
   const isFormData = init.body instanceof FormData;
@@ -63,19 +64,9 @@ async function apiFetch<T>(path: string, init: FetchOpts = {}): Promise<T> {
 }
 
 
-const PATHS = {
-  user: "/api/customer",
-};
-
-export default async function createMerchant(
-  body: CreateUserBody,
-  opts?: { token?: string }
-) {
-  return apiFetch<ApiOk<any>>(PATHS.user, {
-    method: "POST",
-    body: JSON.stringify(body),
-    token: opts?.token,
-  });
+export async function createMerchant(payload: CreateUserBody) {
+  return postJSON<{ message?: string; user?: any; merchant?: any }>(
+    "/api/merchant/user",
+    payload
+  );
 }
-
-export { apiFetch };
