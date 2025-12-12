@@ -11,7 +11,7 @@ import FeedbackWrapper from "@/components/Home/Feedback/FeedbackWrapper";
 import InformationCard from "@/components/Home/InformationCard";
 import ShopStatusDropdown from "@/components/Home/Status-Dropdown";
 import { ThemedView } from "@/components/themed-view";
-import { Colors, Fonts } from "@/constants/theme";
+import { Fonts } from "@/constants/theme";
 import { useMerchant } from "@/context/MerchantContext";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { auth } from "@/lib/firebase";
@@ -175,116 +175,203 @@ export default function HomeScreen() {
       className="flex-1"
       style={{
         paddingTop: insets.top + 16,
-        paddingHorizontal: horizontalPadding,
+        paddingHorizontal: 16,
+        backgroundColor: "#26BD68", // ✅ primary green
       }}
     >
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+      {/* Floating white card */}
+      <View
+        style={{
+          backgroundColor: "#FFFFFF",
+          borderTopLeftRadius: 28,
+          borderTopRightRadius: 28,
+          paddingTop: 24,
+          paddingHorizontal: horizontalPadding,
+          minHeight: "100%",
+        }}
       >
-        <View className="mb-6">
-          <View className="flex-row items-center gap-2 pb-2">
-            <MapPinIcon size={22} color={Colors.light.icon} />
-            <Text
-              className="text-base text-[#11181C]"
-              style={{ fontFamily: Fonts.medium }}
-              numberOfLines={1}
-            >
-              {merchant.displayName}
-            </Text>
-          </View>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+        >
+          {/* HEADER */}
+          <View className="mb-6">
+            <View className="flex-row items-center gap-2 pb-2">
+              <MapPinIcon size={22} color="#11181C" />
+              <Text
+                className="text-base text-[#11181C]"
+                style={{ fontFamily: Fonts.medium }}
+                numberOfLines={1}
+              >
+                {merchant.displayName}
+              </Text>
+            </View>
 
-          <View className="flex-row items-center gap-2 mb-3 flex-wrap">
-            <Text
-              className="text-lg text-[#11181C]"
-              style={{ fontFamily: Fonts.bold }}
-            >
-              Hello, {merchant.owner?.name ?? "Owner"}
-            </Text>
+            <View className="flex-row items-center gap-2 mb-3 flex-wrap">
+              <Text
+                className="text-lg text-[#11181C]"
+                style={{ fontFamily: Fonts.bold }}
+              >
+                Hello, {merchant.owner?.name ?? "Owner"}
+              </Text>
 
-            {!!merchant.owner?.role && (
-              <View
-                className="rounded-full px-2 py-1"
-                style={{ backgroundColor: Colors.light.tint }}
+              {!!merchant.owner?.role && (
+                <View
+                  className="rounded-full px-3 py-1"
+                  style={{ backgroundColor: "#FECD4C" }} // ✅ yellow badge
+                >
+                  <Text
+                    className="text-xs text-[#11181C]"
+                    style={{ fontFamily: Fonts.bold }}
+                  >
+                    {merchant.owner.role}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            <View className="flex-row items-center justify-between py-2 gap-3">
+              <View className="flex-1">
+                <ShopStatusDropdown
+                  value={status}
+                  onChange={(v) => handleUpdateStatus(v as OpenStatus)}
+                />
+              </View>
+
+              <Pressable
+                onPress={() => router.push({
+                    pathname: "/edit-store",
+                    params: { merchantId: merchant.id }
+                  })}
+                className="min-h-[40px] rounded-2xl px-4 py-2 justify-center items-center"
+                style={{
+                  backgroundColor: "#FFFFFF",
+                  borderWidth: 1,
+                  borderColor: "#E5E7EB",
+                }}
               >
                 <Text
-                  className="text-xs"
-                  style={{
-                    fontFamily: Fonts.bold,
-                    color: Colors.light.background,
-                  }}
-                  numberOfLines={1}
+                  className="text-[16px] text-[#11181C]"
+                  style={{ fontFamily: Fonts.medium }}
                 >
-                  {merchant.owner.role}
+                  Edit Store
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+
+          <View className="flex-row gap-3">
+            <InformationCard
+              icon={HandRaisedIcon}
+              count={preparingCount}
+              label="Preparing"
+              footer={
+                preparingCount === 0
+                  ? "No active orders right now"
+                  : `${preparingCount} order${
+                      preparingCount > 1 ? "s" : ""
+                    } in progress`
+              }
+              backgroundColor="#FFFFFF"
+              textColor="#11181C"
+              iconBackground="#ECFDF5"
+              iconColor="#26BD68"
+              onPress={() => router.push("/order")}
+            />
+
+            <InformationCard
+              icon={ChartBarIcon}
+              count={`฿${revenueTotal}`}
+              label="Today's revenue"
+              footer={revenueTotal === 0 ? "No sales yet" : "Great work today"}
+              textColor="#11181C"
+              iconBackground="#FECD4C"
+              iconColor="#26BD68"
+              
+              onPress={() => router.push("/finance")} // ✅ makes it feel like a finance app
+            />
+          </View>
+
+          <View className="mb-12 mt-4">
+            <PopularMenuSection title="Popular Dishes">
+              {loading ? (
+                <View className="gap-3 rounded-2xl p-3">
+                  {[1, 2, 3].map((i) => (
+                    <View
+                      key={i}
+                      className="h-16 rounded-xl"
+                      style={{ backgroundColor: "#ECFDF5" }}
+                    />
+                  ))}
+                </View>
+              ) : /* 2️⃣ EMPTY (loaded but no data) */
+              popularMenu.length === 0 ? (
+                <View
+                  className="items-center rounded-2xl p-6"
+                  style={{
+                    backgroundColor: "#FFFFFF",
+                  }}
+                >
+                  <Text
+                    className="text-sm text-[#11181C]"
+                    style={{ fontFamily: Fonts.medium }}
+                  >
+                    No popular dishes yet
+                  </Text>
+
+                  <Text className="text-xs text-gray-500 mt-1 text-center">
+                    Popular dishes will appear after customers place orders.
+                  </Text>
+
+                  <Pressable
+                    onPress={() => router.push("/menu")}
+                    className="mt-4 rounded-full px-4 py-2"
+                    style={{ backgroundColor: "#FECD4C" }}
+                  >
+                    <Text
+                      className="text-sm text-[#11181C]"
+                      style={{ fontFamily: Fonts.bold }}
+                    >
+                      Add menu items
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : (
+                /* 3️⃣ HAS DATA */
+                popularMenu.map((item) => (
+                  <PopularMenuItem
+                    key={item.id}
+                    imageUrl={item.imageUrl}
+                    title={item.title}
+                    price={item.price}
+                    orders={item.orders}
+                    leftoverQty={item.leftOverQty}
+                  />
+                ))
+              )}
+            </PopularMenuSection>
+          </View>
+
+          {/* FEEDBACK */}
+          <View className="mb-10">
+            {reviewsFromOrders.length === 0 ? (
+              <View className="items-center py-10">
+                <Text className="text-sm text-gray-600">
+                  No customer feedback yet
+                </Text>
+                <Text className="text-xs text-gray-400 mt-1">
+                  Reviews will appear after your first order
                 </Text>
               </View>
+            ) : (
+              <FeedbackWrapper
+                reviews={reviewsFromOrders as any}
+                warnings={[]}
+              />
             )}
           </View>
-
-          <View className="flex-row items-center justify-between py-2 gap-2">
-            <View className="flex-1">
-              <ShopStatusDropdown
-                value={status}
-                onChange={(v) => handleUpdateStatus(v as OpenStatus)}
-              />
-            </View>
-            
-            <Pressable
-              onPress={() =>
-                router.push({
-                  pathname: "/edit-store",
-                  params: { merchantId: merchant.id },
-                })
-              }
-              className="min-h-[40px] border border-gray-300 bg-white rounded-2xl px-4 py-2 justify-center items-center"
-            >
-              <Text
-                className="text-[16px] text-gray-800"
-                style={{ fontFamily: Fonts.medium }}
-              >
-                Edit Store
-              </Text>
-            </Pressable>
-          </View>
-        </View>
-
-        <View className="flex-row gap-3 bg-white rounded-2xl border border-gray-200 p-3 mb-6">
-          <InformationCard
-            icon={HandRaisedIcon}
-            count={preparingCount}
-            label="Preparing"
-            backgroundColor="#fff"
-          />
-
-          <InformationCard
-            icon={ChartBarIcon}
-            count={revenueTotal}
-            textColor="#fff"
-            label="Total THB"
-            backgroundColor={Colors.light.tint}
-            IconBackground="#FECD4C"
-          />
-        </View>
-
-        <View className="mb-10">
-          <PopularMenuSection title="Popular Dishes">
-            {popularMenu.map((item) => (
-              <PopularMenuItem
-                key={item.id}
-                imageUrl={item.imageUrl}
-                title={item.title}
-                price={item.price}
-                orders={item.orders}
-                leftoverQty={item.leftOverQty}
-              />
-            ))}
-          </PopularMenuSection>
-        </View>
-
-        <View className="mb-10">
-          <FeedbackWrapper reviews={reviewsFromOrders as any} warnings={[]} />
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </View>
     </ThemedView>
   );
 }
