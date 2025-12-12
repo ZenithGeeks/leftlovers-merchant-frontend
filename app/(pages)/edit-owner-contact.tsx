@@ -1,7 +1,7 @@
 // app/(pages)/edit-owner-contact.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Text } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedView } from "@/components/themed-view";
@@ -10,17 +10,17 @@ import {
   updateStoreSettings,
   type StoreSettings,
 } from "@/services/store";
-import { DEV_MERCHANT_ID } from "@/utils/env";
 
 import StoreHeader from "@/components/store/StoreHeader";
 import OwnerContactForm from "@/components/store/OwnerContactForm";
 
-const MERCHANT_ID =
-  DEV_MERCHANT_ID || process.env.EXPO_PUBLIC_MERCHANT_ID || "";
+type EditOwnerContactParams = { merchantId?: string };
 
 export default function EditOwnerContact() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams<EditOwnerContactParams>();
+  const merchantId = params.merchantId ?? "";
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -37,7 +37,7 @@ export default function EditOwnerContact() {
     let cancelled = false;
 
     async function load() {
-      if (!MERCHANT_ID) {
+      if (!merchantId) {
         setError("Missing merchant id.");
         setLoading(false);
         return;
@@ -47,7 +47,7 @@ export default function EditOwnerContact() {
       setError(null);
 
       try {
-        const data: StoreSettings = await fetchStoreSettings(MERCHANT_ID);
+        const data: StoreSettings = await fetchStoreSettings(merchantId);
         if (cancelled) return;
 
         const ownerPhone = data.owner?.phone ?? "";
@@ -73,7 +73,7 @@ export default function EditOwnerContact() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [merchantId]);
 
   const hasChanges =
     phone.trim() !== initialPhone.trim() ||
@@ -81,26 +81,30 @@ export default function EditOwnerContact() {
 
   const canSave = useMemo(
     () =>
+      !!merchantId &&
       phone.trim().length > 0 &&
       email.trim().length > 0 &&
       hasChanges &&
       !saving,
-    [phone, email, hasChanges, saving]
+    [merchantId, phone, email, hasChanges, saving]
   );
 
   const onSave = async () => {
-    if (!canSave || !MERCHANT_ID) return;
+    if (!canSave || !merchantId) return;
 
     setSaving(true);
     try {
       // Only update OWNER contact
-      await updateStoreSettings(MERCHANT_ID, {
-        ownerPhone: phone.trim(),
-        ownerEmail: email.trim().toLowerCase(),
+      const trimmedPhone = phone.trim();
+      const trimmedEmail = email.trim().toLowerCase();
+
+      await updateStoreSettings(merchantId, {
+        ownerPhone: trimmedPhone,
+        ownerEmail: trimmedEmail,
       });
 
-      setInitialPhone(phone.trim());
-      setInitialEmail(email.trim().toLowerCase());
+      setInitialPhone(trimmedPhone);
+      setInitialEmail(trimmedEmail);
 
       Alert.alert("Success", "Owner contact updated.", [
         { text: "OK", onPress: () => router.back() },
@@ -112,6 +116,22 @@ export default function EditOwnerContact() {
       setSaving(false);
     }
   };
+
+  if (!merchantId) {
+    return (
+      <ThemedView
+        className="flex-1 bg-white items-center justify-center"
+        style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
+      >
+        <Text className="text-red-600 mb-2 font-semibold">
+          Missing merchant id
+        </Text>
+        <Text className="text-gray-500 text-center px-6">
+          This screen must be opened with a merchantId param.
+        </Text>
+      </ThemedView>
+    );
+  }
 
   if (loading) {
     return (

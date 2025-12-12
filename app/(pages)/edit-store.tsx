@@ -1,4 +1,4 @@
-// app/edit-store.tsx
+// app/(pages)/edit-store.tsx
 import React from "react";
 import {
   ActivityIndicator,
@@ -9,13 +9,12 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import * as Clipboard from "expo-clipboard";
 
 import { Fonts } from "@/constants/theme";
 import { fetchStoreSettings, type StoreSettings } from "@/services/store";
-import { DEV_MERCHANT_ID } from "@/utils/env";
 import { ThemedView } from "@/components/themed-view";
 
 import {
@@ -35,12 +34,15 @@ import BusinessHoursPreview from "@/components/store/BusinessHoursPreview";
 import LogoutConfirmModal from "@/components/store/LogoutConfirmModal";
 import { logoutFirebase } from "@/services/auth";
 
-const MERCHANT_ID =
-  DEV_MERCHANT_ID || process.env.EXPO_PUBLIC_MERCHANT_ID || "";
+type EditStoreParams = { merchantId?: string };
 
 export default function EditStoreScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const params = useLocalSearchParams<EditStoreParams>();
+
+  // 🔹 EXACT same pattern as AddItemScreen
+  const merchantId = params.merchantId ?? "";
 
   const [store, setStore] = React.useState<StoreSettings | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -49,7 +51,7 @@ export default function EditStoreScreen() {
   const [logoutVisible, setLogoutVisible] = React.useState(false);
   const [loggingOut, setLoggingOut] = React.useState(false);
 
-  // 🔁 Refetch whenever screen gains focus
+  // 🔁 Refetch whenever screen gains focus or merchantId changes
   useFocusEffect(
     React.useCallback(() => {
       let cancelled = false;
@@ -59,10 +61,10 @@ export default function EditStoreScreen() {
         setErr(null);
 
         try {
-          if (!MERCHANT_ID) {
+          if (!merchantId) {
             throw new Error("Missing merchant id");
           }
-          const data = await fetchStoreSettings(MERCHANT_ID);
+          const data = await fetchStoreSettings(merchantId);
           if (!cancelled) {
             setStore(data);
           }
@@ -83,7 +85,7 @@ export default function EditStoreScreen() {
       return () => {
         cancelled = true;
       };
-    }, [])
+    }, [merchantId])
   );
 
   const addressLine = [
@@ -132,6 +134,26 @@ export default function EditStoreScreen() {
       >
         <ActivityIndicator />
         <Text className="mt-2 text-gray-500">Loading store…</Text>
+      </View>
+    );
+  }
+
+  // 🔴 Same “Missing merchant id” guard as before
+  if (!merchantId) {
+    return (
+      <View
+        className="flex-1 bg-white items-center justify-center px-6"
+        style={{ paddingTop: insets.top }}
+      >
+        <Text className="text-red-600 mb-2 font-semibold">
+          Missing merchant id
+        </Text>
+        <Text className="text-gray-500 text-center">
+          This screen must be opened with a merchantId param.
+        </Text>
+        <Text className="mt-2 text-xs text-gray-400 text-center">
+          Example: /edit-store?merchantId=MERCHANT_ID_HERE
+        </Text>
       </View>
     );
   }
@@ -187,7 +209,12 @@ export default function EditStoreScreen() {
               {store.name ?? "Unnamed store"}
             </Text>
             <Pressable
-              onPress={() => router.push("/edit-store-detail")}
+              onPress={() =>
+                router.push({
+                  pathname: "/edit-store-detail",
+                  params: { merchantId },
+                })
+              }
               className="w-8 h-8 rounded-full items-center justify-center active:bg-gray-100"
               accessibilityLabel="edit-store-detail"
             >
@@ -214,7 +241,12 @@ export default function EditStoreScreen() {
                   }`
                 : store.cuisine?.type ?? "Unknown"
             }
-            onPress={() => router.push("/edit-cuisine-certification")}
+            onPress={() =>
+              router.push({
+                pathname: "/edit-cuisine-certification",
+                params: { merchantId },
+              })
+            }
           />
 
           <Divider />
@@ -222,7 +254,12 @@ export default function EditStoreScreen() {
           {/* Business hours preview */}
           <BusinessHoursPreview
             weekly={weekly}
-            onPressEdit={() => router.push("/edit-business-hours")}
+            onPressEdit={() =>
+              router.push({
+                pathname: "/edit-business-hours",
+                params: { merchantId },
+              })
+            }
           />
 
           <Divider />
@@ -234,7 +271,12 @@ export default function EditStoreScreen() {
             subtitle={`${store.owner?.phone ?? "-"}\n${
               store.owner?.email ?? "-"
             }`}
-            onPress={() => router.push("/edit-owner-contact")}
+            onPress={() =>
+              router.push({
+                pathname: "/edit-owner-contact",
+                params: { merchantId },
+              })
+            }
           />
 
           <Divider />
@@ -244,7 +286,12 @@ export default function EditStoreScreen() {
             icon={<MapPinIcon size={18} color="#22C55E" />}
             title="Address"
             subtitle={addressLine || "-"}
-            onPress={() => router.push("/edit-address")}
+            onPress={() =>
+              router.push({
+                pathname: "/edit-address",
+                params: { merchantId },
+              })
+            }
           />
 
           <Divider />
