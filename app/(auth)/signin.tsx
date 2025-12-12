@@ -16,6 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ClickButton } from "@/components/Authen/ClickButton";
 import { InputBox } from "@/components/Authen/InputBox";
+import { ProcessingScreen } from "@/components/common/processingScreen";
 import { useMerchant } from "@/context/MerchantContext";
 import { auth } from "@/lib/firebase";
 import { fetchMerchant } from "@/services/store";
@@ -32,52 +33,48 @@ export default function SignInPage() {
   const [loading, setLoading] = useState(false);
   const { setMerchant } = useMerchant();
   const inputsDisabled = loading;
+  const [processing, setProcessing] = useState(false);
   const canSubmit = useMemo(() => {
     const normEmail = email.trim().toLowerCase();
     return isValidEmail(normEmail) && password.length > 0 && !loading;
   }, [email, password, loading]);
 
- const handleEmailPasswordSignIn = useCallback(async () => {
-  if (loading) return;
+  const handleEmailPasswordSignIn = useCallback(async () => {
+    if (loading) return;
 
-  const normEmail = email.trim().toLowerCase();
-  if (!isValidEmail(normEmail) || !password) {
-    Alert.alert("Missing info", "Please enter a valid email and password.");
-    return;
-  }
-
-  setLoading(true);
-  try {
-    const cred = await signInWithEmailAndPassword(auth, normEmail, password);
-    const user = cred.user;
-
-    // ✅ FETCH MERCHANT AFTER SIGN IN
-    const merchant = await fetchMerchant(user.uid);
-
-    if (merchant) {
-      setMerchant(merchant.id, merchant.status);
-    } else {
-      setMerchant('', 'PENDING');
+    const normEmail = email.trim().toLowerCase();
+    if (!isValidEmail(normEmail) || !password) {
+      Alert.alert("Missing info", "Please enter a valid email and password.");
+      return;
     }
 
-    // ❌ อย่า router.replace ที่นี่
-    // ให้ AuthLayout จัดการ redirect
-  } catch (err: unknown) {
-    let message = "Something went wrong. Please try again.";
-    if (err instanceof FirebaseError) {
-      message = err.message || message;
-    }
-    Alert.alert("Sign-in failed", message);
-  } finally {
-    setLoading(false);
-  }
-}, [loading, email, password, setMerchant]);
+    setLoading(true);
+    setProcessing(true);
+    try {
+      const cred = await signInWithEmailAndPassword(auth, normEmail, password);
+      const user = cred.user;
+      const merchant = await fetchMerchant(user.uid);
 
+      if (merchant) {
+        setMerchant(merchant.id, merchant.status);
+      } else {
+        setMerchant("", "PENDING");
+      }
+    } catch (err: unknown) {
+      setProcessing(false);
+      let message = "Something went wrong. Please try again.";
+      if (err instanceof FirebaseError) {
+        message = err.message || message;
+      }
+      Alert.alert("Sign-in failed", message);
+    } finally {
+      setLoading(false);
+    }
+  }, [loading, email, password, setMerchant]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
       <Stack.Screen options={{ headerShown: false }} />
-
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -143,7 +140,7 @@ export default function SignInPage() {
           </View>
 
           <TouchableOpacity
-            onPress={()=>null}
+            onPress={() => null}
             disabled={inputsDisabled}
             style={{ marginTop: 12, alignSelf: "flex-end" }}
           >
@@ -158,16 +155,26 @@ export default function SignInPage() {
               Forgot password?
             </Text>
           </TouchableOpacity>
-
           <ClickButton
             label={loading ? "Signing in..." : "Sign In"}
             onPress={handleEmailPasswordSignIn}
             disabled={!canSubmit}
             style={{ marginTop: 22 }}
           />
-
-          <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 18 }}>
-            <Text style={{ color: BRAND.text, fontSize: 12, fontFamily: "Poppins_400Regular" }}>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "center",
+              marginTop: 18,
+            }}
+          >
+            <Text
+              style={{
+                color: BRAND.text,
+                fontSize: 12,
+                fontFamily: "Poppins_400Regular",
+              }}
+            >
               Don’t have an account?{" "}
               <Link
                 href="/(auth)/signup"
@@ -182,6 +189,12 @@ export default function SignInPage() {
               </Link>
             </Text>
           </View>
+          <ProcessingScreen
+            visible={processing}
+            title="Signing you in"
+            description="We’re preparing your account"
+            helperText="Checking your store status and loading your dashboard"
+          />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
