@@ -1,3 +1,5 @@
+import { MerchantStatus } from "./types";
+
 // types/employee.ts
 export type Role = 'Owner' | 'Manager' | 'Cashier' | 'Stock';
 
@@ -16,7 +18,6 @@ export type Employee = {
 
 export type Owner = Omit<Employee, 'status' | 'createdAt' | 'disabledAt'>;
 
-// Payload to create an employee
 export type CreateEmployeeInput = {
   fullName: string;
   username?: string;
@@ -29,4 +30,9 @@ export type CreateEmployeeInput = {
 export type EmployeesResponse = {
   owner: Owner;
   employees: Employee[];
+};
+
+export type EmployeeMerchantLookup = {
+  merchantId: string;
+  merchantStatus: MerchantStatus;
 };

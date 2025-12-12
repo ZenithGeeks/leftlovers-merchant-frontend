@@ -22,14 +22,13 @@ import {
   UserGroupIcon as UserSolid,
 } from "react-native-heroicons/solid";
 
-import { MerchantProvider } from "@/context/MerchantContext";
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const insets = useSafeAreaInsets();
 
   return (
-    <MerchantProvider>
+
       <Tabs
         screenOptions={{
           headerShown: false,
@@ -136,6 +135,5 @@ export default function TabLayout() {
           }}
         />
       </Tabs>
-    </MerchantProvider>
   );
 }

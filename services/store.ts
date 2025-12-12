@@ -104,6 +104,17 @@ export async function fetchMerchant(ownerUserId: string): Promise<Merchant> {
   return httpGet<Merchant>(`/api/merchant/merchant/${ownerUserId}/LandingDashboard`);
 }
 
+export async function fetchMerchantById(
+  merchantId: string
+): Promise<Merchant | null> {
+  try {
+    return await httpGet<Merchant>(`/api/merchant/${encodeURIComponent(merchantId)}`);
+  } catch {
+    return null;
+  }
+}
+
+
 export async function updateStoreSettings(
   merchantId: string,
   body: UpdateStoreSettingsBody

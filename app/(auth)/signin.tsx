@@ -1,6 +1,6 @@
 import { Link, Stack, useRouter } from "expo-router";
 import { FirebaseError } from "firebase/app";
-import { sendPasswordResetEmail, signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   Alert,
@@ -16,7 +16,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ClickButton } from "@/components/Authen/ClickButton";
 import { InputBox } from "@/components/Authen/InputBox";
+import { ProcessingScreen } from "@/components/common/processingScreen";
+import { useMerchant } from "@/context/MerchantContext";
 import { auth } from "@/lib/firebase";
+import { getMerchantAccessByEmployeeEmail } from "@/services/employees";
+import { fetchMerchant } from "@/services/store";
 
 const BRAND = { green: "#26BD68", text: "#0B0F10" };
 
@@ -25,13 +29,13 @@ const isValidEmail = (v: string) =>
 
 export default function SignInPage() {
   const router = useRouter();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-
+  const { setMerchant } = useMerchant();
   const inputsDisabled = loading;
+  const [processing, setProcessing] = useState(false);
 
   const canSubmit = useMemo(() => {
     const normEmail = email.trim().toLowerCase();
@@ -48,62 +52,59 @@ export default function SignInPage() {
     }
 
     setLoading(true);
-    try {
-      await signInWithEmailAndPassword(auth, normEmail, password);
-      router.replace("/(tabs)/home");
-    } catch (err: unknown) {
-      let message = "Something went wrong. Please try again.";
+    setProcessing(true);
 
-      if (err instanceof FirebaseError) {
-        switch (err.code) {
-          case "auth/user-not-found":
-            message = "This account does not exist.";
-            break;
-          case "auth/wrong-password":
-          case "auth/invalid-credential":
-            message = "Incorrect email or password.";
-            break;
-          case "auth/too-many-requests":
-            message = "Too many attempts. Please try again later.";
-            break;
-          case "auth/invalid-email":
-            message = "This email address is invalid.";
-            break;
-          default:
-            message = err.message || message;
-        }
+    try {
+      const cred = await signInWithEmailAndPassword(auth, normEmail, password);
+      const user = cred.user;
+
+      if (!user.emailVerified) {
+        setMerchant("", null);
+        router.replace("/(auth)/signup");
+        return;
       }
 
+      const userEmail = (user.email ?? normEmail).trim().toLowerCase();
+
+      try {
+        const empAccess = await getMerchantAccessByEmployeeEmail(userEmail);
+        setMerchant(empAccess.merchantId, empAccess.merchantStatus);
+        if (empAccess.merchantStatus === "PENDING") {
+          router.replace("/(auth)/notifyPage");
+        } else {
+          router.replace("/(tabs)/home");
+        }
+        return;
+      } catch {}
+
+      const ownerMerchant = await fetchMerchant(user.uid);
+
+      if (ownerMerchant) {
+        setMerchant(ownerMerchant.id, ownerMerchant.status);
+        if (ownerMerchant.status === "PENDING") {
+          router.replace("/(auth)/notifyPage");
+        } else {
+          router.replace("/(tabs)/home");
+        }
+        return;
+      }
+
+      setMerchant("", null);
+      router.replace("/(auth)/storeInfo");
+    } catch (err: unknown) {
+      setProcessing(false);
+      let message = "Something went wrong. Please try again.";
+      if (err instanceof FirebaseError) message = err.message || message;
       Alert.alert("Sign-in failed", message);
     } finally {
       setLoading(false);
+      setProcessing(false);
     }
-  }, [email, password, loading, router]);
-
-  const handleForgotPassword = useCallback(async () => {
-    const normEmail = email.trim().toLowerCase();
-
-    if (!isValidEmail(normEmail)) {
-      Alert.alert("Invalid email", "Please enter your email first.");
-      return;
-    }
-
-    try {
-      await sendPasswordResetEmail(auth, normEmail);
-      Alert.alert("Email sent", "Check your inbox for a reset link.");
-    } catch (err: unknown) {
-      let message = "Unable to send reset email.";
-      if (err instanceof FirebaseError) {
-        message = err.message || message;
-      }
-      Alert.alert("Reset failed", message);
-    }
-  }, [email]);
+  }, [loading, email, password, setMerchant, router]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
       <Stack.Screen options={{ headerShown: false }} />
-
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -169,7 +170,7 @@ export default function SignInPage() {
           </View>
 
           <TouchableOpacity
-            onPress={handleForgotPassword}
+            onPress={() => router.push("/(auth)/forgotPassword")}
             disabled={inputsDisabled}
             style={{ marginTop: 12, alignSelf: "flex-end" }}
           >
@@ -208,6 +209,13 @@ export default function SignInPage() {
               </Link>
             </Text>
           </View>
+
+          <ProcessingScreen
+            visible={processing}
+            title="Signing you in"
+            description="We’re preparing your account"
+            helperText="Checking your store status and loading your dashboard"
+          />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
