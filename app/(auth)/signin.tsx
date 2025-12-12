@@ -1,4 +1,4 @@
-import { Link, Stack } from "expo-router";
+import { Link, router, Stack } from "expo-router";
 import { FirebaseError } from "firebase/app";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import React, { useCallback, useMemo, useState } from "react";
@@ -140,7 +140,7 @@ export default function SignInPage() {
           </View>
 
           <TouchableOpacity
-            onPress={() => null}
+            onPress={() => router.push("/(auth)/forgotPassword")}
             disabled={inputsDisabled}
             style={{ marginTop: 12, alignSelf: "flex-end" }}
           >
