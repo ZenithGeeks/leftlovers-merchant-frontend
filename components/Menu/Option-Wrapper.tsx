@@ -1,5 +1,6 @@
 import OptionList, { OptionItem } from "@/components/Menu/Option-List";
 import { deleteGroupOption, deleteOptionGroup } from "@/services/group";
+import { updateOptionStatus } from "@/services/options";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Animated, Easing, Pressable, Text, View } from "react-native";
 import { ChevronUpIcon, TrashIcon } from "react-native-heroicons/outline";
@@ -19,8 +20,6 @@ type Props = {
   title?: string;
   options: Option[];
   defaultExpanded?: boolean;
-  maxSelect?: number;
-  onChangeChoice?: (groupLabel: string, optionId: string, value: boolean) => void;
   onAfterChange?: () => void;
 };
 
@@ -30,17 +29,20 @@ export default function OptionWrapper({
   title = "Options",
   options,
   defaultExpanded = true,
-  maxSelect,
-  onChangeChoice,
   onAfterChange,
 }: Props) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const [deleting, setDeleting] = useState(false);
   const [deletingOptionId, setDeletingOptionId] = useState<string | null>(null);
+  const [localOptions, setLocalOptions] = useState<Option[]>(options ?? []);
+
+  useEffect(() => {
+    setLocalOptions(options ?? []);
+  }, [options]);
 
   const sortedOptions: OptionItem[] = useMemo(
     () =>
-      (options ?? [])
+      (localOptions ?? [])
         .slice()
         .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
         .map((o) => ({
@@ -49,7 +51,7 @@ export default function OptionWrapper({
           priceDelta: o.priceDelta,
           active: !!o.active,
         })),
-    [options]
+    [localOptions]
   );
 
   const rotation = useRef(new Animated.Value(defaultExpanded ? 0 : 1)).current;
@@ -61,7 +63,11 @@ export default function OptionWrapper({
       useNativeDriver: true,
     }).start();
   }, [expanded, rotation]);
-  const rotate = rotation.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "180deg"] });
+
+  const rotate = rotation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "180deg"],
+  });
 
   const confirmDeleteGroup = () => {
     Alert.alert(
@@ -89,37 +95,46 @@ export default function OptionWrapper({
   };
 
   const handleDeleteOption = (optionId: string) => {
-    Alert.alert(
-      "Delete option",
-      "Are you sure you want to remove this option?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              setDeletingOptionId(optionId);
-              await deleteGroupOption(merchantId, groupId, optionId);
-              onAfterChange?.();
-            } catch (e: any) {
-              Alert.alert("Error", e?.message ?? "Failed to delete option.");
-            } finally {
-              setDeletingOptionId(null);
-            }
-          },
+    Alert.alert("Delete option", "Are you sure you want to remove this option?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            setDeletingOptionId(optionId);
+            await deleteGroupOption(merchantId, groupId, optionId);
+            onAfterChange?.();
+          } catch (e: any) {
+            Alert.alert("Error", e?.message ?? "Failed to delete option.");
+          } finally {
+            setDeletingOptionId(null);
+          }
         },
-      ]
+      },
+    ]);
+  };
+
+  const onToggleAvailability = async (optionId: string, nextActive: boolean) => {
+    const prev = localOptions;
+    setLocalOptions((p) =>
+      p.map((x) => (x.id === optionId ? { ...x, active: nextActive } : x))
     );
+
+    try {
+      await updateOptionStatus(optionId, nextActive);
+      onAfterChange?.();
+    } catch (e: any) {
+      setLocalOptions(prev);
+      Alert.alert("Error", e?.message ?? "Failed to update option status.");
+    }
   };
 
   return (
     <View>
-      {/* Header */}
       <View className="flex-row items-center mb-2 px-0 py-4">
         <Text className="flex-1 text-2xl font-semibold text-gray-900">{title}</Text>
 
-        {/* Delete Group */}
         <Pressable
           onPress={confirmDeleteGroup}
           className="mr-2 w-9 h-9 rounded-full bg-red-50 items-center justify-center"
@@ -129,7 +144,6 @@ export default function OptionWrapper({
           <TrashIcon size={18} color={deleting ? "#FCA5A5" : "#EF4444"} />
         </Pressable>
 
-        {/* Collapse */}
         <Pressable
           onPress={() => setExpanded((p) => !p)}
           hitSlop={8}
@@ -144,7 +158,6 @@ export default function OptionWrapper({
         </Pressable>
       </View>
 
-      {/* Body */}
       {expanded && (
         <View className="bg-white rounded-2xl p-2 border border-gray-200">
           {sortedOptions.length === 0 ? (
@@ -154,8 +167,7 @@ export default function OptionWrapper({
           ) : (
             <OptionList
               options={sortedOptions}
-              maxSelect={maxSelect ?? sortedOptions.length}
-              onToggle={(optionId, value) => onChangeChoice?.(title, optionId, value)}
+              onToggleAvailability={onToggleAvailability}
               onDelete={handleDeleteOption}
               deletingId={deletingOptionId}
             />
