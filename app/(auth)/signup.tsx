@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import createMerchant from "@/app/api/users";
+import { createMerchant } from "@/app/api/users";
 import { ClickButton } from "@/components/Authen/ClickButton";
 import { InputBox } from "@/components/Authen/InputBox";
 import { PasswordInput } from "@/components/Authen/PasswordInput";
@@ -186,7 +186,6 @@ export default function SignUpPage() {
 
       const emailLower =
         user.email?.toLowerCase() ?? email.trim().toLowerCase();
-      const name = emailLower.split("@")[0] || "Merchant";
       const isoDob = parseDobToISO(dob);
 
       if (!name || !isoDob) {
@@ -199,7 +198,7 @@ export default function SignUpPage() {
       try {
         await createMerchant({
           id: user.uid,
-          name: name || undefined,
+          name: name,
           email: emailLower,
           phone: localPhone || undefined,
           dob: isoDob || undefined,

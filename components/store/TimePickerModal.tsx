@@ -17,6 +17,16 @@ type Props = {
   title: string;
 };
 
+
+function timeBase(d: Date) {
+  const base = new Date(1970, 0, 1);
+  base.setHours(d.getHours(), d.getMinutes(), 0, 0);
+  return base;
+}
+
+const MIN_TIME = new Date(1970, 0, 1, 0, 0);
+const MAX_TIME = new Date(1970, 0, 1, 23, 59);
+
 export default function TimePickerModal({
   visible,
   value,
@@ -37,16 +47,18 @@ export default function TimePickerModal({
 
         <View className="items-center">
           <DateTimePicker
-            value={value}
-            mode="time"
-            display={Platform.OS === "ios" ? "spinner" : "default"}
-            minuteInterval={5}
-            is24Hour
-            onChange={(_, d) => {
-              if (d) onChange(d);
-            }}
-            themeVariant="light"
-          />
+              value={timeBase(value)}
+              mode="time"
+              display={Platform.OS === "ios" ? "spinner" : "default"}
+              minuteInterval={5}
+              is24Hour
+              minimumDate={MIN_TIME}
+              maximumDate={MAX_TIME}
+              onChange={(_, d) => {
+                if (d) onChange(timeBase(d));
+              }}
+              themeVariant="light"
+            />
         </View>
 
         <Pressable

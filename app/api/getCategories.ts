@@ -5,7 +5,6 @@ export type Category = {
   name: string;
 };
 
-
 export async function getCategories(): Promise<Category[]> {
   return httpGet<Category[]>(`/api/merchant/categories`);
 }
