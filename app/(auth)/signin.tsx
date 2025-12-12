@@ -170,7 +170,7 @@ export default function SignInPage() {
           </View>
 
           <TouchableOpacity
-            onPress={() => null}
+            onPress={() => router.push("/(auth)/forgotPassword")}
             disabled={inputsDisabled}
             style={{ marginTop: 12, alignSelf: "flex-end" }}
           >
