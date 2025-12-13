@@ -1,4 +1,5 @@
 // components/store/AddressForm.tsx
+import LocationPicker from "@/components/Authen/LocationPicker";
 import React from "react";
 import {
   Pressable,
@@ -7,7 +8,6 @@ import {
   TextInput,
   View,
 } from "react-native";
-import LocationPicker from "@/components/Authen/LocationPicker.native";
 
 type Props = {
   error: string | null;

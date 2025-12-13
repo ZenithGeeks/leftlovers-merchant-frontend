@@ -4,7 +4,7 @@ import { getCategories } from "@/app/api/getCategories";
 import { createMerchantInfo } from "@/app/api/merchant";
 import { ClickButton } from "@/components/Authen/ClickButton";
 import { InputBox } from "@/components/Authen/InputBox";
-import LocationPicker from "@/components/Authen/LocationPicker.native";
+import LocationPicker from "@/components/Authen/LocationPicker";
 import FoodTypePicker, { FoodType } from "@/components/Authen/menuType";
 import UploadFile from "@/components/Authen/UploadFile";
 import UploadImagesGrid from "@/components/Authen/UploadImages";
