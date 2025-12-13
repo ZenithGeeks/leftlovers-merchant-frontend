@@ -36,7 +36,8 @@ jobs:
           npm test -- \
             --ci \
             --runInBand \
-            --passWithNoTests
+            --passWithNoTests \
+            --updateSnapshot
 
       - name: 📊 Upload coverage
         if: success()
