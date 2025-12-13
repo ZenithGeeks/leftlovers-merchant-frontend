@@ -79,7 +79,7 @@ export default function NotifyPage() {
 
       {/* Logo */}
       <Image
-        source={require("@/assets/images/logo.jpg")}
+        source={require("@/assets/images/logo.png")}
         style={{
           width: 350,
           height: 350,

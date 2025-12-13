@@ -64,7 +64,7 @@ export async function apiFetch<T>(path: string, init: FetchOpts = {}): Promise<T
 }
 
 
-export async function createMerchant(payload: CreateUserBody) {
+export default async function createMerchant(payload: CreateUserBody) {
   return postJSON<{ message?: string; user?: any; merchant?: any }>(
     "/api/merchant/user",
     payload

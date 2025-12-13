@@ -1,18 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Link, Stack, useRouter } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
-import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-
-import { createMerchant } from "@/app/api/users";
+import createMerchant from "@/app/api/users";
 import { AuthHeader } from "@/components/Authen/AuthHeader";
 import { AuthScreenWrapper } from "@/components/Authen/AuthScreenWrapper";
 import { ClickButton } from "@/components/Authen/ClickButton";
@@ -25,12 +11,25 @@ import { useMerchant } from "@/context/MerchantContext";
 import { auth } from "@/lib/firebase";
 import { getMerchantAccessByEmployeeEmail } from "@/services/employees";
 import { type OnboardingStep } from "@/src/lib/onboarding";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Link, Stack, useRouter } from "expo-router";
 import { FirebaseError } from "firebase/app";
 import {
   createUserWithEmailAndPassword,
   sendEmailVerification,
   type User as FirebaseUser,
 } from "firebase/auth";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const BRAND = { green: "#26BD68", text: "#0B0F10" };
 

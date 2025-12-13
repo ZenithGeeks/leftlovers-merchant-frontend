@@ -77,7 +77,14 @@ export default function SignInPage() {
         return;
       } catch {}
 
-      const ownerMerchant = await fetchMerchant(user.uid);
+      let ownerMerchant: Awaited<ReturnType<typeof fetchMerchant>> | null =
+        null;
+
+      try {
+        ownerMerchant = await fetchMerchant(user.uid);
+      } catch  {
+        ownerMerchant = null;
+      }
 
       if (ownerMerchant) {
         setMerchant(ownerMerchant.id, ownerMerchant.status);
@@ -193,8 +200,20 @@ export default function SignInPage() {
             style={{ marginTop: 22 }}
           />
 
-          <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 18 }}>
-            <Text style={{ color: BRAND.text, fontSize: 12, fontFamily: "Poppins_400Regular" }}>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "center",
+              marginTop: 18,
+            }}
+          >
+            <Text
+              style={{
+                color: BRAND.text,
+                fontSize: 12,
+                fontFamily: "Poppins_400Regular",
+              }}
+            >
               Don’t have an account?{" "}
               <Link
                 href="/(auth)/signup"
