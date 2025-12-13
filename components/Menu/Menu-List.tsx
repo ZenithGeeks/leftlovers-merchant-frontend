@@ -176,7 +176,6 @@ export default function MenuList({
                       pathname: "/edit-item/[id]",
                       params: {
                         id: item.id,
-                        merchantId: merchantId ?? "",
                       },
                     })
                   }

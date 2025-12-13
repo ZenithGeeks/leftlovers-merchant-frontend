@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useFocusEffect } from "expo-router";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -134,10 +135,12 @@ export default function OrderPage() {
     []
   );
 
-  useEffect(() => {
+  useFocusEffect(
+  useCallback(() => {
     if (!merchantId) return;
     loadOrders(merchantId);
-  }, [merchantId, loadOrders]);
+  }, [merchantId, loadOrders])
+);
 
   const handleOrderUpdated = useCallback((next: Order) => {
     setOrders((prev) =>

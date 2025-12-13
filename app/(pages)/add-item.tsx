@@ -3,12 +3,13 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
+  KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
   Text,
   TextInput,
-  View,
+  View
 } from "react-native";
 import { ChevronLeftIcon } from "react-native-heroicons/outline";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -16,11 +17,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import FieldLabel from "@/components/add-item/FieldLabel";
 import NumberStepper from "@/components/add-item/NumberStepper";
 import DatePickerField from "@/components/common/DatePickerField";
-import ImagePickerField from "@/components/ImagePickerField";
-
 import SelectMultiModal, {
   MultiOption,
 } from "@/components/common/SelectMultiModal";
+import ImagePickerField from "@/components/ImagePickerField";
 
 import { ProcessingScreen } from "@/components/common/processingScreen";
 import { fetchMerchantOptionGroups, OptionGroupAPI } from "@/services/group";
@@ -188,6 +188,10 @@ export default function AddItemScreen() {
       className="flex-1 bg-white"
       style={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 8 }}
     >
+           <KeyboardAvoidingView
+              style={{ flex: 1 }}
+              behavior={Platform.OS === "ios" ? "padding" : undefined}
+            >
       <View className="px-5 pb-2 flex-row items-center">
         <Pressable
           onPress={() => router.back()}
@@ -321,6 +325,7 @@ export default function AddItemScreen() {
           cancellable={false}
         />
       </ScrollView>
+      </KeyboardAvoidingView>
     </ThemedView>
   );
 }
