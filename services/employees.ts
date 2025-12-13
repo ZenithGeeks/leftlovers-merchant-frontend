@@ -1,10 +1,10 @@
 // services/employees.ts
+import { httpDelete, httpGet, postJSON } from "@/lib/api";
 import type {
   CreateEmployeeInput,
   Employee,
-  EmployeesResponse,
+  EmployeesResponse
 } from "@/types/employee";
-import { httpDelete, httpGet, postJSON } from "@/lib/api";
 
 /**
  * Load employees + owner for a merchant
@@ -76,4 +76,19 @@ export async function deleteEmployee(
     merchantId
   )}/employees/${encodeURIComponent(employeeId)}`;
   await httpDelete(path);
+}
+
+
+export type MerchantAccessResponse = {
+  merchantId: string;
+  merchantStatus: "PENDING" | "APPROVED" | "SUSPENDED";
+};
+
+export async function getMerchantAccessByEmployeeEmail(
+  email: string
+): Promise<MerchantAccessResponse> {
+  const norm = email.trim().toLowerCase();
+  return httpGet<MerchantAccessResponse>(
+    `/api/merchant/employees/merchant?email=${encodeURIComponent(norm)}`
+  );
 }

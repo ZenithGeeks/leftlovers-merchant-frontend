@@ -14,12 +14,11 @@ import { Fonts } from "@/constants/theme";
 import { useMerchant } from "@/context/MerchantContext";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { auth } from "@/lib/firebase";
-import { fetchMerchant, updateOpenStatus } from "@/services/store";
+import { fetchMerchantById, updateOpenStatus } from "@/services/store";
 
 import type { Merchant, OpenStatus, Order } from "@/types/types";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import { type User as FirebaseUser } from "firebase/auth";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -36,12 +35,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { setMerchant } = useMerchant();
   const { width } = useWindowDimensions();
   const { isLoaded, isSignedIn } = useFirebaseAuth();
 
-  const user = auth.currentUser as FirebaseUser | null;
-  const ownerUserId = user?.uid ?? null;
+  const { merchantId, merchantStatus, setMerchant } = useMerchant();
 
   const [merchant, setMerchantState] = useState<Merchant | null>(null);
   const [status, setStatus] = useState<OpenStatus>("CLOSED");
@@ -54,21 +51,25 @@ export default function HomeScreen() {
   }, [width]);
 
   const loadMerchant = useCallback(async () => {
-    if (!ownerUserId) return;
+    if (!merchantId) return;
 
     setLoading(true);
     setErrorMsg(null);
     try {
-      const m = await fetchMerchant(ownerUserId);
+      const m = await fetchMerchantById(merchantId);
       setMerchantState(m ?? null);
       setStatus(m?.openStatus ?? "CLOSED");
+
+      if (m) {
+        setMerchant(m.id, m.status);
+      }
     } catch (err: any) {
       setMerchantState(null);
       setErrorMsg(err?.message ?? "Failed to load merchant.");
     } finally {
       setLoading(false);
     }
-  }, [ownerUserId]);
+  }, [merchantId, setMerchant]);
 
   useFocusEffect(
     useCallback(() => {
@@ -78,19 +79,21 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (!isLoaded) return;
-    if (!isSignedIn) {
-      router.replace("/(landing)");
-    }
+    if (!isSignedIn) router.replace("/(landing)");
   }, [isLoaded, isSignedIn, router]);
 
   useEffect(() => {
-    if (!merchant) return;
-    setMerchant(merchant.id, merchant.status);
+    if (!isLoaded) return;
 
-    if (merchant.status === "PENDING") {
+    if (!merchantId) {
+      router.replace("/(auth)/storeInfo");
+      return;
+    }
+
+    if (merchantStatus === "PENDING") {
       router.replace("/(auth)/notifyPage");
     }
-  }, [merchant, setMerchant, router]);
+  }, [isLoaded, merchantId, merchantStatus, router]);
 
   const orders = useMemo<Order[]>(() => merchant?.orders ?? [], [merchant]);
   const preparingCount = useMemo(() => getPreparingCount(orders), [orders]);
@@ -109,9 +112,7 @@ export default function HomeScreen() {
       if (!merchant) return;
 
       setStatus(next);
-      setMerchantState((prev) =>
-        prev ? { ...prev, openStatus: next } : prev
-      );
+      setMerchantState((prev) => (prev ? { ...prev, openStatus: next } : prev));
 
       try {
         const updated = await updateOpenStatus(merchant.id, next);
@@ -127,6 +128,14 @@ export default function HomeScreen() {
   );
 
   if (!isLoaded || !isSignedIn) {
+    return (
+      <View className="flex-1 items-center justify-center">
+        <ActivityIndicator />
+      </View>
+    );
+  }
+
+  if (!merchantId) {
     return (
       <View className="flex-1 items-center justify-center">
         <ActivityIndicator />
@@ -162,7 +171,7 @@ export default function HomeScreen() {
     );
   }
 
-  if (merchant.status === "PENDING") {
+  if (merchantStatus === "PENDING" || merchant.status === "PENDING") {
     return (
       <View className="flex-1 items-center justify-center">
         <ActivityIndicator />
@@ -172,6 +181,12 @@ export default function HomeScreen() {
       </View>
     );
   }
+
+  const helloName =
+    auth.currentUser?.displayName ??
+    auth.currentUser?.email?.split("@")[0] ??
+    merchant.owner?.name ??
+    "there";
 
   return (
     <ThemedView
@@ -213,18 +228,8 @@ export default function HomeScreen() {
                 className="text-lg text-[#11181C]"
                 style={{ fontFamily: Fonts.bold }}
               >
-                Hello, {merchant.owner?.name ?? "Owner"}
+                Hello, {helloName}
               </Text>
-              {!!merchant.owner?.role && (
-                <View className="rounded-full px-3 py-1 bg-[#FECD4C]">
-                  <Text
-                    className="text-xs text-[#11181C]"
-                    style={{ fontFamily: Fonts.bold }}
-                  >
-                    {merchant.owner.role}
-                  </Text>
-                </View>
-              )}
             </View>
 
             <View className="flex-row items-center justify-between py-2 gap-3">
@@ -262,9 +267,7 @@ export default function HomeScreen() {
               footer={
                 preparingCount === 0
                   ? "No active orders right now"
-                  : `${preparingCount} order${
-                      preparingCount > 1 ? "s" : ""
-                    } in progress`
+                  : `${preparingCount} order${preparingCount > 1 ? "s" : ""} in progress`
               }
               iconBackground="#ECFDF5"
               iconColor="#26BD68"
@@ -287,10 +290,7 @@ export default function HomeScreen() {
               {loading ? (
                 <View className="gap-3 rounded-2xl p-3">
                   {[1, 2, 3].map((i) => (
-                    <View
-                      key={i}
-                      className="h-16 rounded-xl bg-[#ECFDF5]"
-                    />
+                    <View key={i} className="h-16 rounded-xl bg-[#ECFDF5]" />
                   ))}
                 </View>
               ) : popularMenu.length === 0 ? (
@@ -342,10 +342,7 @@ export default function HomeScreen() {
                 </Text>
               </View>
             ) : (
-              <FeedbackWrapper
-                reviews={reviewsFromOrders as any}
-                warnings={[]}
-              />
+              <FeedbackWrapper reviews={reviewsFromOrders as any} warnings={[]} />
             )}
           </View>
         </ScrollView>

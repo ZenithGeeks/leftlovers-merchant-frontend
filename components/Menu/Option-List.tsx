@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Pressable, Switch, Text, View } from "react-native";
+import React, { useMemo, useState } from "react";
+import { ActivityIndicator, Pressable, Switch, Text, View } from "react-native";
 import { TrashIcon } from "react-native-heroicons/outline";
 
 export type OptionItem = {
@@ -10,48 +10,36 @@ export type OptionItem = {
 };
 
 type Props = {
-  title?: string;
   options: OptionItem[];
-  maxSelect?: number;
-  onToggle?: (id: string, value: boolean) => void;
+  onToggleAvailability: (id: string, nextActive: boolean) => Promise<void>;
   onDelete?: (id: string) => void;
   deletingId?: string | null;
 };
 
 export default function OptionList({
-  title,
   options,
-  maxSelect = options.length,
-  onToggle,
+  onToggleAvailability,
   onDelete,
   deletingId,
 }: Props) {
-  const [items, setItems] = useState<OptionItem[]>(
-    () => options.map((o) => ({ ...o, active: !!o.active }))
+  const [pendingId, setPendingId] = useState<string | null>(null);
+
+  const sorted = useMemo(
+    () => options.slice(),
+    [options]
   );
 
-  const isSingleSelect = maxSelect === 1;
-
-  const handleToggle = (id: string, value: boolean) => {
-    setItems((prev) => {
-      if (isSingleSelect) {
-        const next = prev.map((i) =>
-          i.id === id ? { ...i, active: value } : { ...i, active: false }
-        );
-        onToggle?.(id, value);
-        return next;
-      }
-
-      const next = prev.map((i) => (i.id === id ? { ...i, active: value } : i));
-      const count = next.reduce((acc, itm) => acc + (itm.active ? 1 : 0), 0);
-      if (count > maxSelect) return prev;
-
-      onToggle?.(id, value);
-      return next;
-    });
+  const toggle = async (id: string, nextActive: boolean) => {
+    if (pendingId) return;
+    setPendingId(id);
+    try {
+      await onToggleAvailability(id, nextActive);
+    } finally {
+      setPendingId(null);
+    }
   };
 
-  if (!items.length) {
+  if (!sorted.length) {
     return (
       <View className="rounded-2xl p-4 bg-white shadow-sm items-center">
         <Text className="text-gray-500 text-base font-medium">No options available</Text>
@@ -62,47 +50,68 @@ export default function OptionList({
   return (
     <View className="rounded-xl p-4 bg-white">
       <View className="space-y-3">
-        {items.map((item, idx) => (
-          <View
-            key={item.id}
-            className={`flex-row items-center justify-between ${
-              idx < items.length - 1 ? "border-b border-gray-100 pb-3" : ""
-            }`}
-          >
-            {/* Left: name + price */}
-            <Pressable
-              className="flex-1 pr-3"
-              onPress={() => handleToggle(item.id, !item.active)}
-              accessibilityLabel={`toggle-${item.name}`}
+        {sorted.map((item, idx) => {
+          const isPending = pendingId === item.id;
+          const isDeleting = deletingId === item.id;
+          const disabled = isPending || isDeleting;
+
+          return (
+            <View
+              key={item.id}
+              className={`flex-row items-center justify-between pt-3 ${
+                idx < sorted.length - 1 ? "border-b border-gray-100 pb-3" : ""
+              }`}
             >
-              <Text className="text-[16px] font-medium text-gray-900">{item.name}</Text>
-              <Text className="text-[13px] text-gray-500">
-                {item.priceDelta.toFixed(2)} THB
-              </Text>
-            </Pressable>
-
-            {/* Middle: toggle */}
-            <Switch
-              accessibilityLabel={`${item.name}-switch`}
-              value={!!item.active}
-              onValueChange={(val) => handleToggle(item.id, val)}
-              trackColor={{ false: "#E5E7EB", true: "#A7F3D0" }}
-              thumbColor={item.active ? "#10B981" : "#F4F4F5"}
-            />
-
-            {/* Right: delete */}
-            {onDelete && (
               <Pressable
-                onPress={() => onDelete(item.id)}
-                className="ml-3 h-9 w-9 rounded-full bg-red-50 items-center justify-center"
-                accessibilityLabel={`delete-${item.name}`}
-                disabled={deletingId === item.id}
+                className="flex-1 pr-3"
+                onPress={() => toggle(item.id, !item.active)}
+                accessibilityLabel={`toggle-${item.name}`}
+                disabled={disabled}
               >
-                <TrashIcon size={18} color={deletingId === item.id ? "#FCA5A5" : "#EF4444"} />
+                <Text className="text-[16px] font-medium text-gray-900">
+                  {item.name}
+                </Text>
+                <Text className="text-[13px] text-gray-500">
+                  {item.priceDelta.toFixed(2)} THB
+                </Text>
+                <Text className={`text-[11px] ${item.active ? "text-emerald-600" : "text-gray-400"}`}>
+                  {item.active ? "Available" : "Unavailable"}
+                </Text>
               </Pressable>
-            )}
-          </View>
-        ))}
+
+              <View className="flex-row items-center">
+                {isPending ? (
+                  <View className="mr-3">
+                    <ActivityIndicator />
+                  </View>
+                ) : null}
+
+                <Switch
+                  accessibilityLabel={`${item.name}-switch`}
+                  value={!!item.active}
+                  onValueChange={(val) => toggle(item.id, val)}
+                  disabled={disabled}
+                  trackColor={{ false: "#E5E7EB", true: "#A7F3D0" }}
+                  thumbColor={item.active ? "#10B981" : "#F4F4F5"}
+                />
+
+                {onDelete ? (
+                  <Pressable
+                    onPress={() => onDelete(item.id)}
+                    className="ml-3 h-9 w-9 rounded-full bg-red-50 items-center justify-center"
+                    accessibilityLabel={`delete-${item.name}`}
+                    disabled={disabled}
+                  >
+                    <TrashIcon
+                      size={18}
+                      color={disabled ? "#FCA5A5" : "#EF4444"}
+                    />
+                  </Pressable>
+                ) : null}
+              </View>
+            </View>
+          );
+        })}
       </View>
     </View>
   );

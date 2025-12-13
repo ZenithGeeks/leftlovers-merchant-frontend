@@ -3,7 +3,7 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
-    "test": "jest --watchAll",
+    "test": "jest --watchAll=false",
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
@@ -12,7 +12,8 @@
     "lint": "expo lint"
   },
   "jest": {
-    "preset": "jest-expo"
+    "preset": "jest-expo",
+    "automock": false
   },
   "dependencies": {
     "@clerk/clerk-expo": "^2.19.6",

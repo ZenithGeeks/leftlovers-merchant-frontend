@@ -255,7 +255,6 @@ export default function MenuScreen() {
                     title={group.name}
                     options={group.options}
                     defaultExpanded
-                    maxSelect={group.maxSelect}
                     onAfterChange={onRefresh}
                   />
                 ))}
