@@ -1,9 +1,9 @@
 // __tests__/AddressForm.test.tsx
-import React from "react";
-import { render, fireEvent } from "@testing-library/react-native";
 import AddressForm from "@/components/store/AddressForm";
+import { fireEvent, render } from "@testing-library/react-native";
+import React from "react";
 
-jest.mock("@/components/Authen/LocationPicker.native", () => {
+jest.mock("@/components/Authen/LocationPicker", () => {
   const React = require("react");
   const { View, Text, Pressable } = require("react-native");
 
