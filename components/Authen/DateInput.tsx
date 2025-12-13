@@ -1,21 +1,21 @@
-// components/Authen/DOBPicker.tsx
+// components/Authen/DateInput.tsx
+import { FontAwesome } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { format, parse } from "date-fns";
 import React, { useState } from "react";
 import {
   Alert,
   Modal,
   Platform,
   Pressable,
+  StyleProp,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  StyleSheet,
-  StyleProp,
   ViewStyle,
 } from "react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import { format, parse } from "date-fns";
-import { FontAwesome } from "@expo/vector-icons";
 
 type DobPickerHybridProps = {
   dob: string | undefined;

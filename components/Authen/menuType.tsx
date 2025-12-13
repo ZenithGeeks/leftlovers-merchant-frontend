@@ -1,11 +1,11 @@
 import { Picker } from '@react-native-picker/picker'
 import React from 'react'
 import {
-    Modal,
-    Pressable,
-    StyleSheet,
-    Text,
-    View,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native'
 
 // NEW: Dynamic FoodType type
