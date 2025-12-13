@@ -1,50 +1,47 @@
-import AddSheet from "@/components/Menu/AddSheet";
+// __tests__/AddSheet.test.tsx
 import React from "react";
-import renderer, { act } from "react-test-renderer";
+import { render, fireEvent } from "@testing-library/react-native";
+import AddSheet from "@/components/Menu/AddSheet";
+
+jest.mock("react-native-heroicons/outline", () => ({
+  PlusIcon: () => null,
+}));
 
 describe("<AddSheet />", () => {
-  const mockClose = jest.fn();
-  const mockAddItem = jest.fn();
-  const mockAddOption = jest.fn();
+  const onClose = jest.fn();
+  const onAddItem = jest.fn();
+  const onAddOption = jest.fn();
 
-  it("renders correctly when visible", async () => {
-    type RenderJSON =
-      | renderer.ReactTestRendererJSON
-      | renderer.ReactTestRendererJSON[]
-      | null;
-
-    let tree: RenderJSON = null;
-
-    await act(async () => {
-      tree = renderer
-        .create(<AddSheet visible={true} onClose={mockClose} />)
-        .toJSON();
-    });
-
-    expect(tree).toMatchSnapshot();
+  beforeEach(() => {
+    jest.clearAllMocks();
   });
 
-  it("renders correctly with all props", async () => {
-    type RenderJSON =
-      | renderer.ReactTestRendererJSON
-      | renderer.ReactTestRendererJSON[]
-      | null;
+  it("calls onClose when backdrop pressed", () => {
+    const { getByTestId } = render(
+      <AddSheet visible onClose={onClose} />
+    );
 
-    let tree: RenderJSON = null;
+    fireEvent.press(getByTestId("backdrop"));
+    expect(onClose).toHaveBeenCalled();
+  });
 
-    await act(async () => {
-      tree = renderer
-        .create(
-          <AddSheet
-            visible={true}
-            onClose={mockClose}
-            onAddItem={mockAddItem}
-            onAddOption={mockAddOption}
-          />
-        )
-        .toJSON();
-    });
+  it("calls onClose and onAddItem", () => {
+    const { getByTestId } = render(
+      <AddSheet visible onClose={onClose} onAddItem={onAddItem} />
+    );
 
-    expect(tree).toMatchSnapshot();
+    fireEvent.press(getByTestId("add-item"));
+    expect(onClose).toHaveBeenCalled();
+    expect(onAddItem).toHaveBeenCalled();
+  });
+
+  it("calls onClose and onAddOption", () => {
+    const { getByTestId } = render(
+      <AddSheet visible onClose={onClose} onAddOption={onAddOption} />
+    );
+
+    fireEvent.press(getByTestId("add-option"));
+    expect(onClose).toHaveBeenCalled();
+    expect(onAddOption).toHaveBeenCalled();
   });
 });
