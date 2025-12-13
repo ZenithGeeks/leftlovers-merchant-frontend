@@ -1,7 +1,7 @@
 // app/(auth)/storeInfo.tsx
 
-import { getCategories } from "@/app/api/getCategories";
-import { createMerchantInfo } from "@/app/api/merchant";
+import getCategories from "@/app/api/getCategories";
+import createMerchantInfo from "@/app/api/merchant";
 import { ClickButton } from "@/components/Authen/ClickButton";
 import { InputBox } from "@/components/Authen/InputBox";
 import LocationPicker from "@/components/Authen/LocationPicker";
@@ -447,21 +447,34 @@ export default function StoreInfo() {
         </View>
 
         {/* ADDRESS */}
-        <InputBox label="Address *" value={address} onChangeText={setAddress} />
-        <InputBox label="City *" value={city} onChangeText={setCity} />
+        <InputBox
+          label="Address *"
+          placeholder="Address"
+          value={address}
+          onChangeText={setAddress}
+        />
+        <InputBox
+          label="City *"
+          placeholder="City"
+          value={city}
+          onChangeText={setCity}
+        />
         <InputBox
           label="District *"
+          placeholder="District"
           value={district}
           onChangeText={setDistrict}
         />
         <InputBox
           label="Subdistrict *"
+          placeholder="Subdistrict"
           value={subdistrict}
           onChangeText={setSubdistrict}
         />
 
         <InputBox
           label="Postal Code *"
+          placeholder="Postal Code"
           value={postalCode}
           onChangeText={(t) => setPostalCode(t.replace(/\D/g, "").slice(0, 5))}
           keyboardType="number-pad"
@@ -485,8 +498,14 @@ export default function StoreInfo() {
         )}
 
         {/* BUSINESS HOURS */}
-        <View style={{ marginTop: 5, marginBottom: -45 }}>
+        <View
+          style={{ marginTop: 5, marginBottom: -45 }}
+          accessible
+        >
           <Text
+            testID="business-hours-title"
+            accessibilityLabel="business-hours-title"
+            accessible
             style={{
               marginBottom: -10,
               fontSize: 15,
@@ -496,7 +515,6 @@ export default function StoreInfo() {
           >
             Business Hours *
           </Text>
-
           <AuthBusinessHoursForm
             hours={hours}
             error={null}

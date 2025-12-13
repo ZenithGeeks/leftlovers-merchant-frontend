@@ -29,7 +29,7 @@ export default function Index() {
         </Text>
 
         <Image
-          source={require("../../assets/images/logo.jpg")}
+          source={require("../../assets/images/logo.png")}
           style={{
             width: 450,
             height: 450,
@@ -58,21 +58,26 @@ export default function Index() {
         </Text>
       </View>
 
-      <View style={{ flexDirection: "row", gap: 12, justifyContent: "center", padding: 10 }}>
-        <Link href="/(auth)/signin" asChild>
-          <TouchableOpacity
-            style={{
-              paddingVertical: 10,
-              paddingHorizontal: 16,
-              borderRadius: 10,
-              borderWidth: 1,
-              borderColor: "#2EA44F",
-            }}
-          >
-            <Text style={{ color: "#2EA44F", fontWeight: "700" }}>Start Your Journey</Text>
-          </TouchableOpacity>
-        </Link>
-      </View>
+  <View style={{ flexDirection: "row", gap: 12, justifyContent: "center", padding: 10 }}>
+    <Link href="/(auth)/signin" asChild>
+      <TouchableOpacity
+        testID="start-journey-button"
+        accessibilityLabel="start-journey-button"
+        accessible
+        style={{
+          paddingVertical: 10,
+          paddingHorizontal: 16,
+          borderRadius: 10,
+          borderWidth: 1,
+          borderColor: "#2EA44F",
+        }}
+      >
+        <Text style={{ color: "#2EA44F", fontWeight: "700" }}>
+          Start Your Journey
+        </Text>
+      </TouchableOpacity>
+    </Link>
+  </View>
     </SafeAreaView>
   );
 }

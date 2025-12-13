@@ -10,7 +10,7 @@ const PATHS = {
   updateMerchant: (id: string) => `/api/merchant/user/${id}`,
 };
 
-export async function createMerchantInfo(
+export default async function createMerchantInfo(
   payload: CreateMerchantBody
 ) {
   return postJSON<{ message?: string; merchant?: any }>(
