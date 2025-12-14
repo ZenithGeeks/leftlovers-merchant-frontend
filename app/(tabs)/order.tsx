@@ -1,4 +1,3 @@
-import { useFocusEffect } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -16,6 +15,7 @@ import { SPACING } from "@/constants/theme";
 import { useMerchant } from "@/context/MerchantContext";
 import { fetchMerchantOrders } from "@/services/order";
 import type { Order, OrderStatus } from "@/types/types";
+import { useFocusEffect } from "expo-router";
 
 type OrderTab = "PENDING" | "READY" | "HISTORY";
 
@@ -135,7 +135,7 @@ export default function OrderPage() {
     []
   );
 
-  useFocusEffect(
+useFocusEffect(
   useCallback(() => {
     if (!merchantId) return;
     loadOrders(merchantId);

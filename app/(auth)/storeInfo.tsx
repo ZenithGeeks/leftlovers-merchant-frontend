@@ -17,7 +17,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { type User as FirebaseUser } from "firebase/auth";
 import React from "react";
-import { Alert, ScrollView, Text, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import AuthBusinessHoursForm, {
@@ -400,12 +400,20 @@ export default function StoreInfo() {
   // ------------------------------
   // UI
   // ------------------------------
-
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
+return (
+  <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
+    >
       <ScrollView
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ padding: 28, paddingBottom: 40 }}
+        contentContainerStyle={{
+          padding: 28,
+          paddingBottom: 60,
+          flexGrow: 1,
+        }}
       >
         <Text style={{ fontSize: 24, fontWeight: "700", textAlign: "center" }}>
           Tell us about your store
@@ -435,7 +443,7 @@ export default function StoreInfo() {
         />
 
         {/* LOCATION */}
-        <View style={{ marginTop: 15, marginBottom: -15 }}>
+        <View style={{ marginTop: 15 }}>
           <LocationPicker
             lat={lat}
             lng={lng}
@@ -447,34 +455,17 @@ export default function StoreInfo() {
         </View>
 
         {/* ADDRESS */}
-        <InputBox
-          label="Address *"
-          placeholder="Address"
-          value={address}
-          onChangeText={setAddress}
-        />
-        <InputBox
-          label="City *"
-          placeholder="City"
-          value={city}
-          onChangeText={setCity}
-        />
-        <InputBox
-          label="District *"
-          placeholder="District"
-          value={district}
-          onChangeText={setDistrict}
-        />
+        <InputBox label="Address *" value={address} onChangeText={setAddress} />
+        <InputBox label="City *" value={city} onChangeText={setCity} />
+        <InputBox label="District *" value={district} onChangeText={setDistrict} />
         <InputBox
           label="Subdistrict *"
-          placeholder="Subdistrict"
           value={subdistrict}
           onChangeText={setSubdistrict}
         />
 
         <InputBox
           label="Postal Code *"
-          placeholder="Postal Code"
           value={postalCode}
           onChangeText={(t) => setPostalCode(t.replace(/\D/g, "").slice(0, 5))}
           keyboardType="number-pad"
@@ -483,11 +474,9 @@ export default function StoreInfo() {
           }
         />
 
-        {/* CATEGORY PICKER */}
+        {/* CATEGORY */}
         {loadingCategories ? (
-          <Text style={{ color: "#6B7280", marginBottom: 10 }}>
-            Loading food types…
-          </Text>
+          <Text style={{ color: "#6B7280" }}>Loading food types…</Text>
         ) : (
           <FoodTypePicker
             value={foodType}
@@ -498,21 +487,8 @@ export default function StoreInfo() {
         )}
 
         {/* BUSINESS HOURS */}
-        <View
-          style={{ marginTop: 5, marginBottom: -45 }}
-          accessible
-        >
-          <Text
-            testID="business-hours-title"
-            accessibilityLabel="business-hours-title"
-            accessible
-            style={{
-              marginBottom: -10,
-              fontSize: 15,
-              fontWeight: "500",
-              color: "#11181C",
-            }}
-          >
+        <View style={{ marginTop: 20 }}>
+          <Text style={{ fontSize: 15, fontWeight: "500" }}>
             Business Hours *
           </Text>
           <AuthBusinessHoursForm
@@ -557,38 +533,38 @@ export default function StoreInfo() {
           }
         />
 
-        {/* Save Button */}
-        <View style={{ marginTop: 20 }}>
+        <View style={{ marginTop: 30 }}>
           <ClickButton
             label={saving ? "Saving…" : "Save information"}
             onPress={onSave}
             disabled={!canSave || saving}
           />
         </View>
-
-        <ProcessingScreen
-          visible={saving}
-          title="Setting up your store"
-          description="We’re uploading your documents and saving your merchant profile."
-          helperText="This may take a few moments, especially with large images. Please keep this screen open."
-          cancellable={false}
-        />
       </ScrollView>
+    </KeyboardAvoidingView>
 
-      {/* TIME PICKER MODAL */}
-      <TimePickerModal
-        visible={pickerOpen}
-        value={currentValue}
-        onChange={setTime}
-        onClose={closePicker}
-        title={
-          pickerTarget
-            ? `${DAY_META[pickerTarget.index].ui} - ${
-                pickerTarget.field === "open" ? "Open" : "Close"
-              } time`
-            : "Select time"
-        }
-      />
-    </SafeAreaView>
-  );
+    {/* ⬇️ MUST be OUTSIDE ScrollView */}
+    <ProcessingScreen
+      visible={saving}
+      title="Setting up your store"
+      description="We’re uploading your documents and saving your merchant profile."
+      helperText="This may take a few moments."
+      cancellable={false}
+    />
+
+    <TimePickerModal
+      visible={pickerOpen}
+      value={currentValue}
+      onChange={setTime}
+      onClose={closePicker}
+      title={
+        pickerTarget
+          ? `${DAY_META[pickerTarget.index].ui} - ${
+              pickerTarget.field === "open" ? "Open" : "Close"
+            } time`
+          : "Select time"
+      }
+    />
+  </SafeAreaView>
+);
 }
