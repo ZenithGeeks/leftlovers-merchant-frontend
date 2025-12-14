@@ -1,0 +1,22 @@
+appId: com.earthwttw.leftloversmerchantfronend
+tags:
+  - employee
+---
+- tapOn: Employees, tab, 5 of 5
+- assertVisible: Your employees
+- tapOn: + Add
+- tapOn: Enter full name
+- inputText: 'Earth'
+- hideKeyboard
+- tapOn: Choose a username
+- inputText: 'wttw'
+- hideKeyboard
+- tapOn: name@example.com
+- inputText: 'earthwittawat2005@gmail.com'
+- pressKey: Enter
+- tapOn: 08x-xxx-xxxx
+- inputText: '0843333333'
+- pressKey: Enter
+- tapOn: submit-add-employee
+
+

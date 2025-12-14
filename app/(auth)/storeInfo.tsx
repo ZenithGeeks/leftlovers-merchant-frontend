@@ -447,6 +447,7 @@ export default function StoreInfo() {
         </View>
 
         {/* ADDRESS */}
+<<<<<<< Updated upstream
         <InputBox
           label="Address *"
           placeholder="Address"
@@ -465,7 +466,13 @@ export default function StoreInfo() {
           value={district}
           onChangeText={setDistrict}
         />
+=======
+        <InputBox label="Address *" placeholder="Address" value={address} onChangeText={setAddress} />
+        <InputBox label="City *" placeholder="City" value={city} onChangeText={setCity} />
+        <InputBox label="District *" placeholder="District" value={district} onChangeText={setDistrict} />
+>>>>>>> Stashed changes
         <InputBox
+          placeholder="Subdistrict"
           label="Subdistrict *"
           placeholder="Subdistrict"
           value={subdistrict}
@@ -498,6 +505,7 @@ export default function StoreInfo() {
         )}
 
         {/* BUSINESS HOURS */}
+<<<<<<< Updated upstream
         <View
           style={{ marginTop: 5, marginBottom: -45 }}
           accessible
@@ -513,6 +521,10 @@ export default function StoreInfo() {
               color: "#11181C",
             }}
           >
+=======
+        <View style={{ marginTop: 20 }}>
+          <Text style={{ fontSize: 15, fontWeight: "500" }} testID="business-hours-title" accessibilityLabel="business-hour-text">
+>>>>>>> Stashed changes
             Business Hours *
           </Text>
           <AuthBusinessHoursForm

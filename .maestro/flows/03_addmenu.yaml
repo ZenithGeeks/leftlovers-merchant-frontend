@@ -1,0 +1,60 @@
+appId: com.earthwttw.leftloversmerchantfronend
+tags:
+  - menu
+---
+- tapOn: Menu, tab, 3 of 5
+- tapOn: Items-tab
+- tapOn:
+    id: fab
+- tapOn: Add Item, Create a new menu item
+- tapOn: Enter the name of this item
+- inputText: 'Hot Latte'
+- pressKey: Enter
+- tapOn: Upload PNG/JPEG
+- extendedWaitUntil:
+    visible: randText
+    optional: true
+    timeout: 5000
+- tapOn: Photo, 30 October, 21:04
+- tapOn: Upload PNG/JPEG
+- extendedWaitUntil:
+    visible: randText
+    optional: true
+    timeout: 3000
+- tapOn: Photo, 04 December, 11:36
+- scroll
+- tapOn: expire-date-button
+- tapOn: "30"
+- tapOn: Done
+- tapOn: input-description Enter a description
+- inputText: "Hot Latte House Blend"
+- hideKeyboard
+- doubleTapOn:
+    id: quantity-stepper-increment
+    delay: 100
+- tapOn: THB
+- inputText: "25"
+- pressKey: Enter
+- tapOn:
+    text: THB
+    index: 1
+- inputText: "50"
+- pressKey: Enter
+- tapOn: open-option-groups
+- tapOn: Sweetness
+- tapOn: Apply
+- tapOn:
+    text: 0%
+    index: 2
+- assertVisible: Saving your menu item
+- tapOn: OK
+- tapOn: unchecked
+
+
+
+
+
+
+
+
+  

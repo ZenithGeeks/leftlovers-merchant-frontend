@@ -1,0 +1,13 @@
+appId: com.earthwttw.leftloversmerchantfronend
+tags:
+  - Order
+---
+- tapOn: Order, tab, 2 of 5
+- assertVisible: Order
+- assertVisible: Pending-tab
+- tapOn:
+    point: 81%,27%
+- tapOn: Mark Ready
+- tapOn: Ready-tab
+- assertVisible: Picked up
+

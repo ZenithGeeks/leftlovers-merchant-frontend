@@ -1,0 +1,75 @@
+appId: com.earthwttw.leftloversmerchantfronend
+---
+- launchApp:
+    clearState: true
+- assertNotVisible:
+    id: SplashScreenLogo
+- tapOn: start-journey-button
+- tapOn: "Enter your email"
+- inputText: "earthwittawat2005@gmail.com"
+- pressKey: "Enter"
+- tapOn: "Enter your password"
+- inputText: "_Test12345"
+- pressKey: "Enter"
+- tapOn: "e.g. WakeUp"
+- inputText: "Leftlovers Store"
+- pressKey: "Enter"
+- tapOn: "Address"
+- inputText: "126, Pracha Uthit"
+- pressKey: "Enter"
+- tapOn: "City"
+- inputText: "Bangkok"
+- pressKey: "Enter"
+- tapOn: "District"
+- inputText: "Thung Khru"
+- pressKey: "Enter"
+- tapOn: "Subdistrict"
+- inputText: "Bang Mot"
+- pressKey: "Enter"
+- scrollUntilVisible:
+    element:
+      id: "business-hours-title"
+    direction: "DOWN"
+- tapOn: "Postal Code"
+- inputText: "10140"
+- pressKey: "Enter"
+- tapOn: "Vietnamese, ▾"
+- tapOn: "Done"
+- scroll
+- tapOn:
+    text: CLOSED
+    index: 2
+- scroll
+- tapOn:
+    text: Upload PDF
+- extendedWaitUntil:
+    visible: randText
+    optional: true
+    timeout: 5000
+- tapOn:
+    point: 50%,25%
+    optional: true
+    delay: 3000
+- tapOn:
+    text: Upload PDF / Image
+- extendedWaitUntil:
+    visible: randText
+    optional: true
+    timeout: 3000
+- tapOn:
+    point: 50%,25%
+    optional: true
+    delay: 3000
+- tapOn:
+    text: Upload Images
+- extendedWaitUntil:
+    visible: randText
+    optional: true
+    timeout: 4000
+- tapOn: Photo, 30 October, 21:04
+- tapOn: Done
+- scroll
+- tapOn: Save information
+- assertVisible: "Setting up your store"
+- assertVisible: Please wait while we review your application. You’ll get a notification once it’s approved.
+- tapOn: Finish

@@ -1,0 +1,16 @@
+appId: com.earthwttw.leftloversmerchantfronend
+tags:
+  - signin
+---
+- launchApp:
+    clearState: true
+- assertNotVisible:
+    id: SplashScreenLogo
+- tapOn: start-journey-button
+- tapOn: "Enter your email"
+- inputText: "earthwittawat2005@gmail.com"
+- pressKey: "Enter"
+- tapOn: "Enter your password"
+- inputText: "_Test12345"
+- pressKey: "Enter"
+- assertVisible: Hello, Vitawat Kitipatthavorn

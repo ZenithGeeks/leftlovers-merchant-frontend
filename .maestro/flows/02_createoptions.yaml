@@ -1,0 +1,51 @@
+appId: com.earthwttw.leftloversmerchantfronend
+tags:
+  - options
+---
+- tapOn: Home, tab, 1 of 5
+- tapOn: Menu, tab, 3 of 5
+- tapOn: Options-tab
+- tapOn:
+    id: fab
+- tapOn: Add Option, Add selectable options
+- tapOn: Enter group name (e.g., Sweetness)
+- inputText: Sweetness
+- pressKey: "Enter"
+- tapOn: stepper-increment
+- tapOn: Enter selection name (e.g., 100%, Oat Milk)
+- inputText: "100%"
+- pressKey: "Enter"
+- tapOn: Price delta (optional)
+- inputText: "0"
+- pressKey: "Enter"
+- tapOn: add-selection
+- tapOn:
+    text: Enter selection name (e.g., 100%, Oat Milk)
+    index: 1
+- inputText: "50%"
+- pressKey: "Enter"
+- tapOn:
+    text: Price delta (optional)
+    index: 1
+- inputText: "0"
+- pressKey: "Enter"
+- tapOn: add-selection
+- scroll
+- tapOn:
+    text: Enter selection name (e.g., 100%, Oat Milk)
+    index: 2
+- inputText: "0%"
+- pressKey: "Enter"
+- tapOn:
+    text: Price delta (optional)
+    index: 2
+- inputText: "0"
+- pressKey: "Enter"
+- tapOn: done
+- tapOn: OK
+- assertVisible: Sweetness
+- assertVisible: toggle-100%
+- assertVisible: toggle-50%
+- assertVisible: toggle-0%
+
+

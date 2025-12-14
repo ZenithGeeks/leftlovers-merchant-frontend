@@ -228,7 +228,7 @@ export default function HomeScreen() {
                 className="text-lg text-[#11181C]"
                 style={{ fontFamily: Fonts.bold }}
               >
-                Hello, {helloName}
+                Hello, {merchant.owner?.name}
               </Text>
             </View>
 
